@@ -20,7 +20,14 @@ export function renderQuestions(
         if (question?.questionType?.conf?.length > 0) {
             let elementContainer: HTMLElement = document.createElement("div");
             elementContainer.classList.add("magicfeedback-div");
-            question.questionType.conf.forEach((conf: any) => conf.ref = question.ref);
+            question.questionType.conf.forEach((conf: any) => {
+                conf.ref = question.ref
+                if (typeof question.assets?.placeholder !== 'string' && question.assets?.placeholder[conf.id]) {
+                    conf.assets = {
+                        placeholder: question.assets?.placeholder[conf.id],
+                    }
+                }
+            });
             const elements = renderQuestions(question.questionType.conf, format, language);
             elements.forEach((element) => {
                 elementContainer.appendChild(element);
