@@ -43,6 +43,7 @@ export class Form {
     public progress: number;
     public total: number;
     public completed: boolean;
+    public timeToCompleted: number;
 
     /**
      *
@@ -93,6 +94,7 @@ export class Form {
         this.progress = 0;
         this.total = 0;
         this.completed = false;
+        this.timeToCompleted = 0;
     }
 
     /**
@@ -153,7 +155,7 @@ export class Form {
             // Clear questions without status ACTIVE
             resData.questions = resData.questions?.filter((q: NativeQuestion) => q.status === 'ACTIVE') || [];
             resData.pages = resData.pages?.filter((p: Page) => p.status === 'ACTIVE') || [];
-            resData.pages?.forEach((p: Page) => p.integrationQuestions = p.integrationQuestions.filter((q: NativeQuestion) => q.status === 'ACTIVE'));
+            resData.pages?.forEach((p: Page) => p.integrationQuestions = p.integrationQuestions?.filter((q: NativeQuestion) => q.status === 'ACTIVE')) || [];
 
 
             this.formData = resData as FormData;
@@ -332,6 +334,9 @@ export class Form {
                     this.send()
                 });
             }
+
+            // init time to complete
+            this.timeToCompleted = new Date().getTime();
 
             // Send the data to manage loadings and progress
             if (this.formOptionsConfig.onLoadedEvent) {
@@ -650,6 +655,8 @@ export class Form {
 
     public async finish() {
         this.completed = true;
+        this.timeToCompleted = new Date().getTime() - this.timeToCompleted;
+        this.feedback.metadata.push({key: "time-to-complete", value: [this.timeToCompleted.toString()]});
         if (this.formOptionsConfig.addSuccessScreen) {
             const container = document.getElementById("magicfeedback-container-" + this.appId) as HTMLElement;
             // Remove the form
