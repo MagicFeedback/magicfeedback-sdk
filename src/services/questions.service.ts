@@ -1535,11 +1535,11 @@ function createRatingPlaceholder(
     }
 
     if (order === 'ltr') {
-        ratingPlaceholder.appendChild(ratingPlaceholderMin);
-        ratingPlaceholder.appendChild(ratingPlaceholderMax);
+        if (minPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMin);
+        if (maxPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMax);
     } else {
-        ratingPlaceholder.appendChild(ratingPlaceholderMax);
-        ratingPlaceholder.appendChild(ratingPlaceholderMin);
+        if (maxPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMax);
+        if (minPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMin);
     }
 
     return ratingPlaceholder
