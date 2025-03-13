@@ -326,7 +326,7 @@ function renderContainer(
                 input.id = `rating-${ref}-${index}`;
                 input.type = "radio";
                 input.name = ref;
-                input.value = option;
+                input.value = value[index];
                 input.classList.add(elementTypeClass);
                 input.classList.add("magicfeedback-input");
                 input.style.position = "absolute";
