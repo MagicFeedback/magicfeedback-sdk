@@ -6,6 +6,14 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [1.4.2] - 2025-03-18
+- Click and next question: Added a new feature that allows users to click on the question to go to the next question.
+- Rating: Option Vertical & Order: Added a new feature that allows users to change the order of the rating options.
+- Fixed bugs:
+    - Fixed bug in rating placeholders
+    - Fixed error on load and get time to completed
+    - Fixed multi question bug performance
+
 ## 🚀 [1.3.5] - 2024-12-09
 - Updated progress count in the progress bar by conditional logic.
 - Fixed bugs:
