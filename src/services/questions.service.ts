@@ -48,7 +48,7 @@ export function renderQuestions(
         } else {
             // Create a container for each question
             const url = `${defaultUrl}${customIcons ? `/${id}` : ''}`;
-            const elementContainer = renderContainer(question, format, language, url, send);
+            const elementContainer = renderContainer(question, format, language, url, appQuestions.length === 1 ? send : undefined);
             questions.push(elementContainer);
         }
     });
@@ -130,6 +130,8 @@ function renderContainer(
     let elementContainer: HTMLElement = document.createElement("div");
     elementContainer.classList.add("magicfeedback-div");
 
+    const isPhone = window.innerWidth < 600;
+
     const placeholderText = format === 'slim' ? parseTitle(title, language) : assets?.placeholder
 
     // Look if exist the value in a query param with the ref like a key
@@ -137,15 +139,19 @@ function renderContainer(
 
     const maxCharacters = assets?.maxCharacters || 0
     const randomPosition = assets?.randomPosition === undefined ? false : assets?.randomPosition;
+    const direction = assets?.direction || "row";
+    const order = assets?.order || "ltr";
 
     switch (type) {
         case FEEDBACKAPPANSWERTYPE.TEXT:
             // Create a text input field
             element = document.createElement("input");
             (element as HTMLInputElement).type = "text";
-            (element as HTMLInputElement).placeholder = placeholderText || placeholder.answer(language || 'en')
-
-            ;
+            (element as HTMLInputElement).placeholder = placeholderText || placeholder.answer(language || 'en');
+            // Control on press enter
+            (element as HTMLInputElement).addEventListener("keyup", (event) => {
+                if (event.key === "Enter" && send) send();
+            });
             elementTypeClass = "magicfeedback-text";
             break;
         case FEEDBACKAPPANSWERTYPE.LONGTEXT:
@@ -218,6 +224,15 @@ function renderContainer(
                         if (checkboxes.length > assets?.maxOptions) {
                             (input as HTMLInputElement).checked = false;
                         }
+
+                        if (send && checkboxes.length === assets?.maxOptions) {
+                            send()
+                        }
+                    });
+                }
+                if (type === FEEDBACKAPPANSWERTYPE.RADIO && send) {
+                    input.addEventListener("change", () => {
+                        send()
                     });
                 }
 
@@ -313,7 +328,7 @@ function renderContainer(
                 input.id = `rating-${ref}-${index}`;
                 input.type = "radio";
                 input.name = ref;
-                input.value = option;
+                input.value = value[index];
                 input.classList.add(elementTypeClass);
                 input.classList.add("magicfeedback-input");
                 input.style.position = "absolute";
@@ -343,7 +358,13 @@ function renderContainer(
             const maxRating = assets?.max ? Number(assets?.max) : 5;
             const minRating = assets?.min ? Number(assets?.min) : 1;
 
-            const ratingPlaceholder = createRatingPlaceholder(minRating, maxRating, assets?.minPlaceholder, assets?.maxPlaceholder, assets?.extraOption);
+            const ratingPlaceholder = createRatingPlaceholder(
+                minRating,
+                maxRating,
+                assets?.minPlaceholder,
+                assets?.maxPlaceholder,
+                assets?.extraOption,
+            );
 
             for (let i = minRating; i <= maxRating; i++) {
                 const ratingOption = document.createElement('div');
@@ -402,6 +423,12 @@ function renderContainer(
                 input.classList.add(elementTypeClass);
                 input.classList.add("magicfeedback-input");
 
+                if (send) {
+                    input.addEventListener("change", () => {
+                        send();
+                    });
+                }
+
                 containerLabel.appendChild(input);
                 containerLabel.appendChild(ratingImage);
                 containerLabel.appendChild(ratingLabel);
@@ -436,6 +463,12 @@ function renderContainer(
                 input.classList.add(elementTypeClass);
                 input.classList.add("magicfeedback-input");
 
+                if (send) {
+                    input.addEventListener("change", () => {
+                        send();
+                    });
+                }
+
                 containerLabel.appendChild(input);
                 containerLabel.appendChild(ratingImage);
                 containerLabel.appendChild(ratingLabel);
@@ -451,26 +484,71 @@ function renderContainer(
             element = document.createElement("div");
             elementTypeClass = 'magicfeedback-rating-number';
 
+            const numberContainerDirection = order === 'ltr' ? direction : `${direction}-reverse`;
             const ratingNumberContainer = document.createElement('div');
             ratingNumberContainer.classList.add('magicfeedback-rating-number-container');
+            ratingNumberContainer.classList.add(`magicfeedback-rating-number-container-${order}`);
+            ratingNumberContainer.classList.add(`magicfeedback-rating-number-container-${direction}`);
+            ratingNumberContainer.style.display = "flex";
+            ratingNumberContainer.style.flexDirection = numberContainerDirection;
 
-            const maxRatingNumber = assets?.max ? Number(assets?.max) : 5;
-            const minRatingNumber = assets?.min ? Number(assets?.min) : 1;
 
-            const ratingNumberPlaceholder = createRatingPlaceholder(minRatingNumber, maxRatingNumber, assets?.minPlaceholder, assets?.maxPlaceholder, assets?.extraOption);
+            const maxRatingNumber = assets?.max ? Number(assets?.max) : 10;
+            const minRatingNumber = assets?.min ? Number(assets?.min) : 0;
+
+            const ratingNumberPlaceholder = createRatingPlaceholder(
+                minRatingNumber,
+                maxRatingNumber,
+                assets?.minPlaceholder,
+                assets?.maxPlaceholder,
+                assets?.extraOption,
+                true,
+                order,
+                direction
+            );
+
+            /*
+            if (isPhone || direction === 'column') {
+                const topText = order === 'ltr' ? assets?.minPlaceholder : assets?.maxPlaceholder;
+                if (topText) {
+                    const topPlaceholderContainer = document.createElement('div');
+                    topPlaceholderContainer.style.display = 'flex';
+                    topPlaceholderContainer.style.flexDirection = 'column';
+                    topPlaceholderContainer.style.width = '100%';
+                    topPlaceholderContainer.style.alignItems = 'center';
+                    topPlaceholderContainer.style.justifyContent = 'center';
+                    topPlaceholderContainer.style.margin = '5px 0';
+
+                    const topPlaceholder = document.createElement('label');
+                    topPlaceholder.classList.add('magicfeedback-rating-number-top-placeholder');
+                    topPlaceholder.textContent = topText;
+                    topPlaceholder.style.textAlign = 'center';
+
+                    topPlaceholderContainer.appendChild(topPlaceholder);
+                    element.appendChild(topPlaceholderContainer);
+                }
+            }
+            */
 
             for (let i = minRatingNumber; i <= maxRatingNumber; i++) {
                 // Create a input button element for each value in the question's value array
                 const ratingOption = document.createElement('div');
                 ratingOption.classList.add('magicfeedback-rating-number-option');
+                ratingOption.classList.add(`magicfeedback-rating-number-option-${direction}`);
 
                 const containerLabel = document.createElement('label');
                 containerLabel.htmlFor = `rating-${ref}-${i}`;
                 containerLabel.classList.add('magicfeedback-rating-number-option-label-container');
 
+                let inputText = i.toString();
+
+                if ((isPhone || direction === 'column') && i === minRatingNumber && assets?.minPlaceholder) inputText += ` = ${assets?.minPlaceholder}`;
+                if ((isPhone || direction === 'column') && i === maxRatingNumber && assets?.maxPlaceholder) inputText += ` = ${assets?.maxPlaceholder}`;
+
                 const ratingLabel = document.createElement('label');
                 ratingLabel.htmlFor = `rating-${ref}-${i}`;
-                ratingLabel.textContent = i.toString();
+                ratingLabel.textContent = inputText;
+
 
                 const input = document.createElement("input");
                 input.id = `rating-${ref}-${i}`;
@@ -479,6 +557,12 @@ function renderContainer(
                 input.value = i.toString();
                 input.classList.add(elementTypeClass);
                 input.classList.add("magicfeedback-input");
+
+                if (send) {
+                    input.addEventListener("change", () => {
+                        send();
+                    });
+                }
 
                 containerLabel.appendChild(input);
                 containerLabel.appendChild(ratingLabel);
@@ -506,21 +590,49 @@ function renderContainer(
                 input.classList.add(elementTypeClass);
                 input.classList.add("magicfeedback-input");
 
+                if (send) {
+                    input.addEventListener("change", () => {
+                        send();
+                    });
+                }
+
                 containerLabel.appendChild(input);
                 containerLabel.appendChild(ratingLabel);
                 extraOption.appendChild(containerLabel);
                 ratingNumberContainer.appendChild(extraOption);
             }
 
-            element.appendChild(ratingNumberPlaceholder);
+
+            if (!(isPhone || direction === 'column')) element.appendChild(ratingNumberPlaceholder);
             element.appendChild(ratingNumberContainer);
+            /*
+            if (isPhone || direction === 'column') {
+                const bottomText = order === 'ltr' ? assets?.maxPlaceholder : assets?.minPlaceholder;
+                if (bottomText) {
+                    const bottomPlaceholderContainer = document.createElement('div');
+                    bottomPlaceholderContainer.style.display = 'flex';
+                    bottomPlaceholderContainer.style.flexDirection = 'column';
+                    bottomPlaceholderContainer.style.width = '100%';
+                    bottomPlaceholderContainer.style.alignItems = 'center';
+                    bottomPlaceholderContainer.style.justifyContent = 'center';
+                    bottomPlaceholderContainer.style.margin = '5px 0';
+                    const bottomPlaceholder = document.createElement('label');
+                    bottomPlaceholder.classList.add('magicfeedback-rating-number-bottom-placeholder');
+                    bottomPlaceholder.textContent = bottomText;
+                    bottomPlaceholder.style.textAlign = 'center';
+
+                    bottomPlaceholderContainer.appendChild(bottomPlaceholder);
+                    element.appendChild(bottomPlaceholderContainer);
+                }
+            }
+            */
 
             break;
         case FEEDBACKAPPANSWERTYPE.RATING_STAR:
             element = document.createElement("div");
             elementTypeClass = 'magicfeedback-rating-star';
 
-            const ratingStarContainer = createStarRating(ref, assets?.minPlaceholder, assets?.maxPlaceholder);
+            const ratingStarContainer = createStarRating(ref, assets?.minPlaceholder, assets?.maxPlaceholder, send);
 
             element.appendChild(ratingStarContainer);
             break;
@@ -623,6 +735,15 @@ function renderContainer(
                 input.style.height = "0";
                 input.classList.add("magicfeedback-input");
 
+                console.log('send', send)
+                console.log('multiOptions', multiOptions)
+                if (!multiOptions && send){
+                    input.addEventListener("change", () => {
+                        console.log('send')
+                        send();
+                    });
+                }
+
                 // Add max size to the image
                 const image = document.createElement("img");
                 image.classList.add("magicfeedback-multiple-choice-image-image");
@@ -675,6 +796,12 @@ function renderContainer(
                 option.text = optionValue;
                 (element as HTMLSelectElement).appendChild(option);
             });
+
+            if (send) {
+                element.addEventListener("change", () => {
+                    send();
+                });
+            }
             break;
         case FEEDBACKAPPANSWERTYPE.DATE:
             // Create an input element with type "date" for DATE type
@@ -696,6 +823,12 @@ function renderContainer(
             (element as HTMLInputElement).required = require;
             element.classList.add("magicfeedback-consent");
             element.classList.add("magicfeedback-input");
+
+            if (send) {
+                element.addEventListener("change", () => {
+                    send();
+                });
+            }
             break;
         case FEEDBACKAPPANSWERTYPE.EMAIL:
             // Create an input element with type "email" for EMAIL type
@@ -1284,7 +1417,12 @@ export function renderActions(identity: string = '',
     return actionContainer;
 }
 
-function createStarRating(ref: string, minPlaceholder: string, maxPlaceholder: string) {
+function createStarRating(
+    ref: string,
+    minPlaceholder: string,
+    maxPlaceholder: string,
+    send: () => void = () => {}
+) {
     const size = 40;
     const selectedClass = "magicfeedback-rating-star-selected";
     const starFilled = "★";
@@ -1322,6 +1460,8 @@ function createStarRating(ref: string, minPlaceholder: string, maxPlaceholder: s
                     if (allStars[j].classList.contains(selectedClass)) allStars[j].classList.remove(selectedClass);
                 }
             }
+
+            if (send) send();
         });
 
         ratingOption.appendChild(ratingInput);
@@ -1351,13 +1491,18 @@ function createRatingPlaceholder(
     minPlaceholder: string,
     maxPlaceholder: string,
     extraOption: boolean,
-    mobile: boolean = true
+    mobile: boolean = true,
+    order = 'ltr',
+    direction = 'row'
 ) {
     const ratingPlaceholder = document.createElement('div');
     ratingPlaceholder.classList.add('magicfeedback-rating-placeholder');
     ratingPlaceholder.style.display = "flex";
+    ratingPlaceholder.style.flexDirection = direction;
+    ratingPlaceholder.style.alignItems = "center";
     ratingPlaceholder.style.justifyContent = "space-between";
     ratingPlaceholder.style.width = extraOption ? `calc(100% - (100% / ${max + 1}))` : "100%";
+
     ratingPlaceholder.style.marginRight = "auto";
 
     if (mobile && window.innerWidth < 600) ratingPlaceholder.style.flexDirection = "column";
@@ -1366,33 +1511,38 @@ function createRatingPlaceholder(
     ratingPlaceholderMin.textContent = minPlaceholder;
     ratingPlaceholderMin.classList.add('magicfeedback-rating-placeholder-value');
     ratingPlaceholderMin.style.fontSize = "15px";
-    ratingPlaceholderMin.style.textAlign = "left";
+    ratingPlaceholderMin.style.textAlign = order === 'ltr' ? "left" : "right";
     ratingPlaceholderMin.style.width = `50%`;
 
-    if (mobile && window.innerWidth < 600) {
-        ratingPlaceholderMin.textContent = `${min} ➜ ${minPlaceholder}`;
+    if (mobile && window.innerWidth < 600 || direction === 'column') {
+        ratingPlaceholderMin.textContent = `${min} = ${minPlaceholder}`;
         ratingPlaceholderMin.style.width = '100%'
         ratingPlaceholderMin.style.textAlign = "left";
         ratingPlaceholderMin.style.marginBottom = "5px";
     }
 
-    ratingPlaceholder.appendChild(ratingPlaceholderMin);
 
     const ratingPlaceholderMax = document.createElement('span');
     ratingPlaceholderMax.textContent = maxPlaceholder;
     ratingPlaceholderMax.classList.add('magicfeedback-rating-placeholder-value');
     ratingPlaceholderMax.style.fontSize = "15px";
-    ratingPlaceholderMax.style.textAlign = "right";
+    ratingPlaceholderMax.style.textAlign = order === 'ltr' ? "right" : "left";
     ratingPlaceholderMax.style.width = `50%`;
 
-    if (mobile && window.innerWidth < 600) {
-        ratingPlaceholderMax.textContent = `${max} ➜ ${maxPlaceholder}`;
+    if (mobile && window.innerWidth < 600 || direction === 'column') {
+        ratingPlaceholderMax.textContent = `${max} = ${maxPlaceholder}`;
         ratingPlaceholderMax.style.width = '100%'
         ratingPlaceholderMax.style.textAlign = "left";
         ratingPlaceholderMax.style.marginBottom = "5px";
     }
 
-    ratingPlaceholder.appendChild(ratingPlaceholderMax);
+    if (order === 'ltr') {
+        if (minPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMin);
+        if (maxPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMax);
+    } else {
+        if (maxPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMax);
+        if (minPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMin);
+    }
 
     return ratingPlaceholder
 }

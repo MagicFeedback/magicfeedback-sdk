@@ -43,6 +43,7 @@ export class Form {
     public progress: number;
     public total: number;
     public completed: boolean;
+    public timeToCompleted: number;
 
     /**
      *
@@ -93,41 +94,42 @@ export class Form {
         this.progress = 0;
         this.total = 0;
         this.completed = false;
+        this.timeToCompleted = 0;
     }
 
     /**
      * Get data from the local storage, if the data is older than 24 hours, get the data from the server
      * @private
 
-    private getDataFromStorage() {
-        const localForm = localStorage.getItem(`magicfeedback-${this.appId}`);
+     private getDataFromStorage() {
+     const localForm = localStorage.getItem(`magicfeedback-${this.appId}`);
 
-        if (localForm && new Date(JSON.parse(localForm).savedAt) < new Date(new Date().getTime() + 60 * 60 * 24 * 1000)) {
-            this.formData = JSON.parse(localForm);
-            getForm(this.url, this.appId, this.publicKey, this.log).then((form: FormData | null) => {
-                if (form?.updatedAt && this.formData?.savedAt && form?.updatedAt > this.formData?.savedAt) {
-                    // console.log("Form updated");
-                    this.formData = form;
-                    this.formData.savedAt = new Date();
+     if (localForm && new Date(JSON.parse(localForm).savedAt) < new Date(new Date().getTime() + 60 * 60 * 24 * 1000)) {
+     this.formData = JSON.parse(localForm);
+     getForm(this.url, this.appId, this.publicKey, this.log).then((form: FormData | null) => {
+     if (form?.updatedAt && this.formData?.savedAt && form?.updatedAt > this.formData?.savedAt) {
+     // console.log("Form updated");
+     this.formData = form;
+     this.formData.savedAt = new Date();
 
-                    localStorage.setItem(`magicfeedback-${this.appId}`, JSON.stringify(this.formData));
+     localStorage.setItem(`magicfeedback-${this.appId}`, JSON.stringify(this.formData));
 
-                    if (this.formData.questions === undefined || !this.formData.questions) throw new Error(`No questions for app ${this.appId}`);
+     if (this.formData.questions === undefined || !this.formData.questions) throw new Error(`No questions for app ${this.appId}`);
 
-                    if (!this.formData.pages || this.formData.pages?.length === 0) this.formatPages();
-                    this.formData.questions?.sort((a, b) => a.position - b.position);
-                    // Clear pages without questions
-                    this.formData.pages = this.formData.pages.filter((page) => page.integrationQuestions?.length > 0);
+     if (!this.formData.pages || this.formData.pages?.length === 0) this.formatPages();
+     this.formData.questions?.sort((a, b) => a.position - b.position);
+     // Clear pages without questions
+     this.formData.pages = this.formData.pages.filter((page) => page.integrationQuestions?.length > 0);
 
-                    // Create the form from the JSON
-                    this.formData.style?.startMessage ?
-                        this.generateWelcomeMessage(this.formData.style.startMessage) :
-                        this.startForm();
-                }
-            });
-        }
-    }
-**/
+     // Create the form from the JSON
+     this.formData.style?.startMessage ?
+     this.generateWelcomeMessage(this.formData.style.startMessage) :
+     this.startForm();
+     }
+     });
+     }
+     }
+     **/
     /**
      * Generate
      * @param selector
@@ -139,18 +141,22 @@ export class Form {
             // Set the options
             this.formOptionsConfig = {...this.formOptionsConfig, ...options};
             this.selector = selector;
-            let resData:any = this.formData;
+            let resData: any = this.formData;
 
             if (this.formData === undefined || !this.formData)
                 resData = this.publicKey !== '' ?
                     await getForm(this.url, this.appId, this.publicKey, this.log) :
                     await getSessionForm(this.url, this.appId, this.log);
 
-            console.log(resData)
-
             if (resData === undefined || !resData) throw new Error(`No data for app ${this.appId}`);
 
             if (resData.error?.message) throw new Error(resData.error.message);
+
+            // Clear questions without status ACTIVE
+            resData.questions = resData.questions?.filter((q: NativeQuestion) => q.status === 'ACTIVE') || [];
+            resData.pages = resData.pages?.filter((p: Page) => p.status === 'ACTIVE') || [];
+            resData.pages?.forEach((p: Page) => p.integrationQuestions = p.integrationQuestions?.filter((q: NativeQuestion) => q.status === 'ACTIVE')) || [];
+
 
             this.formData = resData as FormData;
 
@@ -328,6 +334,9 @@ export class Form {
                     this.send()
                 });
             }
+
+            // init time to complete
+            this.timeToCompleted = new Date().getTime();
 
             // Send the data to manage loadings and progress
             if (this.formOptionsConfig.onLoadedEvent) {
@@ -597,7 +606,7 @@ export class Form {
                 case FEEDBACKAPPANSWERTYPE.RADIO:
                 case FEEDBACKAPPANSWERTYPE.RATING_EMOJI:
                 case FEEDBACKAPPANSWERTYPE.RATING_NUMBER:
-                    if ((input as HTMLInputElement).checked || (input as HTMLInputElement).id.includes("extra-option-")){
+                    if ((input as HTMLInputElement).checked || (input as HTMLInputElement).id.includes("extra-option-")) {
                         ans.value.push(value);
                     }
                     break;
@@ -646,6 +655,8 @@ export class Form {
 
     public async finish() {
         this.completed = true;
+        this.timeToCompleted = new Date().getTime() - this.timeToCompleted;
+        this.feedback.metadata.push({key: "time-to-complete", value: [this.timeToCompleted.toString()]});
         if (this.formOptionsConfig.addSuccessScreen) {
             const container = document.getElementById("magicfeedback-container-" + this.appId) as HTMLElement;
             // Remove the form
@@ -731,7 +742,8 @@ export class Form {
 
             const body = {
                 answer: this.feedback.answers.find((a) => a.key === question.ref)?.value[0],
-                publicKey: this.publicKey,
+                ...(this.publicKey !== '' && {publicKey: this.publicKey}),
+                ...(this.publicKey === '' && {campaignSessionId: this.appId}),
                 sessionId: this.id,
                 question
             }
@@ -899,7 +911,7 @@ export class Form {
         if (page) {
             page.elements?.forEach((element) => form.appendChild(element));
             this.progress = this.total - this.graph.findMaxDepth(page)
-        } else{
+        } else {
             this.progress = this.history.size();
         }
 
