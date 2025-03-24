@@ -147,9 +147,11 @@ function renderContainer(
             // Create a text input field
             element = document.createElement("input");
             (element as HTMLInputElement).type = "text";
-            (element as HTMLInputElement).placeholder = placeholderText || placeholder.answer(language || 'en')
-
-            ;
+            (element as HTMLInputElement).placeholder = placeholderText || placeholder.answer(language || 'en');
+            // Control on press enter
+            (element as HTMLInputElement).addEventListener("keyup", (event) => {
+                if (event.key === "Enter" && send) send();
+            });
             elementTypeClass = "magicfeedback-text";
             break;
         case FEEDBACKAPPANSWERTYPE.LONGTEXT:
