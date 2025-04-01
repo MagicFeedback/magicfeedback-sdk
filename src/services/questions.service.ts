@@ -150,7 +150,11 @@ function renderContainer(
             (element as HTMLInputElement).placeholder = placeholderText || placeholder.answer(language || 'en');
             // Control on press enter
             (element as HTMLInputElement).addEventListener("keyup", (event) => {
-                if (event.key === "Enter" && send) send();
+                event.preventDefault();
+                console.log(event.key, event)
+                if (event.key === "Enter") {
+                    if (send) send();
+                }
             });
             elementTypeClass = "magicfeedback-text";
             break;
@@ -737,7 +741,7 @@ function renderContainer(
 
                 console.log('send', send)
                 console.log('multiOptions', multiOptions)
-                if (!multiOptions && send){
+                if (!multiOptions && send) {
                     input.addEventListener("change", () => {
                         console.log('send')
                         send();
@@ -1421,7 +1425,8 @@ function createStarRating(
     ref: string,
     minPlaceholder: string,
     maxPlaceholder: string,
-    send: () => void = () => {}
+    send: () => void = () => {
+    }
 ) {
     const size = 40;
     const selectedClass = "magicfeedback-rating-star-selected";
@@ -1537,11 +1542,11 @@ function createRatingPlaceholder(
     }
 
     if (order === 'ltr') {
-        if (minPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMin);
-        if (maxPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMax);
+        if (minPlaceholder) ratingPlaceholder.appendChild(ratingPlaceholderMin);
+        if (maxPlaceholder) ratingPlaceholder.appendChild(ratingPlaceholderMax);
     } else {
-        if (maxPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMax);
-        if (minPlaceholder)ratingPlaceholder.appendChild(ratingPlaceholderMin);
+        if (maxPlaceholder) ratingPlaceholder.appendChild(ratingPlaceholderMax);
+        if (minPlaceholder) ratingPlaceholder.appendChild(ratingPlaceholderMin);
     }
 
     return ratingPlaceholder

@@ -281,6 +281,8 @@ export class Form {
             const form = document.createElement("form");
             form.classList.add("magicfeedback-form");
             form.id = "magicfeedback-" + this.appId;
+            // Prevent reload on submit
+            form.addEventListener("submit", (event) => event.preventDefault());
 
             // Create the questions container
             const questionContainer = document.createElement("div");
@@ -335,8 +337,8 @@ export class Form {
                 });
             }
 
-            // init time to complete
-            this.timeToCompleted = new Date().getTime();
+            // init time to complete in seconds
+            this.timeToCompleted = new Date().getTime() / 1000;
 
             // Send the data to manage loadings and progress
             if (this.formOptionsConfig.onLoadedEvent) {
