@@ -203,6 +203,25 @@ export class PageGraph {
 
         const neighbours = v.edges || [];
 
+        // Add the default edge to the neighbours
+        const defaultEdge = this.getNextEdgeByDefault(v);
+        if (neighbours.length === 0 && defaultEdge) {
+            const defaultNode = this.getNodeById(defaultEdge);
+            if (defaultNode && !visited.has(defaultNode)) {
+                neighbours.push(
+                    new PageRoute(
+                        defaultNode.id,
+                        '',
+                        OperatorType.DEFAULT,
+                        '',
+                        TransitionType.PAGE,
+                        defaultNode.id,
+                        v.id
+                    )
+                )
+            }
+        }
+
         for (const neighbour of neighbours) {
             if (!neighbour.transitionDestiny) continue;
             const node = this.getNodeById(neighbour.transitionDestiny);

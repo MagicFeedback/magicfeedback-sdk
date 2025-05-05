@@ -549,12 +549,13 @@ describe('pageGrafs', () => {
             expect(graph.findMaxDepth()).toBe(3);
         });
 
-        test('Test a simple tree with followups and conditions', async () => {
+        test('Test a simple tree without followups and conditions', async () => {
             const questions: NativeQuestion[] = [
                 defaultQuestions(1, false),
                 defaultQuestions(2, false),
                 defaultQuestions(3, false),
                 defaultQuestions(4, false),
+                defaultQuestions(5, false),
             ];
 
             const pages: Page[] = [
@@ -563,14 +564,21 @@ describe('pageGrafs', () => {
                     new PageRoute('2', '1', OperatorType.EQUAL, 'B', TransitionType.PAGE, '3', '1', ConditionType.LOGICAL),
                     new PageRoute('3', '1', OperatorType.EQUAL, 'C', TransitionType.PAGE, '4', '1', ConditionType.LOGICAL),
                 ]),
-                new Page('2', 2, 'integration', [questions[1]], []),
-                new Page('3', 3, 'integration', [questions[2]], []),
+                new Page('2', 2, 'integration', [questions[1]], [
+                    // Finish
+                    new PageRoute('1', '2', OperatorType.DEFAULT, '', TransitionType.FINISH, '', '2', ConditionType.DIRECT),
+                ]),
+                new Page('3', 3, 'integration', [questions[2]], [
+                    // Go to 5
+                    new PageRoute('1', '3', OperatorType.DEFAULT, '', TransitionType.PAGE, '5', '3'),
+                ]),
                 new Page('4', 4, 'integration', [questions[3]], []),
+                new Page('5', 5, 'integration', [questions[4]], []),
             ];
 
             setGraphWithRoutes(pages)
 
-            expect(graph.findMaxDepth()).toBe(2);
+            expect(graph.findMaxDepth()).toBe(3);
         });
 
         test('Test a simple tree with followups and conditions', async () => {
@@ -587,9 +595,18 @@ describe('pageGrafs', () => {
                     new PageRoute('2', '1', OperatorType.EQUAL, 'B', TransitionType.PAGE, '3', '1', ConditionType.LOGICAL),
                     new PageRoute('3', '1', OperatorType.EQUAL, 'C', TransitionType.PAGE, '4', '1', ConditionType.LOGICAL),
                 ]),
-                new Page('2', 2, 'integration', [questions[1]], []),
-                new Page('3', 3, 'integration', [questions[2]], []),
-                new Page('4', 4, 'integration', [questions[3]], []),
+                new Page('2', 2, 'integration', [questions[1]], [
+                    // Finish
+                    new PageRoute('1', '2', OperatorType.DEFAULT, '', TransitionType.FINISH, '', '2', ConditionType.DIRECT),
+                ]),
+                new Page('3', 3, 'integration', [questions[2]], [
+                    // Finish
+                    new PageRoute('1', '3', OperatorType.DEFAULT, '', TransitionType.FINISH, '', '3', ConditionType.DIRECT),
+                ]),
+                new Page('4', 4, 'integration', [questions[3]], [
+                    // Finish
+                    new PageRoute('1', '4', OperatorType.DEFAULT, '', TransitionType.FINISH, '', '4', ConditionType.DIRECT),
+                ]),
             ];
 
             setGraphWithRoutes(pages)
