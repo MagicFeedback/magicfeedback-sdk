@@ -266,6 +266,7 @@ export class Form {
      */
     private async generateForm() {
         try {
+            console.log('Generating form for appId:', this.appId);
             if (!this.formData || !this.formData.pages || this.formData.pages.length === 0) {
                 throw new Error("No form data");
             }

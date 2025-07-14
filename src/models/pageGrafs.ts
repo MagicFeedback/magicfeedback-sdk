@@ -184,6 +184,7 @@ export class PageGraph {
         const visited: Set<PageNode> = new Set()
         const haveFollowup = !!n.questions.find(q => q.followup);
 
+        //console.log(this.nodes);
         // If the first node have followup questions, the depth is 2
         let max_depth: number = haveFollowup ? 2 : 1;
         max_depth = Math.max(max_depth, this.DFSUtil(n, visited, max_depth))
@@ -201,7 +202,8 @@ export class PageGraph {
         visited.add(v);
         let max_depth = depth;
 
-        const neighbours = v.edges || [];
+        // Haz una copia local de los vecinos para evitar modificar el grafo original
+        const neighbours = [...(v.edges || [])];
 
         // Si no hay edges, ir a la siguiente página por posición
         const defaultEdge = this.getNextEdgeByDefault(v);
