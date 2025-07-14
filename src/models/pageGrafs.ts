@@ -95,16 +95,16 @@ export class PageGraph {
             return undefined;
         }
 
-        // Order the edges by the type of condition. logical first and direct
+        // Ordenar edges: primero lógicos, luego directos
         currentNode.edges.sort((a, b) => {
             if (a.typeCondition === 'DIRECT') return 1;
             if (b.typeCondition === 'DIRECT') return -1;
             return 0;
         });
 
-        // Find the first route that matches the condition
+        // Buscar la primera ruta que cumpla la condición
         const route = currentNode.edges.find(edge => {
-            // Check if the condition is met
+            // Chequear condición
             const answerValue = answer?.filter(ans => ans.key === edge.questionRef);
             if (!answerValue) return false;
 
@@ -130,9 +130,9 @@ export class PageGraph {
                 default:
                     return false;
             }
-
         });
 
+        // Si no hay ninguna ruta que cumpla, ir a la siguiente página por posición
         if (!route) {
             const nextPage = this.getNextEdgeByDefault(currentNode);
             if (!nextPage) return undefined;
@@ -202,6 +202,25 @@ export class PageGraph {
         let max_depth = depth;
 
         const neighbours = v.edges || [];
+
+        // Si no hay edges, ir a la siguiente página por posición
+        const defaultEdge = this.getNextEdgeByDefault(v);
+        if (defaultEdge) {
+            const defaultNode = this.getNodeById(defaultEdge);
+            if (defaultNode && !visited.has(defaultNode)) {
+                neighbours.push(
+                    new PageRoute(
+                        defaultNode.id,
+                        '',
+                        OperatorType.DEFAULT,
+                        '',
+                        TransitionType.PAGE,
+                        defaultNode.id,
+                        v.id
+                    )
+                )
+            }
+        }
 
         for (const neighbour of neighbours) {
             if (!neighbour.transitionDestiny) continue;

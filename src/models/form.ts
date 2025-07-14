@@ -675,22 +675,52 @@ export class Form {
 
         this.answer();
 
-        const response = await this.pushAnswers(true);
+        try {
+            const response = await this.pushAnswers(true);
 
-        if (!response) throw new Error("No response");
+            if (!response) {
+                if (this.formOptionsConfig.afterSubmitEvent) {
+                    await this.formOptionsConfig.afterSubmitEvent({
+                        loading: false,
+                        progress: this.progress,
+                        total: this.total,
+                        completed: this.completed,
+                        error: `An error occurred while submitting the form ${this.appId}:`
+                    });
+                }
+                throw new Error("An error occurred while submitting the form ${this.appId}:");
+            }
 
-        this.id = response;
+            this.id = response;
 
-        // AFTER
-        if (this.formOptionsConfig.afterSubmitEvent) {
-            await this.formOptionsConfig.afterSubmitEvent({
-                response: this.id,
-                loading: false,
-                progress: this.progress,
-                total: this.total,
-                completed: this.completed,
-                error: null
-            });
+            // AFTER
+            if (this.formOptionsConfig.afterSubmitEvent) {
+                await this.formOptionsConfig.afterSubmitEvent({
+                    response: this.id,
+                    loading: false,
+                    progress: this.progress,
+                    total: this.total,
+                    completed: this.completed,
+                    error: null
+                });
+            }
+
+        } catch (error) {
+            // Handle error in beforeSubmitEvent, send(), or afterSubmitEvent
+            this.log.err(
+                `An error occurred while submitting the form ${this.appId}:`,
+                error
+            );
+
+            if (this.formOptionsConfig.afterSubmitEvent) {
+                await this.formOptionsConfig.afterSubmitEvent({
+                    loading: false,
+                    progress: this.progress,
+                    total: this.total,
+                    completed: this.completed,
+                    error
+                });
+            }
         }
     }
 

@@ -6,6 +6,14 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [1.4.9] - 2025-07-14
+- New feature: Support for custom themes in the feedback widget.
+- Improvement: Performance optimization when loading conditional questions.
+- Improvement: Better error handling in integration with external APIs.
+- Fix: Resolved an issue that prevented saving responses in matrix widgets under certain conditions.
+- Fix: Adjusted progress bar display on mobile devices.
+- Fix: Fixed a bug causing duplicate sessions in some browsers.
+
 ## 🚀 [1.4.2] - 2025-03-18
 - Click and next question: Added a new feature that allows users to click on the question to go to the next question.
 - Rating: Option Vertical & Order: Added a new feature that allows users to change the order of the rating options.
