@@ -8,7 +8,7 @@ import {FormData} from "../models/formData";
 const header = {
     Accept: "application/json",
     "Magicfeedback-Sdk-Version": modulePackage.version,
-    "x-magicfeedback-parameters": window.location.search,
+    "x-magicfeedback-parameters": window.location.search || "",
 }
 
 // @ts-ignore
