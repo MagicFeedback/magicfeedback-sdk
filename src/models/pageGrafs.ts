@@ -1,7 +1,7 @@
 import {Page} from "./page";
 import {PageNode} from "./pageNode";
 import {NativeAnswer} from "./types";
-import {OperatorType, PageRoute, TransitionType} from "./pageRoute";
+import {ConditionType, OperatorType, PageRoute, TransitionType} from "./pageRoute";
 
 export class PageGraph {
     private nodes: Map<string, PageNode>;
@@ -17,7 +17,8 @@ export class PageGraph {
      * @private
      * */
     private buildGraph(pages: Page[]) {
-        pages.forEach((page, index) => {
+        pages.forEach((page) => {
+            /*
             if (!page.integrationPageRoutes && pages[index + 1]) {
                 const defaultEdge = new PageRoute(
                     `${page.id}-default`,
@@ -30,6 +31,7 @@ export class PageGraph {
                 );
                 page.integrationPageRoutes = [defaultEdge];
             }
+            */
 
             // Sort by created date and then by type of transition (logical first)
             if (page.integrationPageRoutes) page.integrationPageRoutes = page.integrationPageRoutes?.sort(
@@ -184,6 +186,7 @@ export class PageGraph {
         const visited: Set<PageNode> = new Set()
         const haveFollowup = !!n.questions.find(q => q.followup);
 
+        //console.log(this.nodes);
         // If the first node have followup questions, the depth is 2
         let max_depth: number = haveFollowup ? 2 : 1;
         max_depth = Math.max(max_depth, this.DFSUtil(n, visited, max_depth))
@@ -201,7 +204,8 @@ export class PageGraph {
         visited.add(v);
         let max_depth = depth;
 
-        const neighbours = v.edges || [];
+        // Haz una copia local de los vecinos para evitar modificar el grafo original
+        const neighbours = [...(v.edges.filter((e)=> e.typeCondition !== ConditionType.PRECONDITIONAL) || [])];
 
         // Si no hay edges, ir a la siguiente página por posición
         const defaultEdge = this.getNextEdgeByDefault(v);
