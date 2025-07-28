@@ -1,7 +1,7 @@
 import {Page} from "./page";
 import {PageNode} from "./pageNode";
 import {NativeAnswer} from "./types";
-import {OperatorType, PageRoute, TransitionType} from "./pageRoute";
+import {ConditionType, OperatorType, PageRoute, TransitionType} from "./pageRoute";
 
 export class PageGraph {
     private nodes: Map<string, PageNode>;
@@ -17,7 +17,8 @@ export class PageGraph {
      * @private
      * */
     private buildGraph(pages: Page[]) {
-        pages.forEach((page, index) => {
+        pages.forEach((page) => {
+            /*
             if (!page.integrationPageRoutes && pages[index + 1]) {
                 const defaultEdge = new PageRoute(
                     `${page.id}-default`,
@@ -30,6 +31,7 @@ export class PageGraph {
                 );
                 page.integrationPageRoutes = [defaultEdge];
             }
+            */
 
             // Sort by created date and then by type of transition (logical first)
             if (page.integrationPageRoutes) page.integrationPageRoutes = page.integrationPageRoutes?.sort(
@@ -203,7 +205,7 @@ export class PageGraph {
         let max_depth = depth;
 
         // Haz una copia local de los vecinos para evitar modificar el grafo original
-        const neighbours = [...(v.edges || [])];
+        const neighbours = [...(v.edges.filter((e)=> e.typeCondition !== ConditionType.PRECONDITIONAL) || [])];
 
         // Si no hay edges, ir a la siguiente página por posición
         const defaultEdge = this.getNextEdgeByDefault(v);

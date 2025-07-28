@@ -2,11 +2,13 @@ export enum TransitionType {
     PAGE = "PAGE",
     FINISH = "FINISH",
     REDIRECT = "REDIRECT",
+    NEXT = 'NEXT',
 }
 
 export enum ConditionType {
     LOGICAL = 'LOGICAL',
     DIRECT = 'DIRECT',
+    PRECONDITIONAL = 'PRECONDITIONAL',
 }
 
 export enum OperatorType {

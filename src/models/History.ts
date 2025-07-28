@@ -35,4 +35,9 @@ export class History<T> {
     size(): number {
         return this.items.length;
     }
+
+    // Return the element by index
+    get(index: number): T | undefined {
+        return this.items[index];
+    }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@magicfeedback/native",
-  "version": "2.0.0-beta.1",
+  "version": "2.0.1",
   "main": "./dist/magicfeedback-sdk.node.js",
   "browser": "./dist/magicfeedback-sdk.browser.js",
   "types": "./dist/types/src/index.d.ts",
@@ -17,6 +17,7 @@
     "build:watch": "webpack --watch --mode development",
     "publish": "npm publish --access public",
     "publish:beta": "npm publish --access public --tag beta",
+    "publish:alpha": "npm publish --access public --tag alpha",
     "test": "jest",
     "test:watch": "jest --watchAll",
     "coverage": "vitest run --coverage"

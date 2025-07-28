@@ -644,11 +644,13 @@ export class Form {
         });
 
         if (hasError) {
-            this.feedback.answers = []; // Stop the process if there's an error
+            this.feedback.answers = [];// Stop the process if there's an error
+            page.setAnswer([]);
             return;
         }
 
         this.feedback.answers = surveyAnswers;
+        page.setAnswer(surveyAnswers)
     }
 
     /**
@@ -888,13 +890,68 @@ export class Form {
     private async renderNextQuestion(form: HTMLElement, page: PageNode) {
         // Get next page from the graph
         //console.log(page, this.feedback.answers);
-        const nextPage = this.graph.getNextPage(page, this.feedback.answers);
+        let nextPage = this.graph.getNextPage(page, this.feedback.answers);
 
         //console.log(nextPage);
         if (!nextPage) {
             this.finish();
             return;
         }
+
+        // --- NUEVO: Comprobar rutas precondicionales ---
+        // Buscar rutas precondicionales en la página a cargar
+        const preconditionalRoute = nextPage.edges.find(edge => edge.typeCondition === 'PRECONDITIONAL');
+        console.log(preconditionalRoute);
+        if (preconditionalRoute) {
+            // Buscar la respuesta en los PageNode anteriores
+            let foundAnswer: any = null;
+            // Buscar en el historial desde el más reciente hacia atrás
+            for (let i = this.history.size() - 1; i >= 0; i--) {
+                const node = this.history.get(i);
+                if (!node) continue;
+                foundAnswer = node.answers?.find((ans: NativeAnswer) => ans.key === preconditionalRoute.questionRef);
+                if (foundAnswer) break;
+            }
+            // Si hay respuesta, comprobar la condición
+            if (foundAnswer) {
+                let conditionMet = false;
+                switch (preconditionalRoute.typeOperator) {
+                    case 'EQUAL':
+                        conditionMet = foundAnswer.value.includes(preconditionalRoute.value);
+                        break;
+                    case 'NOEQUAL':
+                        conditionMet = !foundAnswer.value.includes(preconditionalRoute.value);
+                        break;
+                    case 'GREATER':
+                        conditionMet = foundAnswer.value.some((v: any) => Number(v) > Number(preconditionalRoute.value));
+                        break;
+                    case 'LESS':
+                        conditionMet = foundAnswer.value.some((v: any) => Number(v) < Number(preconditionalRoute.value));
+                        break;
+                    case 'GREATEREQUAL':
+                        conditionMet = foundAnswer.value.some((v: any) => Number(v) >= Number(preconditionalRoute.value));
+                        break;
+                    case 'LESSEQUAL':
+                        conditionMet = foundAnswer.value.some((v: any) => Number(v) <= Number(preconditionalRoute.value));
+                        break;
+                    case 'INQ':
+                        conditionMet = preconditionalRoute.value.includes(foundAnswer.value);
+                        break;
+                    case 'NINQ':
+                        conditionMet = !preconditionalRoute.value.includes(foundAnswer.value);
+                        break;
+                    default:
+                        break;
+                }
+                // Si se cumple la condición, saltar a la siguiente página destino
+                if (conditionMet) {
+                    this.feedback.answers = []
+                    await this.renderNextQuestion(form, nextPage);
+                    return;
+                }
+            }
+        }
+        // --- FIN NUEVO ---
 
         nextPage.elements = renderQuestions(
             nextPage.questions,
