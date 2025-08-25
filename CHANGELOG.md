@@ -6,6 +6,12 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.0.3] - 2025-08-25
+- Preconditional logic: Added a new preconditional logic feature that allows users to set conditions before displaying a question.
+- Improvement: Enhanced the performance of the feedback widget on mobile devices.
+- Fix: Resolved an issue that caused the feedback widget to crash on certain browsers.
+- Fix: Fixed a bug that caused the progress bar to display incorrectly in some scenarios.
+
 ## 🚀 [1.4.9] - 2025-07-14
 - New feature: Support for custom themes in the feedback widget.
 - Improvement: Performance optimization when loading conditional questions.
