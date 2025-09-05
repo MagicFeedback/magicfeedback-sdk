@@ -209,7 +209,7 @@ export class Form {
                         question.id,
                         question.ref,
                         OperatorType.NOEQUAL,
-                        null,
+                        [],
                         TransitionType.PAGE,
                         (question.position + 1).toString(),
                         question.position.toString(),
@@ -900,55 +900,83 @@ export class Form {
 
         // --- NUEVO: Comprobar rutas precondicionales ---
         // Buscar rutas precondicionales en la página a cargar
-        const preconditionalRoute = nextPage.edges.find(edge => edge.typeCondition === 'PRECONDITIONAL');
-        console.log(preconditionalRoute);
-        if (preconditionalRoute) {
+        const preconditionalRoute: PageRoute[] = nextPage.edges.filter(edge => edge.typeCondition === 'PRECONDITIONAL').sort((a, b) => {
+            // Sort by position
+            if (a.position < b.position) return -1;
+            if (a.position > b.position) return 1;
+            return 0;
+        });
+
+        if (preconditionalRoute?.length > 0) {
             // Buscar la respuesta en los PageNode anteriores
             let foundAnswer: any = null;
+            const allRefs = preconditionalRoute.map(route => route.questionRef);
             // Buscar en el historial desde el más reciente hacia atrás
             for (let i = this.history.size() - 1; i >= 0; i--) {
                 const node = this.history.get(i);
                 if (!node) continue;
-                foundAnswer = node.answers?.find((ans: NativeAnswer) => ans.key === preconditionalRoute.questionRef);
+                foundAnswer = node.answers?.find((ans: NativeAnswer) => allRefs.includes(ans.key));
                 if (foundAnswer) break;
             }
             // Si hay respuesta, comprobar la condición
+            let allowToContinue = !preconditionalRoute.some(route => route.transition === TransitionType.ALLOW);
+
             if (foundAnswer) {
-                let conditionMet = false;
-                switch (preconditionalRoute.typeOperator) {
-                    case 'EQUAL':
-                        conditionMet = foundAnswer.value.includes(preconditionalRoute.value);
-                        break;
-                    case 'NOEQUAL':
-                        conditionMet = !foundAnswer.value.includes(preconditionalRoute.value);
-                        break;
-                    case 'GREATER':
-                        conditionMet = foundAnswer.value.some((v: any) => Number(v) > Number(preconditionalRoute.value));
-                        break;
-                    case 'LESS':
-                        conditionMet = foundAnswer.value.some((v: any) => Number(v) < Number(preconditionalRoute.value));
-                        break;
-                    case 'GREATEREQUAL':
-                        conditionMet = foundAnswer.value.some((v: any) => Number(v) >= Number(preconditionalRoute.value));
-                        break;
-                    case 'LESSEQUAL':
-                        conditionMet = foundAnswer.value.some((v: any) => Number(v) <= Number(preconditionalRoute.value));
-                        break;
-                    case 'INQ':
-                        conditionMet = preconditionalRoute.value.includes(foundAnswer.value);
-                        break;
-                    case 'NINQ':
-                        conditionMet = !preconditionalRoute.value.includes(foundAnswer.value);
-                        break;
-                    default:
-                        break;
+                for (const route of preconditionalRoute) {
+                    let conditionMet = false;
+                    const answerVals = Array.isArray(foundAnswer.value) ? foundAnswer.value : [foundAnswer.value];
+                    const routeVals = Array.isArray(route.value) ? route.value : [route.value];
+                    switch (route.typeOperator) {
+                        case 'EQUAL':
+                            // Al menos un valor de la respuesta es igual al valor esperado
+                            conditionMet = answerVals.some((v: any) => routeVals.includes(v));
+                            break;
+                        case 'NOEQUAL':
+                            // Ningún valor de la respuesta es igual al valor esperado
+                            conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
+                            break;
+                        case 'GREATER':
+                            conditionMet = answerVals.some((v: any) => Number(v) > Number(routeVals[0]));
+                            break;
+                        case 'LESS':
+                            conditionMet = answerVals.some((v: any) => Number(v) < Number(routeVals[0]));
+                            break;
+                        case 'GREATEREQUAL':
+                            conditionMet = answerVals.some((v: any) => Number(v) >= Number(routeVals[0]));
+                            break;
+                        case 'LESSEQUAL':
+                            conditionMet = answerVals.some((v: any) => Number(v) <= Number(routeVals[0]));
+                            break;
+                        case 'INQ':
+                            // Algún valor de la respuesta está incluido en route.value (que es array)
+                            conditionMet = answerVals.some((v: any) => routeVals.includes(v));
+                            break;
+                        case 'NINQ':
+                            // Ningún valor de la respuesta está incluido en route.value (que es array)
+                            conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
+                            break;
+                        default:
+                            break;
+                    }
+
+                    // Si se cumple la condición, saltar a la siguiente página destino
+                    if (conditionMet) {
+                        this.feedback.answers = []
+                        switch (route.transition) {
+                            case TransitionType.NEXT:
+                                if (nextPage) await this.renderNextQuestion(form, nextPage);
+                                return;
+                            case TransitionType.ALLOW:
+                                allowToContinue = true;
+                                break;
+                        }
+                    }
                 }
-                // Si se cumple la condición, saltar a la siguiente página destino
-                if (conditionMet) {
-                    this.feedback.answers = []
-                    await this.renderNextQuestion(form, nextPage);
-                    return;
-                }
+            }
+            if (!allowToContinue) {
+                this.feedback.answers = []
+                if (nextPage) await this.renderNextQuestion(form, nextPage);
+                return;
             }
         }
         // --- FIN NUEVO ---
