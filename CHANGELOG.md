@@ -6,6 +6,11 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.0.4] - 2025-09-08
+- Preconditional logic:
+  - Allow to enter: Allow users to enter a question based on a pre-condition.
+  - Skip to question: Allow users to skip to a specific question based on a pre-condition.v.2.0.4
+
 ## 🚀 [2.0.3] - 2025-08-25
 - Preconditional logic: Added a new preconditional logic feature that allows users to set conditions before displaying a question.
 - Improvement: Enhanced the performance of the feedback widget on mobile devices.

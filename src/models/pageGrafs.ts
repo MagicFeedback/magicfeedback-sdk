@@ -108,27 +108,58 @@ export class PageGraph {
         const route = currentNode.edges.find(edge => {
             // Chequear condición
             const answerValue = answer?.filter(ans => ans.key === edge.questionRef);
-            if (!answerValue) return false;
+            if (!answerValue || answerValue.length === 0) return false;
 
             if (edge.typeCondition === 'DIRECT') return true;
 
+            // Normalizar edge.value a array
+            const edgeVals = Array.isArray(edge.value) ? edge.value : [edge.value];
+
             switch (edge.typeOperator) {
                 case OperatorType.EQUAL:
-                    return answerValue.find(ans => ans.value?.includes(edge.value));
+                    // Al menos un valor de la respuesta está en edgeVals
+                    return answerValue.some(ans => {
+                        const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
+                        return ansVals.some(val => edgeVals.includes(val));
+                    });
                 case OperatorType.NOEQUAL:
-                    return !answerValue.find(ans => ans.value?.includes(edge.value));
+                    // Ningún valor de la respuesta está en edgeVals
+                    return answerValue.every(ans => {
+                        const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
+                        return ansVals.every(val => !edgeVals.includes(val));
+                    });
                 case OperatorType.GREATER:
-                    return answerValue.find(ans => ans.value.find(val => Number(val) > Number(edge.value)));
+                    return answerValue.some(ans => {
+                        const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
+                        return ansVals.some(val => edgeVals.some(edgeVal => Number(val) > Number(edgeVal)));
+                    });
                 case OperatorType.LESS:
-                    return answerValue.find(ans => ans.value.find(val => Number(val) < Number(edge.value)));
+                    return answerValue.some(ans => {
+                        const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
+                        return ansVals.some(val => edgeVals.some(edgeVal => Number(val) < Number(edgeVal)));
+                    });
                 case OperatorType.GREATEREQUAL:
-                    return answerValue.find(ans => ans.value.find(val => Number(val) >= Number(edge.value)));
+                    return answerValue.some(ans => {
+                        const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
+                        return ansVals.some(val => edgeVals.some(edgeVal => Number(val) >= Number(edgeVal)));
+                    });
                 case OperatorType.LESSEQUAL:
-                    return answerValue.find(ans => ans.value.find(val => Number(val) <= Number(edge.value)));
+                    return answerValue.some(ans => {
+                        const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
+                        return ansVals.some(val => edgeVals.some(edgeVal => Number(val) <= Number(edgeVal)));
+                    });
                 case OperatorType.INQ:
-                    return answerValue.find(ans => edge.value.includes(ans.value));
+                    // Algún valor de la respuesta está incluido en edgeVals
+                    return answerValue.some(ans => {
+                        const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
+                        return ansVals.some(val => edgeVals.includes(val));
+                    });
                 case OperatorType.NINQ:
-                    return !answerValue.find(ans => edge.value.includes(ans.value));
+                    // Ningún valor de la respuesta está incluido en edgeVals
+                    return answerValue.every(ans => {
+                        const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
+                        return ansVals.every(val => !edgeVals.includes(val));
+                    });
                 default:
                     return false;
             }
@@ -217,7 +248,7 @@ export class PageGraph {
                         defaultNode.id,
                         '',
                         OperatorType.DEFAULT,
-                        '',
+                        [''],
                         TransitionType.PAGE,
                         defaultNode.id,
                         v.id

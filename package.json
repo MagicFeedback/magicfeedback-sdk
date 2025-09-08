@@ -1,6 +1,6 @@
 {
   "name": "@magicfeedback/native",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "main": "./dist/magicfeedback-sdk.node.js",
   "browser": "./dist/magicfeedback-sdk.browser.js",
   "types": "./dist/types/src/index.d.ts",

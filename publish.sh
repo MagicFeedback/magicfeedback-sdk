@@ -1,2 +1,2 @@
 #!/bin/bash
-npm run publish
+npm run publish:alpha
