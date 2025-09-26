@@ -68,7 +68,10 @@ export type NativeQuestion = {
 
 export type NativeAnswer = {
     key: string;
-    value: string[];
+    // value se amplía a any[] para soportar casos especiales como MULTI_QUESTION_MATRIX donde
+    // se requiere una estructura anidada: [ [ { key: rowKey, value: [..] }, ... ] ]
+    // Mantener string[] también funciona porque strings siguen siendo válidos dentro de any[]
+    value: any[];
 };
 
 export type NativeFeedback = {

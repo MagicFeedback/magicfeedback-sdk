@@ -194,18 +194,21 @@ function renderContainer(
                 opt = opt.sort(() => Math.random() - 0.5);
             }
 
-            let exclusiveAnswers: string[] = [];
+            let exclusiveAnswers: string[] = assets?.exclusiveAnswers || [];
 
-            if (assets?.exclusiveAnswers) {
-                exclusiveAnswers = assets?.exclusiveAnswers
+            // Fix: excluir la opción extraOptionText de la lista de exclusivas si por error viene incluida desde backend/state
+            if (assets?.extraOptionText) {
+                exclusiveAnswers = exclusiveAnswers.filter(a => a !== assets.extraOptionText);
+            }
+
+            if (exclusiveAnswers.length > 0) {
                 exclusiveAnswers?.forEach((answer) => {
                     if (!opt.includes(answer)) opt.push(answer);
                 });
             }
 
-            if (assets?.extraOption) {
-                exclusiveAnswers.push(assets?.extraOptionText);
-                if (!opt.includes(assets?.extraOptionText)) opt.push(assets?.extraOptionText);
+            if (assets?.extraOption && !opt.includes(assets?.extraOptionText)) {
+                opt.push(assets?.extraOptionText);
             }
 
             opt.forEach((option, index) => {
@@ -229,15 +232,20 @@ function renderContainer(
                             (input as HTMLInputElement).checked = false;
                         }
 
-                        if (send && checkboxes.length === assets?.maxOptions) {
-                            send()
-                        }
+                        //TODO: Enable in the future with a setting variable to send the answer when reach the max options selected
+                        /**
+                         if (send && checkboxes.length === assets?.maxOptions && !(assets?.extraOptionText && option === assets?.extraOptionText)) {
+                         send()
+                         }
+                         **/
                     });
                 }
+
                 if (type === FEEDBACKAPPANSWERTYPE.RADIO && send) {
-                    input.addEventListener("change", () => {
-                        send()
-                    });
+                    if (!assets?.extraOptionText || assets?.extraOptionText && option !== assets?.extraOptionText)
+                        input.addEventListener("change", () => {
+                            send()
+                        });
                 }
 
 
@@ -252,13 +260,14 @@ function renderContainer(
                 input.addEventListener("change", (event) => {
                     const extraOption = document.getElementById(`extra-option-${ref}`);
                     if ((event.target as HTMLInputElement).checked && exclusiveAnswers.includes(option)) {
+                        console.log('exclusiveAnswers', exclusiveAnswers, option)
                         opt.forEach((answer) => {
                             if (answer !== option) {
                                 const input = document.querySelector(`input[value="${answer}"]`) as HTMLInputElement;
                                 input.checked = false;
                             }
                         });
-                        if (extraOption) extraOption.style.display = assets?.extraOption && option === assets?.extraOptionText ? "block" : "none";
+                        if (extraOption) extraOption.style.display = "none";
                     } else {
                         // Remove the checke of the exclusiveAnswers
                         exclusiveAnswers.forEach((answer) => {
@@ -267,8 +276,11 @@ function renderContainer(
                                 input.checked = false;
                             }
                         });
-                        if (extraOption) extraOption.style.display = "none";
+                        // if (extraOption) extraOption.style.display = assets?.extraOption && option === assets?.extraOptionText ? "block" : "none";
                     }
+                    if (assets?.extraOption && option === assets?.extraOptionText && extraOption)
+                        // SI al opcion con value assets?.extraOptionText esta seleccionada mostrar el input text si no ocultarlo
+                        extraOption.style.display = (event.target as HTMLInputElement).checked ? "block" : "none";
                 });
 
 
@@ -332,7 +344,7 @@ function renderContainer(
                 input.id = `rating-${ref}-${index}`;
                 input.type = "radio";
                 input.name = ref;
-                input.value = value[index];
+                input.value = ['Yes', 'No'][index];
                 input.classList.add(elementTypeClass);
                 input.classList.add("magicfeedback-input");
                 input.style.position = "absolute";
@@ -602,8 +614,12 @@ function renderContainer(
 
                 containerLabel.appendChild(input);
                 containerLabel.appendChild(ratingLabel);
+
                 extraOption.appendChild(containerLabel);
-                ratingNumberContainer.appendChild(extraOption);
+
+                // If order === 'ltr' extraOption need to be the last element if not the first
+                if (order === 'ltr') ratingNumberContainer.appendChild(extraOption);
+                else ratingNumberContainer.insertBefore(extraOption, ratingNumberContainer.firstChild);
             }
 
 
@@ -1311,10 +1327,10 @@ function renderContainer(
         elementContainer.appendChild(subLabel);
     } else {
         if (format !== 'slim') {
-            if (![FEEDBACKAPPANSWERTYPE.INFO_PAGE].includes(type)) {
-                elementContainer.appendChild(label);
-                elementContainer.appendChild(subLabel);
-            }
+
+            elementContainer.appendChild(label);
+            elementContainer.appendChild(subLabel);
+
             if (assets?.general !== undefined && assets?.general !== "") {
                 // Add a image to the form
                 const image = document.createElement("img");
@@ -1594,4 +1610,3 @@ export function renderStartMessage(
 
     return startMessageContainer;
 }
-

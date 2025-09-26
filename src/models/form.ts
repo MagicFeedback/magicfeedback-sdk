@@ -490,10 +490,6 @@ export class Form {
                         exclusiveAnswers = assets?.exclusiveAnswers
                     }
 
-                    if (assets?.extraOption) {
-                        exclusiveAnswers.push(assets?.extraOptionText);
-                    }
-
                     // Check if the question has the minimum number of options selected and the exclusiveAnswers if it exists
 
                     if (
@@ -647,6 +643,45 @@ export class Form {
             this.feedback.answers = [];// Stop the process if there's an error
             page.setAnswer([]);
             return;
+        }
+
+        // --- Agrupación especial para MULTI_QUESTION_MATRIX ---
+        try {
+            const matrixQuestions = page.questions.filter(q => q.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX);
+            matrixQuestions.forEach(mq => {
+                // Respuestas individuales capturadas como ref-rowName
+                const rowPrefix = mq.ref + '-';
+                const rowAnswers = surveyAnswers.filter(a => a.key.startsWith(rowPrefix));
+                if (rowAnswers.length === 0) return; // nada que agrupar
+
+                // Crear estructura: [{ key: rowName, value: [selected] }, ...]
+                const groupedRows = rowAnswers.map(r => ({
+                    key: r.key.substring(rowPrefix.length),
+                    value: r.value
+                }));
+
+                // El formato requerido: valor debe ser un array que contiene (una sola posición) un array de objetos fila
+                const matrixAnswer: NativeAnswer = {
+                    key: mq.ref,
+                    value: [JSON.stringify(groupedRows)]
+                };
+
+                // Eliminar las respuestas individuales
+                for (const ra of rowAnswers) {
+                    const idx = surveyAnswers.findIndex(s => s.key === ra.key);
+                    if (idx !== -1) surveyAnswers.splice(idx, 1);
+                }
+
+                // Añadir (o reemplazar si ya existiera) la respuesta agrupada
+                const existingIndex = surveyAnswers.findIndex(a => a.key === mq.ref);
+                if (existingIndex !== -1) {
+                    surveyAnswers[existingIndex] = matrixAnswer;
+                } else {
+                    surveyAnswers.push(matrixAnswer);
+                }
+            });
+        } catch (e) {
+            this.log.err('Error agrupando MULTI_QUESTION_MATRIX', e);
         }
 
         this.feedback.answers = surveyAnswers;
@@ -898,8 +933,7 @@ export class Form {
             return;
         }
 
-        // --- NUEVO: Comprobar rutas precondicionales ---
-        // Buscar rutas precondicionales en la página a cargar
+        // --- NEW: Check preconditional routes ---
         const preconditionalRoute: PageRoute[] = nextPage.edges.filter(edge => edge.typeCondition === 'PRECONDITIONAL').sort((a, b) => {
             // Sort by position
             if (a.position < b.position) return -1;
@@ -908,17 +942,17 @@ export class Form {
         });
 
         if (preconditionalRoute?.length > 0) {
-            // Buscar la respuesta en los PageNode anteriores
+            // Look for the answer in previous PageNodes
             let foundAnswer: any = null;
             const allRefs = preconditionalRoute.map(route => route.questionRef);
-            // Buscar en el historial desde el más reciente hacia atrás
+            // Search in the history from the most recent backwards
             for (let i = this.history.size() - 1; i >= 0; i--) {
                 const node = this.history.get(i);
                 if (!node) continue;
                 foundAnswer = node.answers?.find((ans: NativeAnswer) => allRefs.includes(ans.key));
                 if (foundAnswer) break;
             }
-            // Si hay respuesta, comprobar la condición
+            // If there is an answer, evaluate the condition
             let allowToContinue = !preconditionalRoute.some(route => route.transition === TransitionType.ALLOW);
 
             if (foundAnswer) {
@@ -928,11 +962,11 @@ export class Form {
                     const routeVals = Array.isArray(route.value) ? route.value : [route.value];
                     switch (route.typeOperator) {
                         case 'EQUAL':
-                            // Al menos un valor de la respuesta es igual al valor esperado
+                            // At least one answer value equals one expected value
                             conditionMet = answerVals.some((v: any) => routeVals.includes(v));
                             break;
                         case 'NOEQUAL':
-                            // Ningún valor de la respuesta es igual al valor esperado
+                            // None of the answer values equals any expected value
                             conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
                             break;
                         case 'GREATER':
@@ -948,18 +982,18 @@ export class Form {
                             conditionMet = answerVals.some((v: any) => Number(v) <= Number(routeVals[0]));
                             break;
                         case 'INQ':
-                            // Algún valor de la respuesta está incluido en route.value (que es array)
+                            // Some answer value is included in route.value (array)
                             conditionMet = answerVals.some((v: any) => routeVals.includes(v));
                             break;
                         case 'NINQ':
-                            // Ningún valor de la respuesta está incluido en route.value (que es array)
+                            // No answer value is included in route.value (array)
                             conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
                             break;
                         default:
                             break;
                     }
 
-                    // Si se cumple la condición, saltar a la siguiente página destino
+                    // If condition is met, apply the transition
                     if (conditionMet) {
                         this.feedback.answers = []
                         switch (route.transition) {
@@ -979,7 +1013,7 @@ export class Form {
                 return;
             }
         }
-        // --- FIN NUEVO ---
+        // --- END NEW ---
 
         nextPage.elements = renderQuestions(
             nextPage.questions,
@@ -1042,5 +1076,62 @@ export class Form {
                 error: !page ? "No page found" : null
             });
         }
+    }
+
+    /**
+     * Render a single question as a preview/test.
+     * It does not modify the internal state (history, graph, progress) of the form.
+     * @param selector ID of the container where the question will be injected.
+     * @param question Full question object (NativeQuestion[] expected here).
+     * @param options Optional configuration to customize format/language/product.
+     * @returns HTMLElement container used.
+     */
+    public previewQuestion(
+        selector: string,
+        question: NativeQuestion | NativeQuestion[],
+        options?: {
+            format?: "standard" | "slim";
+            language?: string;
+            product?: any;
+            clearContainer?: boolean; // default true
+            wrap?: boolean; // whether to create a wrapper div with a class
+        }
+    ): HTMLElement {
+        const questionsArray: NativeQuestion[] = Array.isArray(question) ? question : [question];
+        if (!questionsArray || questionsArray.length === 0) throw new Error("[MagicFeedback] No question provided for preview");
+
+        const container = document.getElementById(selector);
+        if (!container) throw new Error(`[MagicFeedback] Element with ID '${selector}' not found.`);
+
+        const {
+            format = this.formOptionsConfig.questionFormat || "standard",
+            language = (this.formData?.lang && this.formData.lang[0]) || "en",
+            product = this.formData?.product || {customIcons: false},
+            clearContainer = true,
+            wrap = true,
+        } = options || {};
+
+        if (clearContainer) container.innerHTML = "";
+
+        // Reuse existing renderQuestions logic passing the question array
+        let elements: HTMLElement[] = [];
+        try {
+            elements = renderQuestions(questionsArray, format, language, product);
+        } catch (e) {
+            this.log.err(e);
+            throw e;
+        }
+
+        // If wrap is true, create a wrapper container to isolate preview styles
+        let target = container;
+        if (wrap) {
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("magicfeedback-preview-question");
+            target.appendChild(wrapper);
+            target = wrapper;
+        }
+
+        elements.forEach(el => target.appendChild(el));
+        return container;
     }
 }
