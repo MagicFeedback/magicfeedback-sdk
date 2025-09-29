@@ -471,7 +471,9 @@ export class Form {
             const page = this.history.back();
             if (!page) throw new Error("No page found");
 
-            for (const question of page.questions.filter(question => question.require)) {
+            for (const question of page.questions.filter(question => question.require &&
+                ![FEEDBACKAPPANSWERTYPE.CONSENT, FEEDBACKAPPANSWERTYPE.INFO_PAGE].includes(question.type as FEEDBACKAPPANSWERTYPE)
+            )) {
                 const assets = question.assets;
                 const ans = this.feedback.answers.filter((a) => a.key.includes(question.ref) && !a.key.includes('extra-option'));
 
