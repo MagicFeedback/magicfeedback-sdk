@@ -194,18 +194,21 @@ function renderContainer(
                 opt = opt.sort(() => Math.random() - 0.5);
             }
 
-            let exclusiveAnswers: string[] = [];
+            let exclusiveAnswers: string[] = assets?.exclusiveAnswers || [];
 
-            if (assets?.exclusiveAnswers) {
-                exclusiveAnswers = assets?.exclusiveAnswers
+            // Fix: excluir la opción extraOptionText de la lista de exclusivas si por error viene incluida desde backend/state
+            if (assets?.extraOption) {
+                exclusiveAnswers = exclusiveAnswers.filter(a => a !== assets.extraOptionText);
+            }
+
+            if (exclusiveAnswers.length > 0) {
                 exclusiveAnswers?.forEach((answer) => {
                     if (!opt.includes(answer)) opt.push(answer);
                 });
             }
 
-            if (assets?.extraOption) {
-                exclusiveAnswers.push(assets?.extraOptionText);
-                if (!opt.includes(assets?.extraOptionText)) opt.push(assets?.extraOptionText);
+            if (assets?.extraOption && !opt.includes(assets?.extraOptionText)) {
+                opt.push(assets?.extraOptionText);
             }
 
             opt.forEach((option, index) => {
@@ -229,15 +232,20 @@ function renderContainer(
                             (input as HTMLInputElement).checked = false;
                         }
 
-                        if (send && checkboxes.length === assets?.maxOptions) {
-                            send()
-                        }
+                        //TODO: Enable in the future with a setting variable to send the answer when reach the max options selected
+                        /**
+                         if (send && checkboxes.length === assets?.maxOptions && !(assets?.extraOptionText && option === assets?.extraOptionText)) {
+                         send()
+                         }
+                         **/
                     });
                 }
+
                 if (type === FEEDBACKAPPANSWERTYPE.RADIO && send) {
-                    input.addEventListener("change", () => {
-                        send()
-                    });
+                    if (!assets?.extraOptionText || assets?.extraOptionText && option !== assets?.extraOptionText)
+                        input.addEventListener("change", () => {
+                            send()
+                        });
                 }
 
 
@@ -252,13 +260,14 @@ function renderContainer(
                 input.addEventListener("change", (event) => {
                     const extraOption = document.getElementById(`extra-option-${ref}`);
                     if ((event.target as HTMLInputElement).checked && exclusiveAnswers.includes(option)) {
+                        console.log('exclusiveAnswers', exclusiveAnswers, option)
                         opt.forEach((answer) => {
                             if (answer !== option) {
                                 const input = document.querySelector(`input[value="${answer}"]`) as HTMLInputElement;
                                 input.checked = false;
                             }
                         });
-                        if (extraOption) extraOption.style.display = assets?.extraOption && option === assets?.extraOptionText ? "block" : "none";
+                        if (extraOption) extraOption.style.display = "none";
                     } else {
                         // Remove the checke of the exclusiveAnswers
                         exclusiveAnswers.forEach((answer) => {
@@ -267,8 +276,11 @@ function renderContainer(
                                 input.checked = false;
                             }
                         });
-                        if (extraOption) extraOption.style.display = "none";
+                        // if (extraOption) extraOption.style.display = assets?.extraOption && option === assets?.extraOptionText ? "block" : "none";
                     }
+                    if (assets?.extraOption && option === assets?.extraOptionText && extraOption)
+                        // SI al opcion con value assets?.extraOptionText esta seleccionada mostrar el input text si no ocultarlo
+                        extraOption.style.display = (event.target as HTMLInputElement).checked ? "block" : "none";
                 });
 
 
@@ -332,7 +344,7 @@ function renderContainer(
                 input.id = `rating-${ref}-${index}`;
                 input.type = "radio";
                 input.name = ref;
-                input.value = value[index];
+                input.value = ['Yes', 'No'][index];
                 input.classList.add(elementTypeClass);
                 input.classList.add("magicfeedback-input");
                 input.style.position = "absolute";
@@ -485,152 +497,8 @@ function renderContainer(
             element.appendChild(ratingContainer);
             break;
         case FEEDBACKAPPANSWERTYPE.RATING_NUMBER:
-            element = document.createElement("div");
             elementTypeClass = 'magicfeedback-rating-number';
-
-            const numberContainerDirection = order === 'ltr' ? direction : `${direction}-reverse`;
-            const ratingNumberContainer = document.createElement('div');
-            ratingNumberContainer.classList.add('magicfeedback-rating-number-container');
-            ratingNumberContainer.classList.add(`magicfeedback-rating-number-container-${order}`);
-            ratingNumberContainer.classList.add(`magicfeedback-rating-number-container-${direction}`);
-            ratingNumberContainer.style.display = "flex";
-            ratingNumberContainer.style.flexDirection = numberContainerDirection;
-
-
-            const maxRatingNumber = assets?.max ? Number(assets?.max) : 10;
-            const minRatingNumber = assets?.min ? Number(assets?.min) : 0;
-
-            const ratingNumberPlaceholder = createRatingPlaceholder(
-                minRatingNumber,
-                maxRatingNumber,
-                assets?.minPlaceholder,
-                assets?.maxPlaceholder,
-                assets?.extraOption,
-                true,
-                order,
-                direction
-            );
-
-            /*
-            if (isPhone || direction === 'column') {
-                const topText = order === 'ltr' ? assets?.minPlaceholder : assets?.maxPlaceholder;
-                if (topText) {
-                    const topPlaceholderContainer = document.createElement('div');
-                    topPlaceholderContainer.style.display = 'flex';
-                    topPlaceholderContainer.style.flexDirection = 'column';
-                    topPlaceholderContainer.style.width = '100%';
-                    topPlaceholderContainer.style.alignItems = 'center';
-                    topPlaceholderContainer.style.justifyContent = 'center';
-                    topPlaceholderContainer.style.margin = '5px 0';
-
-                    const topPlaceholder = document.createElement('label');
-                    topPlaceholder.classList.add('magicfeedback-rating-number-top-placeholder');
-                    topPlaceholder.textContent = topText;
-                    topPlaceholder.style.textAlign = 'center';
-
-                    topPlaceholderContainer.appendChild(topPlaceholder);
-                    element.appendChild(topPlaceholderContainer);
-                }
-            }
-            */
-
-            for (let i = minRatingNumber; i <= maxRatingNumber; i++) {
-                // Create a input button element for each value in the question's value array
-                const ratingOption = document.createElement('div');
-                ratingOption.classList.add('magicfeedback-rating-number-option');
-                ratingOption.classList.add(`magicfeedback-rating-number-option-${direction}`);
-
-                const containerLabel = document.createElement('label');
-                containerLabel.htmlFor = `rating-${ref}-${i}`;
-                containerLabel.classList.add('magicfeedback-rating-number-option-label-container');
-
-                let inputText = i.toString();
-
-                if ((isPhone || direction === 'column') && i === minRatingNumber && assets?.minPlaceholder) inputText += ` = ${assets?.minPlaceholder}`;
-                if ((isPhone || direction === 'column') && i === maxRatingNumber && assets?.maxPlaceholder) inputText += ` = ${assets?.maxPlaceholder}`;
-
-                const ratingLabel = document.createElement('label');
-                ratingLabel.htmlFor = `rating-${ref}-${i}`;
-                ratingLabel.textContent = inputText;
-
-
-                const input = document.createElement("input");
-                input.id = `rating-${ref}-${i}`;
-                input.type = "radio";
-                input.name = ref;
-                input.value = i.toString();
-                input.classList.add(elementTypeClass);
-                input.classList.add("magicfeedback-input");
-
-                if (send) {
-                    input.addEventListener("change", () => {
-                        send();
-                    });
-                }
-
-                containerLabel.appendChild(input);
-                containerLabel.appendChild(ratingLabel);
-                ratingOption.appendChild(containerLabel);
-                ratingNumberContainer.appendChild(ratingOption);
-            }
-
-            if (assets?.extraOption && assets?.extraOptionText) {
-                const extraOption = document.createElement('div');
-                extraOption.classList.add('magicfeedback-rating-number-option');
-
-                const containerLabel = document.createElement('label');
-                containerLabel.htmlFor = `rating-${ref}-extra`;
-                containerLabel.classList.add('magicfeedback-rating-number-option-label-container');
-
-                const ratingLabel = document.createElement('label');
-                ratingLabel.htmlFor = `rating-${ref}-extra`;
-                ratingLabel.textContent = assets?.extraOptionText;
-
-                const input = document.createElement("input");
-                input.id = `rating-${ref}-extra`;
-                input.type = "radio";
-                input.name = ref;
-                input.value = '-';
-                input.classList.add(elementTypeClass);
-                input.classList.add("magicfeedback-input");
-
-                if (send) {
-                    input.addEventListener("change", () => {
-                        send();
-                    });
-                }
-
-                containerLabel.appendChild(input);
-                containerLabel.appendChild(ratingLabel);
-                extraOption.appendChild(containerLabel);
-                ratingNumberContainer.appendChild(extraOption);
-            }
-
-
-            if (!(isPhone || direction === 'column')) element.appendChild(ratingNumberPlaceholder);
-            element.appendChild(ratingNumberContainer);
-            /*
-            if (isPhone || direction === 'column') {
-                const bottomText = order === 'ltr' ? assets?.maxPlaceholder : assets?.minPlaceholder;
-                if (bottomText) {
-                    const bottomPlaceholderContainer = document.createElement('div');
-                    bottomPlaceholderContainer.style.display = 'flex';
-                    bottomPlaceholderContainer.style.flexDirection = 'column';
-                    bottomPlaceholderContainer.style.width = '100%';
-                    bottomPlaceholderContainer.style.alignItems = 'center';
-                    bottomPlaceholderContainer.style.justifyContent = 'center';
-                    bottomPlaceholderContainer.style.margin = '5px 0';
-                    const bottomPlaceholder = document.createElement('label');
-                    bottomPlaceholder.classList.add('magicfeedback-rating-number-bottom-placeholder');
-                    bottomPlaceholder.textContent = bottomText;
-                    bottomPlaceholder.style.textAlign = 'center';
-
-                    bottomPlaceholderContainer.appendChild(bottomPlaceholder);
-                    element.appendChild(bottomPlaceholderContainer);
-                }
-            }
-            */
-
+            element = createRatingNumberElement(ref, assets, order, direction, isPhone, elementTypeClass, send);
             break;
         case FEEDBACKAPPANSWERTYPE.RATING_STAR:
             element = document.createElement("div");
@@ -1311,10 +1179,10 @@ function renderContainer(
         elementContainer.appendChild(subLabel);
     } else {
         if (format !== 'slim') {
-            if (![FEEDBACKAPPANSWERTYPE.INFO_PAGE].includes(type)) {
-                elementContainer.appendChild(label);
-                elementContainer.appendChild(subLabel);
-            }
+
+            elementContainer.appendChild(label);
+            elementContainer.appendChild(subLabel);
+
             if (assets?.general !== undefined && assets?.general !== "") {
                 // Add a image to the form
                 const image = document.createElement("img");
@@ -1436,6 +1304,8 @@ function createStarRating(
     ratingContainer.classList.add("magicfeedback-rating-star-container");
     ratingContainer.style.maxWidth = "300px";
     ratingContainer.style.margin = "auto";
+    // Mantiene el valor seleccionado original para restaurar tras hover
+    ratingContainer.dataset.originalSelection = '0';
 
     for (let i = 1; i <= 5; i++) {
         const ratingOption = document.createElement("label");
@@ -1456,16 +1326,15 @@ function createStarRating(
         // Update filled stars on radio input change
         ratingInput.addEventListener("change", () => {
             const allStars = ratingContainer.querySelectorAll(".rating__star");
-
             for (let j = 0; j < allStars.length; j++) {
-                // String to number
                 if (j + 1 <= Number(ratingInput.value)) {
                     if (!allStars[j].classList.contains(selectedClass)) allStars[j].classList.add(selectedClass);
                 } else {
                     if (allStars[j].classList.contains(selectedClass)) allStars[j].classList.remove(selectedClass);
                 }
             }
-
+            // Actualizamos el valor original para futuros hover
+            ratingContainer.dataset.originalSelection = ratingInput.value;
             if (send) send();
         });
 
@@ -1479,7 +1348,32 @@ function createStarRating(
         starElement.style.fontSize = `${size}px`; // Set star size
         starElement.style.color = "#CCCCCC"; // Set star color
         starElement.style.cursor = "pointer";
-        // Add hover effect
+
+        // Hover para previsualizar selección (amarillear todas las anteriores)
+        starElement.addEventListener("mouseenter", () => {
+            const allStars = ratingContainer.querySelectorAll(".rating__star");
+            const idx = i - 1; // índice de la estrella sobre la que se hace hover
+            allStars.forEach((star, starIdx) => {
+                if (starIdx <= idx) {
+                    if (!star.classList.contains(selectedClass)) star.classList.add(selectedClass);
+                } else {
+                    if (star.classList.contains(selectedClass)) star.classList.remove(selectedClass);
+                }
+            });
+        });
+        // Al salir se restaura la selección original
+        starElement.addEventListener("mouseleave", () => {
+            const original = Number(ratingContainer.dataset.originalSelection || '0');
+            const allStars = ratingContainer.querySelectorAll(".rating__star");
+            allStars.forEach((star, starIdx) => {
+                if (starIdx < original) {
+                    if (!star.classList.contains(selectedClass)) star.classList.add(selectedClass);
+                } else {
+                    if (star.classList.contains(selectedClass)) star.classList.remove(selectedClass);
+                }
+            });
+        });
+
         ratingOption.appendChild(starElement);
 
         ratingContainer.appendChild(ratingOption);
@@ -1595,3 +1489,179 @@ export function renderStartMessage(
     return startMessageContainer;
 }
 
+function createRatingNumberElement(
+    ref: string,
+    assets: any,
+    order: string,
+    direction: string,
+    isPhone: boolean,
+    elementTypeClass: string,
+    send?: () => void
+): HTMLElement {
+    const element = document.createElement("div");
+    element.classList.add('magicfeedback-rating-number');
+
+    const numberContainerDirection = order === 'ltr' ? direction : `${direction}-reverse`;
+    const ratingNumberContainer = document.createElement('div');
+    ratingNumberContainer.classList.add('magicfeedback-rating-number-container');
+    ratingNumberContainer.classList.add(`magicfeedback-rating-number-container-${order}`);
+    ratingNumberContainer.classList.add(`magicfeedback-rating-number-container-${direction}`);
+    ratingNumberContainer.style.display = "flex";
+    ratingNumberContainer.style.flexDirection = numberContainerDirection;
+    ratingNumberContainer.setAttribute('role','radiogroup');
+    ratingNumberContainer.setAttribute('aria-label', assets?.ariaLabel || 'Rating');
+
+    const maxRatingNumber = assets?.max ? Number(assets?.max) : 10;
+    const minRatingNumber = assets?.min ? Number(assets?.min) : 0;
+
+    const integratePlaceholders = !(isPhone || direction === 'column');
+
+    for (let i = minRatingNumber; i <= maxRatingNumber; i++) {
+        const ratingOption = document.createElement('div');
+        ratingOption.classList.add('magicfeedback-rating-number-option');
+        ratingOption.classList.add(`magicfeedback-rating-number-option-${direction}`);
+
+        const containerLabel = document.createElement('label');
+        containerLabel.htmlFor = `rating-${ref}-${i}`;
+        containerLabel.classList.add('magicfeedback-rating-number-option-label-container');
+        if (integratePlaceholders) {
+            containerLabel.style.position = 'relative';
+            containerLabel.style.overflow = 'visible';
+        }
+
+        // Cap span (placeholder visual) para todas las opciones para mantener altura uniforme
+        if (integratePlaceholders) {
+            const cap = document.createElement('span');
+            cap.classList.add('magicfeedback-rating-number-cap');
+            cap.classList.add('magicfeedback-rating-placeholder-value');
+            cap.style.fontSize = "14px";
+            cap.style.whiteSpace = 'nowrap';
+            cap.style.wordBreak = 'normal';
+            if (i === minRatingNumber && assets?.minPlaceholder) { cap.textContent = assets.minPlaceholder; cap.dataset.capType = 'min'; }
+            else if (i === maxRatingNumber && assets?.maxPlaceholder) { cap.textContent = assets.maxPlaceholder; cap.dataset.capType = 'max'; }
+            else cap.dataset.capType = 'mid';
+            containerLabel.appendChild(cap);
+        }
+
+        let inputText = i.toString();
+        if (!integratePlaceholders) {
+            if (i === minRatingNumber && assets?.minPlaceholder) inputText += ` = ${assets?.minPlaceholder}`;
+            if (i === maxRatingNumber && assets?.maxPlaceholder) inputText += ` = ${assets?.maxPlaceholder}`;
+        }
+
+        const input = document.createElement("input");
+        input.id = `rating-${ref}-${i}`;
+        input.type = "radio";
+        input.name = ref;
+        input.value = i.toString();
+        input.classList.add(elementTypeClass);
+        input.classList.add("magicfeedback-input");
+        input.setAttribute('aria-label', `${i}`);
+
+        if (send) input.addEventListener("change", () => send());
+
+        const ratingLabel = document.createElement('label');
+        ratingLabel.htmlFor = `rating-${ref}-${i}`;
+        ratingLabel.textContent = inputText;
+        ratingLabel.classList.add('magicfeedback-rating-number-value');
+
+        containerLabel.appendChild(input);
+        containerLabel.appendChild(ratingLabel);
+        ratingOption.appendChild(containerLabel);
+        ratingNumberContainer.appendChild(ratingOption);
+    }
+
+    if (assets?.extraOption && assets?.extraOptionText) {
+        const extraOption = document.createElement('div');
+        extraOption.classList.add('magicfeedback-rating-number-option');
+
+        const containerLabel = document.createElement('label');
+        containerLabel.htmlFor = `rating-${ref}-extra`;
+        containerLabel.classList.add('magicfeedback-rating-number-option-label-container');
+        if (integratePlaceholders) {
+            containerLabel.style.position = 'relative';
+            containerLabel.style.overflow = 'visible';
+        }
+
+        if (integratePlaceholders) {
+            const cap = document.createElement('span');
+            cap.classList.add('magicfeedback-rating-number-cap');
+            cap.dataset.capType = 'extra';
+            cap.style.fontSize = '12px';
+            cap.style.whiteSpace = 'nowrap';
+            cap.style.wordBreak = 'normal';
+            containerLabel.appendChild(cap);
+        }
+
+        const input = document.createElement("input");
+        input.id = `rating-${ref}-extra`;
+        input.type = "radio";
+        input.name = ref;
+        input.value = '-';
+        input.classList.add(elementTypeClass);
+        input.classList.add("magicfeedback-input");
+        input.setAttribute('aria-label', assets?.extraOptionText);
+        if (send) input.addEventListener("change", () => send());
+
+        const ratingLabel = document.createElement('label');
+        ratingLabel.htmlFor = `rating-${ref}-extra`;
+        ratingLabel.textContent = assets?.extraOptionText;
+        ratingLabel.classList.add('magicfeedback-rating-number-value');
+
+        containerLabel.appendChild(input);
+        containerLabel.appendChild(ratingLabel);
+        extraOption.appendChild(containerLabel);
+
+        if (order === 'ltr') ratingNumberContainer.appendChild(extraOption);
+        else ratingNumberContainer.insertBefore(extraOption, ratingNumberContainer.firstChild);
+    }
+
+    element.appendChild(ratingNumberContainer);
+
+    // Normalizar alturas de los caps sólo en desktop/row
+    if (integratePlaceholders) {
+        requestAnimationFrame(() => {
+            const caps = Array.from(ratingNumberContainer.querySelectorAll('.magicfeedback-rating-number-cap')) as HTMLElement[];
+            if (caps.length === 0) return;
+            const gap = 6;
+            let maxH = 0;
+            caps.forEach(c => { if (c.textContent?.trim()) { const h = c.getBoundingClientRect().height || 0; if (h > maxH) maxH = h; } });
+            ratingNumberContainer.style.position = 'relative';
+            ratingNumberContainer.style.paddingTop = `${maxH + gap}px`;
+            caps.forEach(c => {
+                const h = c.getBoundingClientRect().height || 0;
+                c.style.position = 'absolute';
+                c.style.top = `-${(maxH + h)}px`;
+                c.style.zIndex = '1';
+                c.style.pointerEvents = 'none';
+                c.style.padding = '0 4px';
+                c.style.boxSizing = 'border-box';
+                c.style.whiteSpace = 'nowrap';
+                c.style.wordBreak = 'normal';
+                c.style.maxWidth = 'none';
+                c.style.width = 'max-content';
+                // Posicionamiento según tipo
+                const type = c.dataset.capType;
+                if (type === 'min') {
+                    c.style.left = 'auto';
+                    c.style.right = '10px';
+                    c.style.transform = 'none';
+                    c.style.textAlign = 'left';
+                } else if (type === 'max') {
+                    c.style.right = 'auto';
+                    c.style.left = '10px';
+                    c.style.transform = 'none';
+                    c.style.textAlign = 'right';
+                } else {
+                    // mid / extra (vacíos) centrados sobre su botón pero invisibles en práctica
+                    c.style.left = '50%';
+                    c.style.transform = 'translateX(-50%)';
+                    c.style.textAlign = 'center';
+                }
+            });
+            ratingNumberContainer.style.overflow = 'visible';
+        });
+    }
+
+    return element;
+}

@@ -23,7 +23,7 @@ export class PageNode {
         this.position = position;
         this.edges = edges;
         this.data = data;
-        this.questions = questions;
+        this.questions = questions.sort((a, b) => a.position - b.position);
         this.elements = [];
         this.isFollowup = isFollowup;
     }
