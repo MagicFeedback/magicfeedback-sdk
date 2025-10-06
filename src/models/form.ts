@@ -175,6 +175,15 @@ export class Form {
 
             if (this.formOptionsConfig.getMetaData) this.getMetaData();
 
+            // If this.formData.product.originAllowed exists, check if the current domain is in the list
+            // EJ originAllowed :["*", "survey.99thstudio.com"]
+            // "*" means that: all domains from deepdots.com are allowed
+            if (this.formData.product.originAllowed && this.formData.product.originAllowed.length > 0) {
+                const domain = window.location.hostname;
+                const allowed = this.formData.product.originAllowed.find((d: string) => d === domain || (d === '*' && domain.endsWith('.deepdots.com')));
+                if (!allowed) throw new Error(`Domain not allowed`);
+            }
+
             this.formData.style?.startMessage ?
                 await this.generateWelcomeMessage(this.formData.style.startMessage) :
                 this.startForm();

@@ -197,7 +197,7 @@ function renderContainer(
             let exclusiveAnswers: string[] = assets?.exclusiveAnswers || [];
 
             // Fix: excluir la opción extraOptionText de la lista de exclusivas si por error viene incluida desde backend/state
-            if (assets?.extraOptionText) {
+            if (assets?.extraOption) {
                 exclusiveAnswers = exclusiveAnswers.filter(a => a !== assets.extraOptionText);
             }
 
@@ -1304,6 +1304,8 @@ function createStarRating(
     ratingContainer.classList.add("magicfeedback-rating-star-container");
     ratingContainer.style.maxWidth = "300px";
     ratingContainer.style.margin = "auto";
+    // Mantiene el valor seleccionado original para restaurar tras hover
+    ratingContainer.dataset.originalSelection = '0';
 
     for (let i = 1; i <= 5; i++) {
         const ratingOption = document.createElement("label");
@@ -1324,16 +1326,15 @@ function createStarRating(
         // Update filled stars on radio input change
         ratingInput.addEventListener("change", () => {
             const allStars = ratingContainer.querySelectorAll(".rating__star");
-
             for (let j = 0; j < allStars.length; j++) {
-                // String to number
                 if (j + 1 <= Number(ratingInput.value)) {
                     if (!allStars[j].classList.contains(selectedClass)) allStars[j].classList.add(selectedClass);
                 } else {
                     if (allStars[j].classList.contains(selectedClass)) allStars[j].classList.remove(selectedClass);
                 }
             }
-
+            // Actualizamos el valor original para futuros hover
+            ratingContainer.dataset.originalSelection = ratingInput.value;
             if (send) send();
         });
 
@@ -1347,7 +1348,32 @@ function createStarRating(
         starElement.style.fontSize = `${size}px`; // Set star size
         starElement.style.color = "#CCCCCC"; // Set star color
         starElement.style.cursor = "pointer";
-        // Add hover effect
+
+        // Hover para previsualizar selección (amarillear todas las anteriores)
+        starElement.addEventListener("mouseenter", () => {
+            const allStars = ratingContainer.querySelectorAll(".rating__star");
+            const idx = i - 1; // índice de la estrella sobre la que se hace hover
+            allStars.forEach((star, starIdx) => {
+                if (starIdx <= idx) {
+                    if (!star.classList.contains(selectedClass)) star.classList.add(selectedClass);
+                } else {
+                    if (star.classList.contains(selectedClass)) star.classList.remove(selectedClass);
+                }
+            });
+        });
+        // Al salir se restaura la selección original
+        starElement.addEventListener("mouseleave", () => {
+            const original = Number(ratingContainer.dataset.originalSelection || '0');
+            const allStars = ratingContainer.querySelectorAll(".rating__star");
+            allStars.forEach((star, starIdx) => {
+                if (starIdx < original) {
+                    if (!star.classList.contains(selectedClass)) star.classList.add(selectedClass);
+                } else {
+                    if (star.classList.contains(selectedClass)) star.classList.remove(selectedClass);
+                }
+            });
+        });
+
         ratingOption.appendChild(starElement);
 
         ratingContainer.appendChild(ratingOption);
