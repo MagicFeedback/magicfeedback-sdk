@@ -25,6 +25,7 @@ export default function main() {
         if (options?.debug) config.set("debug", options?.debug);
 
         config.set("url", options?.env && options?.env === "dev" ? HOST_API_URL_DEV : HOST_API_URL);
+        config.set("env", options?.env);
 
         log = new Log(config);
 
