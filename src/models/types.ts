@@ -64,6 +64,7 @@ export type NativeQuestion = {
     generatedAt?: string | null;
     updatedAt?: string | null;
     status?: string;
+    followupQuestion?: string[]; // Nueva propiedad opcional
 };
 
 export type NativeAnswer = {

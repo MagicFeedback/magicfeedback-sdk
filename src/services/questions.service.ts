@@ -1171,6 +1171,16 @@ function renderContainer(
     subLabel.textContent = parseTitle(assets?.subtitle, language);
     subLabel.classList.add("magicfeedback-sublabel");
 
+    if (assets?.subtitleStyle?.includes('italic')) {
+        subLabel.style.fontStyle = "italic";
+    }
+    if (assets?.subtitleStyle?.includes('bold')) {
+        subLabel.style.fontWeight = "bold";
+    }
+    if (assets?.subtitleStyle?.includes('underline')) {
+        subLabel.style.textDecoration = "underline";
+    }
+
 
     if (["CONSENT"].includes(type)) {
         elementContainer.classList.add("magicfeedback-consent-container");

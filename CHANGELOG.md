@@ -6,6 +6,9 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.1.1] - 2025-10-20
+- Added logic to manage conditional in matrix questions: now you can set conditions based on matrix question responses.
+
 ## 🚀 [2.1.0] - 2025-10-06
 - New feature: Added support for custom CSS classes to the feedback widget, allowing users to apply their own styles.
 - Improvement: Enhanced the performance of the feedback widget by optimizing the loading of assets.

@@ -385,7 +385,7 @@ describe('pageGrafs', () => {
                             "questionRef": "conocesmagic",
                             "typeCondition": ConditionType.LOGICAL,
                             "typeOperator": OperatorType.EQUAL,
-                            "value": ["Yes"]",
+                            "value": ["Yes"],
                             "transition": TransitionType.PAGE,
                             "transitionDestiny": "e9f4ea70-8f81-11ef-ac6c-69b43cd19236",
                             "status": StatusType.ACTIVE,
@@ -422,7 +422,7 @@ describe('pageGrafs', () => {
                             "questionRef": "conocespokemon",
                             "typeCondition": ConditionType.LOGICAL,
                             "typeOperator": OperatorType.EQUAL,
-                            "value": ["Yes"]",
+                            "value": ["Yes"],
                             "transition": TransitionType.PAGE,
                             "transitionDestiny": "e9f4ea70-8f81-11ef-ac6c-69b43cd19236",
                             "status": StatusType.ACTIVE,
@@ -446,7 +446,7 @@ describe('pageGrafs', () => {
                             "questionRef": "conocesdigimon",
                             "typeCondition": ConditionType.LOGICAL,
                             "typeOperator": OperatorType.EQUAL,
-                            "value": ["Yes"]",
+                            "value": ["Yes"],
                             "transition": TransitionType.PAGE,
                             "transitionDestiny": "e9f4ea70-8f81-11ef-ac6c-69b43cd19236",
                             "status": StatusType.ACTIVE,
@@ -2407,7 +2407,7 @@ describe('pageGrafs', () => {
                             "status": "ACTIVE",
                             "integrationId": "d6f8e4c0-3974-11ef-bc8f-15d3d6c704f0",
                             "type": "RADIO",
-                            "integrationPageId": "c23794c0-44d5-11ef-a292-8f2d6fb37963",
+            ];
                             "questionType": {
                                 "conf": null
                             }
@@ -2441,104 +2441,104 @@ describe('pageGrafs', () => {
                             "id": "29901f90-3976-11ef-bc8f-15d3d6c704f0",
                             "title": " I hvor høj grad synes du, at butikken har det rigtige udvalg?",
                             "ref": "right_selection_store",
-                            "refMetric": "butik udvalg",
-                            "require": false,
-                            "external_id": "",
-                            "value": [],
-                            "defaultValue": "",
-                            "position": 13,
-                            "followup": false,
-                            "assets": {
-                                "min": "1",
-                                "max": "5",
-                                "minPlaceholder": "Slet ikke",
-                                "maxPlaceholder": "I høj grad",
-                                "extraOption": "",
-                                "extraOptionText": "",
-                                "placeholder": "",
-                                "general": ""
-                            },
-                            "generatedAt": null,
-                            "updatedAt": null,
-                            "status": "ACTIVE",
-                            "integrationId": "d6f8e4c0-3974-11ef-bc8f-15d3d6c704f0",
-                            "type": "RATING_NUMBER",
-                            "integrationPageId": "c798d6e0-44d5-11ef-a292-8f2d6fb37963",
-                            "questionType": {
-                                "conf": null
-                            }
-                        }
-                    ],
-                    "integrationPageRoutes": [
-                        {
-                            "id": "6db88c80-44e7-11ef-aef4-21d091aeb756",
-                            "questionRef": "right_selection_store",
-                            "typeCondition": "LOGICAL",
-                            "typeOperator": "EQUAL",
-                            "value": ["3"],
-                            "transition": "PAGE",
-                            "transitionDestiny": "d18b8800-44d5-11ef-a292-8f2d6fb37963",
-                            "status": "ACTIVE",
-                            "generatedAt": "2024-07-18T09:23:44.072Z",
-                            "updatedAt": "2024-07-18T09:23:44.072Z",
-                            "integrationPageId": "c798d6e0-44d5-11ef-a292-8f2d6fb37963"
-                        },
-                        {
-                            "id": "6f4f3210-44e7-11ef-aef4-21d091aeb756",
-                            "questionRef": "right_selection_store",
-                            "typeCondition": "LOGICAL",
-                            "typeOperator": "EQUAL",
-                            "value": ["4"],
-                            "transition": "PAGE",
-                            "transitionDestiny": "d18b8800-44d5-11ef-a292-8f2d6fb37963",
-                            "status": "ACTIVE",
-                            "generatedAt": "2024-07-18T09:23:46.737Z",
-                            "updatedAt": "2024-07-18T09:23:46.737Z",
-                            "integrationPageId": "c798d6e0-44d5-11ef-a292-8f2d6fb37963"
-                        },
-                        {
-                            "id": "710baf20-44e7-11ef-aef4-21d091aeb756",
-                            "questionRef": "right_selection_store",
-                            "typeCondition": "LOGICAL",
-                            "typeOperator": "EQUAL",
-                            "value": ["5"],
-                            "transition": "PAGE",
-                            "transitionDestiny": "d18b8800-44d5-11ef-a292-8f2d6fb37963",
-                            "status": "ACTIVE",
-                            "generatedAt": "2024-07-18T09:23:49.649Z",
-                            "updatedAt": "2024-07-18T09:23:49.649Z",
-                            "integrationPageId": "c798d6e0-44d5-11ef-a292-8f2d6fb37963"
-                        },
-                        {
-                            "id": "710baf20-44e7-11ef-aef4-21d091aeb757",
-                            "questionRef": "right_selection_store",
-                            "typeCondition": "LOGICAL",
-                            "typeOperator": "LESSEQUAL",
-                            "value": ["2"],
-                            "transition": "PAGE",
-                            "transitionDestiny": "ccea1370-44d5-11ef-a292-8f2d6fb37963",
-                            "status": "ACTIVE",
-                            "generatedAt": "2024-07-18T09:23:49.649Z",
-                            "updatedAt": "2024-07-18T09:23:49.649Z",
-                            "integrationPageId": "c798d6e0-44d5-11ef-a292-8f2d6fb37963"
-                        }
-                    ]
-                },
-                {
-                    "id": "ccea1370-44d5-11ef-a292-8f2d6fb37963",
-                    "position": 14,
-                    "generatedAt": "2024-07-18T07:17:32.839Z",
-                    "updatedAt": "2024-07-18T07:17:32.839Z",
-                    "status": "ACTIVE",
-                    "integrationId": "d6f8e4c0-3974-11ef-bc8f-15d3d6c704f0",
-                    "integrationQuestions": [
-                        {
-                            "id": "2b33e480-3976-11ef-bc8f-15d3d6c704f0",
-                            "title": "Hvad savnede du i udvalget?",
-                            "ref": "miss_the_committee",
-                            "refMetric": "missing selection",
-                            "require": true,
-                            "external_id": "",
+
+    // Añadir tests para MULTI_QUESTION_MATRIX
+    describe('evaluateMatrixCondition MULTI_QUESTION_MATRIX', () => {
+        test('EQUAL requiere que todas las filas relevantes tengan el valor', () => {
+            const matrixQuestion: NativeQuestion = {
+                id: 'mq1',
+                title: 'Matrix',
+                type: FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX,
+                ref: 'matrixRef',
+                require: true,
+                external_id: '',
+                value: [],
+                defaultValue: '',
+                followup: false,
+            };
+
+            const pages: Page[] = [
+                new Page('p1', 1, 'int', [matrixQuestion], [
+                    // Ruta lógica hacia p3 que solo se activa si TODAS las filas (row1,row2) contienen 'A'
+                    new PageRoute('r1', 'matrixRef', OperatorType.EQUAL, ['A'], TransitionType.PAGE, 'p3', 'p1', ConditionType.LOGICAL, 0, ['row1','row2'])
+                ]),
+                new Page('p2', 2, 'int', [matrixQuestion], []), // Página por defecto (siguiente posición)
+                new Page('p3', 3, 'int', [matrixQuestion], []), // Destino condicional
+            ];
+
+            const graphLocal = new PageGraph(pages);
+            const current = graphLocal.getNodeById('p1');
+
+            // Caso éxito: ambas filas contienen 'A'
+            const answerAll: NativeAnswer[] = [{
+                key: 'matrixRef',
+                value: [JSON.stringify([
+                    { key: 'row1', value: ['A','X'] },
+                    { key: 'row2', value: ['A'] }
+                ])]
+            }];
+            const nextAll = graphLocal.getNextPage(current!, answerAll);
+            expect(nextAll?.id).toBe('p3');
+
+            // Caso falla: solo una fila contiene 'A' => debe ir a página por defecto (p2)
+            const answerOne: NativeAnswer[] = [{
+                key: 'matrixRef',
+                value: [JSON.stringify([
+                    { key: 'row1', value: ['A','X'] },
+                    { key: 'row2', value: ['X'] }
+                ])]
+            }];
+            const nextOne = graphLocal.getNextPage(current!, answerOne);
+            expect(nextOne?.id).toBe('p2');
+        });
+
+        test('INQ se activa si alguna fila relevante tiene el valor', () => {
+            const matrixQuestion: NativeQuestion = {
+                id: 'mq2',
+                title: 'Matrix',
+                type: FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX,
+                ref: 'matrixRef2',
+                require: true,
+                external_id: '',
+                value: [],
+                defaultValue: '',
+                followup: false,
+            };
+
+            const pages: Page[] = [
+                new Page('p1', 1, 'int', [matrixQuestion], [
+                    new PageRoute('r1', 'matrixRef2', OperatorType.INQ, ['A'], TransitionType.PAGE, 'p3', 'p1', ConditionType.LOGICAL, 0, ['row1','row2'])
+                ]),
+                new Page('p2', 2, 'int', [matrixQuestion], []),
+                new Page('p3', 3, 'int', [matrixQuestion], []),
+            ];
+
+            const graphLocal = new PageGraph(pages);
+            const current = graphLocal.getNodeById('p1');
+
+            // Solo una fila tiene 'A' => debería ir a p3
+            const answerOne: NativeAnswer[] = [{
+                key: 'matrixRef2',
+                value: [JSON.stringify([
+                    { key: 'row1', value: ['X'] },
+                    { key: 'row2', value: ['A'] }
+                ])]
+            }];
+            const nextOne = graphLocal.getNextPage(current!, answerOne);
+            expect(nextOne?.id).toBe('p3');
+
+            // Ninguna fila tiene 'A' => debería ir a p2 (default)
+            const answerNone: NativeAnswer[] = [{
+                key: 'matrixRef2',
+                value: [JSON.stringify([
+                    { key: 'row1', value: ['X'] },
+                    { key: 'row2', value: ['Y'] }
+                ])]
+            }];
+            const nextNone = graphLocal.getNextPage(current!, answerNone);
+            expect(nextNone?.id).toBe('p2');
+        });
+    });
                             "value": [],
                             "defaultValue": "",
                             "position": 14,

@@ -43,6 +43,7 @@ export class PageRoute {
     updatedAt?: Date | string;
     integrationPageId: string;
     position: number;
+    option: string[];
 
     constructor(
         id: string,
@@ -53,7 +54,8 @@ export class PageRoute {
         transitionDestiny: string,
         integrationPageId: string,
         typeCondition?: ConditionType,
-        position?: number
+        position?: number,
+        option?: string[],
     ) {
         this.id = id;
         this.questionRef = questionRef;
@@ -67,5 +69,6 @@ export class PageRoute {
         this.updatedAt = new Date();
         this.integrationPageId = integrationPageId;
         this.position = position || 0;
+        this.option = option || [];
     }
 }

@@ -1,6 +1,6 @@
 import {Page} from "./page";
 import {PageNode} from "./pageNode";
-import {NativeAnswer} from "./types";
+import {NativeAnswer, FEEDBACKAPPANSWERTYPE} from "./types";
 import {ConditionType, OperatorType, PageRoute, TransitionType} from "./pageRoute";
 
 export class PageGraph {
@@ -18,21 +18,6 @@ export class PageGraph {
      * */
     private buildGraph(pages: Page[]) {
         pages.forEach((page) => {
-            /*
-            if (!page.integrationPageRoutes && pages[index + 1]) {
-                const defaultEdge = new PageRoute(
-                    `${page.id}-default`,
-                    page.integrationQuestions[0]?.ref || '',
-                    OperatorType.DEFAULT,
-                    '',
-                    TransitionType.PAGE,
-                    pages[index + 1]?.id || '',
-                    page.id
-                );
-                page.integrationPageRoutes = [defaultEdge];
-            }
-            */
-
             // Sort by created date and then by type of transition (logical first)
             if (page.integrationPageRoutes) page.integrationPageRoutes = page.integrationPageRoutes?.sort(
                 (a, b) =>
@@ -104,26 +89,31 @@ export class PageGraph {
             return 0;
         });
 
+        // console.log(currentNode)
+
         // Buscar la primera ruta que cumpla la condición
         const route = currentNode.edges.find(edge => {
             // Chequear condición
+            const question = currentNode.questions.find(q => q.ref === edge.questionRef);
             const answerValue = answer?.filter(ans => ans.key === edge.questionRef);
+            if (edge.typeCondition === 'DIRECT') return true;
             if (!answerValue || answerValue.length === 0) return false;
 
-            if (edge.typeCondition === 'DIRECT') return true;
+            // Lógica especial para matrices
+            if (question?.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {
+                return this.evaluateMatrixCondition(edge, answerValue);
+            }
 
             // Normalizar edge.value a array
             const edgeVals = Array.isArray(edge.value) ? edge.value : [edge.value];
 
             switch (edge.typeOperator) {
                 case OperatorType.EQUAL:
-                    // Al menos un valor de la respuesta está en edgeVals
                     return answerValue.some(ans => {
                         const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
                         return ansVals.some(val => edgeVals.includes(val));
                     });
                 case OperatorType.NOEQUAL:
-                    // Ningún valor de la respuesta está en edgeVals
                     return answerValue.every(ans => {
                         const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
                         return ansVals.every(val => !edgeVals.includes(val));
@@ -149,13 +139,11 @@ export class PageGraph {
                         return ansVals.some(val => edgeVals.some(edgeVal => Number(val) <= Number(edgeVal)));
                     });
                 case OperatorType.INQ:
-                    // Algún valor de la respuesta está incluido en edgeVals
                     return answerValue.some(ans => {
                         const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
                         return ansVals.some(val => edgeVals.includes(val));
                     });
                 case OperatorType.NINQ:
-                    // Ningún valor de la respuesta está incluido en edgeVals
                     return answerValue.every(ans => {
                         const ansVals = Array.isArray(ans.value) ? ans.value : [ans.value];
                         return ansVals.every(val => !edgeVals.includes(val));
@@ -198,7 +186,6 @@ export class PageGraph {
         if (!node) {
             return 0;
         }
-
         const visited: Set<PageNode> = new Set();
         return this.DFSUtil(node, visited, 0);
     }
@@ -236,7 +223,7 @@ export class PageGraph {
         let max_depth = depth;
 
         // Haz una copia local de los vecinos para evitar modificar el grafo original
-        const neighbours = [...(v.edges.filter((e)=> e.typeCondition !== ConditionType.PRECONDITIONAL) || [])];
+        const neighbours = [...(v.edges.filter((e) => e.typeCondition !== ConditionType.PRECONDITIONAL) || [])];
 
         // Si no hay edges, ir a la siguiente página por posición
         const defaultEdge = this.getNextEdgeByDefault(v);
@@ -272,5 +259,80 @@ export class PageGraph {
         }
 
         return max_depth;
+    }
+
+    private parseMatrixAnswer(ans: NativeAnswer): { key: string; value: any[] }[] {
+        // ans.value puede ser:
+        // 1. Un array con un string JSON que representa la matriz
+        // 2. Un array de objetos ya parseados
+        // 3. Un array vacío
+        if (!ans || !ans.value) return [];
+
+        // Caso 1: primer elemento es string con JSON de la matriz
+        if (ans.value.length === 1 && typeof ans.value[0] === 'string' && ans.value[0].trim().startsWith('[')) {
+            try {
+                const parsed = JSON.parse(ans.value[0]);
+                if (Array.isArray(parsed)) return parsed;
+            } catch (e) {
+                // Ignorar errores de parseo
+                return [];
+            }
+        }
+
+        // Caso 2: el array ya contiene objetos { key, value }
+        if (Array.isArray(ans.value) && ans.value.length > 0 && typeof ans.value[0] === 'object' && ans.value[0] !== null && 'key' in ans.value[0]) {
+            return ans.value as { key: string; value: any[] }[];
+        }
+
+        return [];
+    }
+
+    private evaluateMatrixCondition(edge: PageRoute, answerValue: NativeAnswer[]): boolean {
+        const edgeVals = Array.isArray(edge.value) ? edge.value : [edge.value];
+        const optionFilter = new Set(edge.option || []); // eje X a filtrar
+        const ans = answerValue[0]; // Se asume una respuesta por pregunta
+        const rows = this.parseMatrixAnswer(ans);
+        if (!rows.length) return false;
+
+        const relevantRows = optionFilter.size > 0 ? rows.filter(r => optionFilter.has(r.key)) : rows;
+        if (!relevantRows.length) return false;
+
+        const intersects = (rowValues: any[]) => rowValues.some(v => edgeVals.includes(v));
+        const notIntersects = (rowValues: any[]) => rowValues.every(v => !edgeVals.includes(v));
+
+        switch (edge.typeOperator) {
+            case OperatorType.EQUAL:
+                // Todas las filas relevantes deben contener al menos un valor de edgeVals
+                // return relevantRows.every(r => intersects(Array.isArray(r.value) ? r.value : [r.value]));
+            case OperatorType.INQ:
+                // Alguna fila relevante contiene al menos un valor de edgeVals (se mantiene comportamiento original para INQ)
+                return relevantRows.some(r => intersects(Array.isArray(r.value) ? r.value : [r.value]));
+            case OperatorType.NOEQUAL:
+            case OperatorType.NINQ:
+                // Todas las filas relevantes NO contienen valores de edgeVals
+                return relevantRows.every(r => notIntersects(Array.isArray(r.value) ? r.value : [r.value]));
+            case OperatorType.GREATER:
+                return relevantRows.some(r => {
+                    const vals = Array.isArray(r.value) ? r.value : [r.value];
+                    return vals.some(val => edgeVals.some(edgeVal => Number(val) > Number(edgeVal)));
+                });
+            case OperatorType.LESS:
+                return relevantRows.some(r => {
+                    const vals = Array.isArray(r.value) ? r.value : [r.value];
+                    return vals.some(val => edgeVals.some(edgeVal => Number(val) < Number(edgeVal)));
+                });
+            case OperatorType.GREATEREQUAL:
+                return relevantRows.some(r => {
+                    const vals = Array.isArray(r.value) ? r.value : [r.value];
+                    return vals.some(val => edgeVals.some(edgeVal => Number(val) >= Number(edgeVal)));
+                });
+            case OperatorType.LESSEQUAL:
+                return relevantRows.some(r => {
+                    const vals = Array.isArray(r.value) ? r.value : [r.value];
+                    return vals.some(val => edgeVals.some(edgeVal => Number(val) <= Number(edgeVal)));
+                });
+            default:
+                return false;
+        }
     }
 }
