@@ -135,7 +135,7 @@ function renderContainer(
     const placeholderText = format === 'slim' ? parseTitle(title, language) : assets?.placeholder
 
     // Look if exist the value in a query param with the ref like a key
-    const urlParamValue = params(id);
+    const urlParamValue = params(ref);
 
     const maxCharacters = assets?.maxCharacters || 0
     const randomPosition = assets?.randomPosition === undefined ? false : assets?.randomPosition;
@@ -148,6 +148,10 @@ function renderContainer(
             element = document.createElement("input");
             (element as HTMLInputElement).type = "text";
             (element as HTMLInputElement).placeholder = placeholderText || placeholder.answer(language || 'en');
+
+            if (urlParamValue) {
+                (element as HTMLInputElement).value = urlParamValue;
+            }
             // Control on press enter
             (element as HTMLInputElement).addEventListener("keyup", (event) => {
                 event.preventDefault();
@@ -164,6 +168,10 @@ function renderContainer(
             (element as HTMLTextAreaElement).rows = 3; // Set the number of rows based on the type
             if (maxCharacters > 0) (element as HTMLTextAreaElement).maxLength = maxCharacters; // Set the max length of the text area
             (element as HTMLInputElement).placeholder = placeholderText || placeholder.answer(language || 'en');
+
+            if (urlParamValue) {
+                (element as HTMLInputElement).value = urlParamValue;
+            }
             elementTypeClass = "magicfeedback-longtext";
             break;
         case FEEDBACKAPPANSWERTYPE.NUMBER:
@@ -179,6 +187,12 @@ function renderContainer(
                 (element as HTMLInputElement).min = value[0];
                 (element as HTMLInputElement).value = value[0];
             }
+
+
+            if (urlParamValue && !isNaN(Number(urlParamValue))) {
+                (element as HTMLInputElement).value = urlParamValue;
+            }
+
             break;
         case FEEDBACKAPPANSWERTYPE.RADIO:
         case FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE:
@@ -357,6 +371,11 @@ function renderContainer(
                     if (send) send();
                 });
 
+
+                if (urlParamValue && urlParamValue.toLowerCase() === input.value.toLowerCase()) {
+                    input.checked = true;
+                }
+
                 container.appendChild(input);
                 container.appendChild(label);
                 booleanContainer.appendChild(container);
@@ -445,6 +464,11 @@ function renderContainer(
                     });
                 }
 
+
+                if (urlParamValue && urlParamValue === input.value) {
+                    input.checked = true;
+                }
+
                 containerLabel.appendChild(input);
                 containerLabel.appendChild(ratingImage);
                 containerLabel.appendChild(ratingLabel);
@@ -498,13 +522,13 @@ function renderContainer(
             break;
         case FEEDBACKAPPANSWERTYPE.RATING_NUMBER:
             elementTypeClass = 'magicfeedback-rating-number';
-            element = createRatingNumberElement(ref, assets, order, direction, isPhone, elementTypeClass, send);
+            element = createRatingNumberElement(ref, assets, order, direction, isPhone, elementTypeClass, send, urlParamValue);
             break;
         case FEEDBACKAPPANSWERTYPE.RATING_STAR:
             element = document.createElement("div");
             elementTypeClass = 'magicfeedback-rating-star';
 
-            const ratingStarContainer = createStarRating(ref, assets?.minPlaceholder, assets?.maxPlaceholder, send);
+            const ratingStarContainer = createStarRating(ref, assets?.minPlaceholder, assets?.maxPlaceholder, send, urlParamValue);
 
             element.appendChild(ratingStarContainer);
             break;
@@ -607,8 +631,11 @@ function renderContainer(
                 input.style.height = "0";
                 input.classList.add("magicfeedback-input");
 
-                console.log('send', send)
-                console.log('multiOptions', multiOptions)
+
+                if (urlParamValue && urlParamValue === input.value) {
+                    input.checked = true;
+                }
+
                 if (!multiOptions && send) {
                     input.addEventListener("change", () => {
                         console.log('send')
@@ -661,6 +688,7 @@ function renderContainer(
             option.selected = true;
             (element as HTMLSelectElement).appendChild(option);
 
+
             value.forEach((optionValue) => {
                 // Create an option element for each value in the question's value array
                 const option = document.createElement("option");
@@ -668,6 +696,11 @@ function renderContainer(
                 option.text = optionValue;
                 (element as HTMLSelectElement).appendChild(option);
             });
+
+
+            if (urlParamValue && value.includes(urlParamValue)) {
+                (element as HTMLSelectElement).value = urlParamValue;
+            }
 
             if (send) {
                 element.addEventListener("change", () => {
@@ -682,6 +715,11 @@ function renderContainer(
             (element as HTMLInputElement).required = require;
             (element as HTMLInputElement).placeholder = placeholderText || placeholder.date(language || 'en');
             elementTypeClass = "magicfeedback-date";
+
+            if (urlParamValue) {
+                (element as HTMLInputElement).value = urlParamValue;
+            }
+
             break;
         case FEEDBACKAPPANSWERTYPE.CONSENT:
             // Create an input element with type "checkbox" for BOOLEAN type
@@ -696,6 +734,10 @@ function renderContainer(
             element.classList.add("magicfeedback-consent");
             element.classList.add("magicfeedback-input");
 
+            if (urlParamValue && value.includes(urlParamValue)) {
+                (element as HTMLInputElement).checked = true;
+            }
+
             if (send) {
                 element.addEventListener("change", () => {
                     send();
@@ -709,6 +751,10 @@ function renderContainer(
             (element as HTMLInputElement).required = require;
             (element as HTMLInputElement).placeholder = placeholderText || "you@example.com";
             elementTypeClass = "magicfeedback-email";
+
+            if (urlParamValue) {
+                (element as HTMLInputElement).value = urlParamValue;
+            }
             break;
         case FEEDBACKAPPANSWERTYPE.PASSWORD:
             // Create an input element with type "password" for PASSWORD type
@@ -717,6 +763,9 @@ function renderContainer(
             (element as HTMLInputElement).required = require;
             (element as HTMLInputElement).placeholder = placeholderText || placeholder.password(language || 'en');
             elementTypeClass = "magicfeedback-password";
+            if (urlParamValue) {
+                (element as HTMLInputElement).value = urlParamValue;
+            }
             break;
         case FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX:
             element = document.createElement("div");
@@ -1304,7 +1353,8 @@ function createStarRating(
     minPlaceholder: string,
     maxPlaceholder: string,
     send: () => void = () => {
-    }
+    },
+    urlParamValue?: string | null
 ) {
     const size = 40;
     const selectedClass = "magicfeedback-rating-star-selected";
@@ -1332,6 +1382,11 @@ function createStarRating(
         ratingInput.style.width = "0";
         ratingInput.style.height = "0";
         ratingInput.classList.add("magicfeedback-input");
+
+
+        if (urlParamValue && urlParamValue === ratingInput.value) {
+            ratingInput.checked = true;
+        }
 
         // Update filled stars on radio input change
         ratingInput.addEventListener("change", () => {
@@ -1506,7 +1561,8 @@ function createRatingNumberElement(
     direction: string,
     isPhone: boolean,
     elementTypeClass: string,
-    send?: () => void
+    send?: () => void,
+    urlParamValue?: string | null,
 ): HTMLElement {
     const element = document.createElement("div");
     element.classList.add('magicfeedback-rating-number');
@@ -1518,7 +1574,7 @@ function createRatingNumberElement(
     ratingNumberContainer.classList.add(`magicfeedback-rating-number-container-${direction}`);
     ratingNumberContainer.style.display = "flex";
     ratingNumberContainer.style.flexDirection = numberContainerDirection;
-    ratingNumberContainer.setAttribute('role','radiogroup');
+    ratingNumberContainer.setAttribute('role', 'radiogroup');
     ratingNumberContainer.setAttribute('aria-label', assets?.ariaLabel || 'Rating');
 
     const maxRatingNumber = assets?.max ? Number(assets?.max) : 10;
@@ -1547,9 +1603,13 @@ function createRatingNumberElement(
             cap.style.fontSize = "14px";
             cap.style.whiteSpace = 'nowrap';
             cap.style.wordBreak = 'normal';
-            if (i === minRatingNumber && assets?.minPlaceholder) { cap.textContent = assets.minPlaceholder; cap.dataset.capType = 'min'; }
-            else if (i === maxRatingNumber && assets?.maxPlaceholder) { cap.textContent = assets.maxPlaceholder; cap.dataset.capType = 'max'; }
-            else cap.dataset.capType = 'mid';
+            if (i === minRatingNumber && assets?.minPlaceholder) {
+                cap.textContent = assets.minPlaceholder;
+                cap.dataset.capType = 'min';
+            } else if (i === maxRatingNumber && assets?.maxPlaceholder) {
+                cap.textContent = assets.maxPlaceholder;
+                cap.dataset.capType = 'max';
+            } else cap.dataset.capType = 'mid';
             containerLabel.appendChild(cap);
         }
 
@@ -1569,6 +1629,11 @@ function createRatingNumberElement(
         input.setAttribute('aria-label', `${i}`);
 
         if (send) input.addEventListener("change", () => send());
+
+
+        if (urlParamValue && urlParamValue === input.value) {
+            input.checked = true;
+        }
 
         const ratingLabel = document.createElement('label');
         ratingLabel.htmlFor = `rating-${ref}-${i}`;
@@ -1635,7 +1700,12 @@ function createRatingNumberElement(
             if (caps.length === 0) return;
             const gap = 6;
             let maxH = 0;
-            caps.forEach(c => { if (c.textContent?.trim()) { const h = c.getBoundingClientRect().height || 0; if (h > maxH) maxH = h; } });
+            caps.forEach(c => {
+                if (c.textContent?.trim()) {
+                    const h = c.getBoundingClientRect().height || 0;
+                    if (h > maxH) maxH = h;
+                }
+            });
             ratingNumberContainer.style.position = 'relative';
             ratingNumberContainer.style.paddingTop = `${maxH + gap}px`;
             caps.forEach(c => {
@@ -1653,15 +1723,23 @@ function createRatingNumberElement(
                 // Posicionamiento según tipo
                 const type = c.dataset.capType;
                 if (type === 'min') {
-                    c.style.left = 'auto';
-                    c.style.right = '10px';
+                    if (order === 'ltr') {
+                        c.style.left = '10px';
+                        c.style.textAlign = 'left';
+                    } else {
+                        c.style.right = '10px';
+                        c.style.textAlign = 'right';
+                    }
                     c.style.transform = 'none';
-                    c.style.textAlign = 'left';
                 } else if (type === 'max') {
-                    c.style.right = 'auto';
-                    c.style.left = '10px';
+                    if (order === 'ltr') {
+                        c.style.right = '10px';
+                        c.style.textAlign = 'right';
+                    } else {
+                        c.style.left = '10px';
+                        c.style.textAlign = 'left';
+                    }
                     c.style.transform = 'none';
-                    c.style.textAlign = 'right';
                 } else {
                     // mid / extra (vacíos) centrados sobre su botón pero invisibles en práctica
                     c.style.left = '50%';
