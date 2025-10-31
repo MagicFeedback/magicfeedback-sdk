@@ -181,11 +181,11 @@ export class Form {
             // if is development, dont check the origin
 
 
-            if (this.config.get('env') !== 'dev' && this.formData.product.originAllowed && this.formData.product.originAllowed.length > 0) {
+            /* if (this.config.get('env') !== 'dev' && this.formData.product.originAllowed && this.formData.product.originAllowed.length > 0) {
                 const domain = window.location.hostname;
                 const allowed = this.formData.product.originAllowed.find((d: string) => d === domain || (d === '*' && domain.endsWith('.deepdots.com') || d === '*' && domain.endsWith('.magicfeedback.io')));
                 if (!allowed) throw new Error(`Domain not allowed`);
-            }
+            } */
 
             this.formData.style?.startMessage ?
                 await this.generateWelcomeMessage(this.formData.style.startMessage) :
@@ -956,73 +956,75 @@ export class Form {
         });
 
         if (preconditionalRoute?.length > 0) {
+            // Look for the answer in previous PageNodes
+            let foundAnswer: any = null;
+            const allRefs = preconditionalRoute.map(route => route.questionRef);
+            // Search in the history from the most recent backwards
+            for (let i = this.history.size() - 1; i >= 0; i--) {
+                const node = this.history.get(i);
+                if (!node) continue;
+                foundAnswer = node.answers?.find((ans: NativeAnswer) => allRefs.includes(ans.key));
+                if (foundAnswer) break;
+            }
             // If there is an answer, evaluate the condition
             let allowToContinue = !preconditionalRoute.some(route => route.transition === TransitionType.ALLOW);
 
-            for (const route of preconditionalRoute) {
-                // Buscar la respuesta específica para esta ruta en el historial (más reciente primero)
-                let answerForRoute: NativeAnswer | undefined = undefined;
-                let questionForRoute: NativeQuestion | undefined = undefined;
-                for (let i = this.history.size() - 1; i >= 0; i--) {
-                    const node = this.history.get(i);
-                    if (!node) continue;
-                    // Buscar pregunta
-                    if (!questionForRoute) questionForRoute = node.questions.find(q => q.ref === route.questionRef);
-                    // Buscar respuesta
-                    if (!answerForRoute) answerForRoute = node.answers?.find((ans: NativeAnswer) => ans.key === route.questionRef);
-                    if (answerForRoute && questionForRoute) break;
-                }
-
-                if (!answerForRoute) continue; // No hay respuesta aún para esta ruta
-
-                let conditionMet = false;
-
-                // Lógica especial para matrices
-                if (questionForRoute?.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {
-                    conditionMet = this.evaluateMatrixPreconditional(route, answerForRoute);
-                } else {
-                    const answerVals = Array.isArray(answerForRoute.value) ? answerForRoute.value : [answerForRoute.value];
+            if (foundAnswer) {
+                for (const route of preconditionalRoute) {
+                    let conditionMet = false;
+                    const question = this.formData?.questions.find(q => q.ref === route.questionRef);
+                    const answerVals = Array.isArray(foundAnswer.value) ? foundAnswer.value : [foundAnswer.value];
                     const routeVals = Array.isArray(route.value) ? route.value : [route.value];
-                    switch (route.typeOperator) {
-                        case 'EQUAL':
-                            conditionMet = answerVals.some((v: any) => routeVals.includes(v));
-                            break;
-                        case 'NOEQUAL':
-                            conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
-                            break;
-                        case 'GREATER':
-                            conditionMet = answerVals.some((v: any) => Number(v) > Number(routeVals[0]));
-                            break;
-                        case 'LESS':
-                            conditionMet = answerVals.some((v: any) => Number(v) < Number(routeVals[0]));
-                            break;
-                        case 'GREATEREQUAL':
-                            conditionMet = answerVals.some((v: any) => Number(v) >= Number(routeVals[0]));
-                            break;
-                        case 'LESSEQUAL':
-                            conditionMet = answerVals.some((v: any) => Number(v) <= Number(routeVals[0]));
-                            break;
-                        case 'INQ':
-                            conditionMet = answerVals.some((v: any) => routeVals.includes(v));
-                            break;
-                        case 'NINQ':
-                            conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
-                            break;
-                        default:
-                            break;
-                    }
-                }
 
-                // If condition is met, apply the transition
-                if (conditionMet) {
-                    this.feedback.answers = []
-                    switch (route.transition) {
-                        case TransitionType.NEXT:
-                            if (nextPage) await this.renderNextQuestion(form, nextPage);
-                            return;
-                        case TransitionType.ALLOW:
-                            allowToContinue = true;
-                            break;
+                    // Lógica especial para matrices
+                    if (question?.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {
+                        conditionMet = this.evaluateMatrixPreconditional(route, foundAnswer);
+                    } else {
+                        switch (route.typeOperator) {
+                            case 'EQUAL':
+                                // At least one answer value equals one expected value
+                                conditionMet = answerVals.some((v: any) => routeVals.includes(v));
+                                break;
+                            case 'NOEQUAL':
+                                // None of the answer values equals any expected value
+                                conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
+                                break;
+                            case 'GREATER':
+                                conditionMet = answerVals.some((v: any) => Number(v) > Number(routeVals[0]));
+                                break;
+                            case 'LESS':
+                                conditionMet = answerVals.some((v: any) => Number(v) < Number(routeVals[0]));
+                                break;
+                            case 'GREATEREQUAL':
+                                conditionMet = answerVals.some((v: any) => Number(v) >= Number(routeVals[0]));
+                                break;
+                            case 'LESSEQUAL':
+                                conditionMet = answerVals.some((v: any) => Number(v) <= Number(routeVals[0]));
+                                break;
+                            case 'INQ':
+                                // Some answer value is included in route.value (array)
+                                conditionMet = answerVals.some((v: any) => routeVals.includes(v));
+                                break;
+                            case 'NINQ':
+                                // No answer value is included in route.value (array)
+                                conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+
+                    // If condition is met, apply the transition
+                    if (conditionMet) {
+                        this.feedback.answers = []
+                        switch (route.transition) {
+                            case TransitionType.NEXT:
+                                if (nextPage) await this.renderNextQuestion(form, nextPage);
+                                return;
+                            case TransitionType.ALLOW:
+                                allowToContinue = true;
+                                break;
+                        }
                     }
                 }
             }
@@ -1046,6 +1048,9 @@ export class Form {
 
         nextPage.elements?.forEach((element) => form.appendChild(element));
 
+        this.history.enqueue(nextPage);
+        this.progress = this.total - this.graph.findMaxDepth(nextPage)
+
         // AFTER
         if (this.formOptionsConfig.afterSubmitEvent) {
             await this.formOptionsConfig.afterSubmitEvent({
@@ -1059,6 +1064,7 @@ export class Form {
             });
         }
     }
+
 
     /**
      * Render back question
