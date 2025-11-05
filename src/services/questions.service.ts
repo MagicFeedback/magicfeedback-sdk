@@ -1707,14 +1707,15 @@ function createRatingNumberElement(
                 }
             });
             ratingNumberContainer.style.position = 'relative';
-            ratingNumberContainer.style.paddingTop = `${maxH + gap}px`;
+            ratingNumberContainer.style.paddingTop = `${maxH === 0 ? '42' : (maxH + gap)}px`;
             caps.forEach(c => {
                 const h = c.getBoundingClientRect().height || 0;
+                console.log(maxH, h, gap)
                 c.style.position = 'absolute';
-                c.style.top = `-${(maxH + h)}px`;
+                c.style.top = `-${maxH === 0 ? '42' : (maxH + h)}px`;
                 c.style.zIndex = '1';
                 c.style.pointerEvents = 'none';
-                c.style.padding = '0 4px';
+                c.style.padding = '0';
                 c.style.boxSizing = 'border-box';
                 c.style.whiteSpace = 'nowrap';
                 c.style.wordBreak = 'normal';
