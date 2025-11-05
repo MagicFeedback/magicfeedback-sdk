@@ -47,6 +47,11 @@ export class PageGraph {
      */
     getNextEdgeByDefault(node: PageNode): string | undefined {
         if (!node) return undefined;
+
+        const direct = node.edges.find((e) => e.typeCondition === ConditionType.DIRECT);
+        if (direct && [TransitionType.FINISH, TransitionType.REDIRECT].includes(direct.transition as TransitionType)) return undefined;
+        if (direct && direct.transitionDestiny) return direct.transitionDestiny;
+
         for (const n of this.nodes.values()) {
             if (n.position === (node.position + 1)) return n.id;
         }
