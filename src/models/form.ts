@@ -906,10 +906,10 @@ export class Form {
             () => this.send()
         );
 
-        // Update the progress +1, because the follow up questions are
+        // Update the progress +0.5, because the follow up questions are
         // not included in the graph and one page with follow up questions is considered as 2
         this.history.enqueue(n);
-        this.progress++;
+        this.progress += 0.5;
 
         form.innerHTML = "";
 

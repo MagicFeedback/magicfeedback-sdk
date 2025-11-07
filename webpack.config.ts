@@ -1,6 +1,8 @@
 import path from "path";
 import { Configuration } from "webpack";
 import nodeExternals from "webpack-node-externals";
+// Reemplazar import ES por require para plugin sin tipos completos
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const config: Configuration[] = [
   // Node 
@@ -30,6 +32,13 @@ const config: Configuration[] = [
       },
     },
     externals: [nodeExternals()],
+    plugins: [
+      new CopyWebpackPlugin({
+        patterns: [
+          { from: path.resolve(__dirname, 'src/styles'), to: path.resolve(__dirname, 'dist/styles') }
+        ]
+      })
+    ]
   },
   // Web
   {
@@ -57,6 +66,13 @@ const config: Configuration[] = [
         export: "default",
       },
     },
+    plugins: [
+      new CopyWebpackPlugin({
+        patterns: [
+          { from: path.resolve(__dirname, 'src/styles'), to: path.resolve(__dirname, 'dist/styles') }
+        ]
+      })
+    ]
   },
 ];
 

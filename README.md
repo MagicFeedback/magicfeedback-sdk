@@ -256,11 +256,76 @@ Finally, to send the feedback, you can use the magicfeedback.send() function.
 
 ## Style
 
-This section provides the CSS code you can use to customize the appearance of your Magicfeedback form. By applying these
-styles to the corresponding classes in your HTML, you can control the layout, colors, fonts, and other visual aspects of
-your feedback form.
+To use the default modern theme included in the bundle, import the CSS after loading the bundle:
 
-Feel free to adapt and expand upon the provided styles to match your desired design and branding.
+```html
+<link rel="stylesheet" href="./node_modules/@magicfeedback/native/dist/styles/magicfeedback-default.css" />
+```
+
+If you bundle with Webpack/Vite, you can also import directly into your entry:
+
+```js
+import '@magicfeedback/native/dist/styles/magicfeedback-default.css';
+```
+
+You can override CSS variables defined in `:root` to customize colors without modifying the original file:
+
+```css
+:root {
+    /* Colors - Neutral Palette */
+    --mf-primary: #2563eb;
+    --mf-primary-hover: #1d4ed8;
+    --mf-primary-light: #dbeafe;
+
+    --mf-text-primary: #0f172a;
+    --mf-text-secondary: #64748b;
+    --mf-text-muted: #94a3b8;
+
+    --mf-bg-primary: #ffffff;
+    --mf-bg-secondary: #f8fafc;
+    --mf-bg-hover: #f1f5f9;
+
+    --mf-border: #e2e8f0;
+    --mf-border-focus: #2563eb;
+
+    --mf-success: #10b981;
+    --mf-error: #ef4444;
+    --mf-warning: #f59e0b;
+
+    /* Spacing */
+    --mf-space-xs: 0.25rem;
+    --mf-space-sm: 0.5rem;
+    --mf-space-md: 0.75rem;
+    --mf-space-lg: 1rem;
+    --mf-space-xl: 1.5rem;
+
+    /* Border Radius */
+    --mf-radius-sm: 0.375rem;
+    --mf-radius-md: 0.5rem;
+    --mf-radius-lg: 0.75rem;
+    --mf-radius-full: 9999px;
+
+    /* Shadows */
+    --mf-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --mf-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --mf-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --mf-shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.1);
+
+    /* Typography */
+    --mf-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica", "Arial", sans-serif;
+    --mf-font-size-sm: 0.875rem;
+    --mf-font-size-base: 1rem;
+    --mf-font-size-lg: 1.125rem;
+    --mf-font-size-xl: 1.25rem;
+    --mf-line-height: 1.6;
+
+    /* Transitions */
+    --mf-transition: all 0.2s ease;
+    --mf-transition-fast: all 0.15s ease;
+}
+```
+
+The file includes subtle animations and variations for focus, selection, and loading states (skeleton). Adjust or extend the classes as needed.
 
 ```css
 /* Overall container for the feedback form */
@@ -484,32 +549,4 @@ Feel free to adapt and expand upon the provided styles to match your desired des
 .magicfeedback-success {
   /* ... add your success message styles here ... */
 }
-```
-
-## Collected Metadata
-
-### Browser Metadata (navigator object):
-
-* **navigator-url (Browser URL)**: This captures the full URL, including any query parameters, using window.location.href.
-* **navigator-origin (Browser Origin)**: This retrieves the origin portion of the URL (protocol, host, and port) using
-window.location.origin.
-* **navigator-pathname (Browser Pathname)**: This extracts the path component of the URL using window.location.pathname.
-* **navigator-search (Browser Search Parameters): This captures the query string (search parameters) from the URL using
-window.location.search.
-* **navigator-user (User Agent)**: This retrieves a string identifying the browser and its version using navigator.userAgent.
-
-* **navigator-language (Browser Language)**: This captures the user's preferred language setting from the browser using
-navigator.language.
-* **navigator-platform (Browser Platform)**: This retrieves the operating system platform the browser is running on using
-navigator.platform.
-* **navigator-appVersion (Browser Application Version)**: This captures the browser application version using
-navigator.appVersion. 
-* **navigator-appName (Browser Application Name)**: This retrieves the name of the browser application using
-navigator.appName. 
-* **navigator-product (Browser Product)**: This captures the name of the browser's rendering engine using navigator.product.
-
-
-### Screen Metadata (screen object):
-
-* **screen-width (Screen Width)**: This retrieves the width of the user's screen in pixels using window.screen.width.
-* **screen-height (Screen Height)**: This captures the height of the user's screen in pixels using window.screen.height.
+````

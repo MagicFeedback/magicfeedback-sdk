@@ -207,11 +207,11 @@ export class PageGraph {
 
         // Start DFS from the first node
         const visited: Set<PageNode> = new Set()
-        const haveFollowup = !!n.questions.find(q => q.followup);
+        // const haveFollowup = !!n.questions.find(q => q.followup);
 
         //console.log(this.nodes);
         // If the first node have followup questions, the depth is 2
-        let max_depth: number = haveFollowup ? 2 : 1;
+        let max_depth: number = 1; // haveFollowup ? 2 : 1;
         max_depth = Math.max(max_depth, this.DFSUtil(n, visited, max_depth))
 
         return max_depth
