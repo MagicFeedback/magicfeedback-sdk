@@ -254,8 +254,8 @@ export class PageGraph {
             const node = this.getNodeById(neighbour.transitionDestiny);
 
             if (node && !visited.has(node)) {
-                const haveFollowup = !!node.questions.find(q => q.followup);
-                const new_depth = haveFollowup ? depth + 2 : depth + 1;
+                // const haveFollowup = !!node.questions.find(q => q.followup);
+                const new_depth = depth + 1; // haveFollowup ? depth + 2 : depth + 1;
                 // Make a copy of the visited set to only for this branch
                 const visitedBranch = new Set(visited);
                 const dfs = this.DFSUtil(node, visitedBranch, new_depth);
