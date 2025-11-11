@@ -876,9 +876,9 @@ function renderContainer(
                     // Add the question label as the first cell
                     const questionCell = document.createElement("td");
                     questionCell.style.minWidth = "200px";
+                    questionCell.style.padding = "10px";
                     const label = document.createElement("label");
                     label.classList.add("magicfeedback-multi-question-matrix-label");
-                    label.style.paddingRight = "20px";
                     label.textContent = question;
 
                     questionCell.appendChild(label);
