@@ -15,12 +15,14 @@
     "dev": "vite",
     "build": "webpack",
     "build:watch": "webpack --watch --mode development",
-    "publish": "npm publish --access public",
-    "publish:beta": "npm publish --access public --tag beta",
-    "publish:alpha": "npm publish --access public --tag alpha",
+    "release": "npm publish --access public",
+    "release:beta": "npm publish --access public --tag beta",
+    "release:alpha": "npm publish --access public --tag alpha",
     "test": "jest",
     "test:watch": "jest --watchAll",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "publish:sdk": "bash publish.sh",
+    "publish:sdk:dry-run": "NPM_DRY_RUN=1 bash publish.sh"
   },
   "files": [
     "dist"
