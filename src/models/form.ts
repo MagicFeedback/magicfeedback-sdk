@@ -581,161 +581,166 @@ export class Form {
      * @returns
      * @public
      */
-    public answer() {
-        const form: HTMLElement | null = document.getElementById(
-            "magicfeedback-" + this.appId
-        );
+    public answer(): NativeAnswer[] {
+         const form: HTMLElement | null = document.getElementById(
+             "magicfeedback-" + this.appId
+         );
 
-        if (!form) {
-            this.log.err(`Form "${form}" not found.`);
+         if (!form) {
+             this.log.err(`Form "${form}" not found.`);
+             this.feedback.answers = [];
+             return [];
+         }
+
+         // Check if the required questions are answered
+         const page = this.history.back();
+         if (!page) {
+            this.log.err("No page found");
             this.feedback.answers = [];
-            return;
-        }
+            return [];
+         }
 
-        // Check if the required questions are answered
-        const page = this.history.back();
-        if (!page) throw new Error("No page found");
+         const surveyAnswers: NativeAnswer[] = [];
+         let hasError = false; // Flag to track if an error has occurred
 
-        const surveyAnswers: NativeAnswer[] = [];
-        let hasError = false; // Flag to track if an error has occurred
+         const inputs = form.querySelectorAll(".magicfeedback-input");
 
-        const inputs = form.querySelectorAll(".magicfeedback-input");
+         inputs.forEach((input) => {
+             const question = page.questions.find(q => (input as HTMLInputElement).name?.includes(q.ref));
+             const inputType = (input as HTMLInputElement).type;
+             const elementTypeClass = (input as HTMLInputElement).classList[0];
 
-        inputs.forEach((input) => {
-            const question = page.questions.find(q => (input as HTMLInputElement).name?.includes(q.ref));
-            const inputType = (input as HTMLInputElement).type;
-            const elementTypeClass = (input as HTMLInputElement).classList[0];
+             const ans: NativeAnswer = {
+                 key: (input as HTMLInputElement).name,
+                 value: [],
+             };
 
-            const ans: NativeAnswer = {
-                key: (input as HTMLInputElement).name,
-                value: [],
-            };
+             const value = elementTypeClass === 'magicfeedback-consent' ?
+                 (input as HTMLInputElement).checked.toString() :
+                 (input as HTMLInputElement).value;
 
-            const value = elementTypeClass === 'magicfeedback-consent' ?
-                (input as HTMLInputElement).checked.toString() :
-                (input as HTMLInputElement).value;
+             if (!ans.key || ans.key === "") return;
 
-            if (!ans.key || ans.key === "") return;
+             switch (question?.type) {
+                 case FEEDBACKAPPANSWERTYPE.EMAIL:
+                 case FEEDBACKAPPANSWERTYPE.TEXT:
+                 case FEEDBACKAPPANSWERTYPE.LONGTEXT:
+                 case FEEDBACKAPPANSWERTYPE.NUMBER:
+                 case FEEDBACKAPPANSWERTYPE.DATE:
+                 case FEEDBACKAPPANSWERTYPE.CONTACT:
+                     if (value !== "") {
+                         if (inputType === "email") {
+                             if (!validateEmail(value)) {
+                                 this.log.err("Invalid email");
+                                 hasError = true;
+                                 break;
+                             } else {
+                                 this.feedback.profile.push({
+                                     key: "email",
+                                     value: [value],
+                                 });
+                             }
+                         }
+                         ans.value.push(value);
+                     }
+                     break;
+                 case FEEDBACKAPPANSWERTYPE.CONSENT:
+                     ans.value.push(String((input as HTMLInputElement).checked));
+                     break;
+                 case FEEDBACKAPPANSWERTYPE.POINT_SYSTEM:
+                     const key = (input as HTMLInputElement).id;
+                     ans.value.push(`${key}:${value}%`);
+                     break;
 
-            switch (question?.type) {
-                case FEEDBACKAPPANSWERTYPE.EMAIL:
-                case FEEDBACKAPPANSWERTYPE.TEXT:
-                case FEEDBACKAPPANSWERTYPE.LONGTEXT:
-                case FEEDBACKAPPANSWERTYPE.NUMBER:
-                case FEEDBACKAPPANSWERTYPE.DATE:
-                case FEEDBACKAPPANSWERTYPE.CONTACT:
-                    if (value !== "") {
-                        if (inputType === "email") {
-                            if (!validateEmail(value)) {
-                                this.log.err("Invalid email");
-                                hasError = true;
-                                break;
-                            } else {
-                                this.feedback.profile.push({
-                                    key: "email",
-                                    value: [value],
-                                });
-                            }
-                        }
-                        ans.value.push(value);
-                    }
-                    break;
-                case FEEDBACKAPPANSWERTYPE.CONSENT:
-                    ans.value.push(String((input as HTMLInputElement).checked));
-                    break;
-                case FEEDBACKAPPANSWERTYPE.POINT_SYSTEM:
-                    const key = (input as HTMLInputElement).id;
-                    ans.value.push(`${key}:${value}%`);
-                    break;
-
-                case FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE:
-                case FEEDBACKAPPANSWERTYPE.MULTIPLECHOISE_IMAGE:
-                case FEEDBACKAPPANSWERTYPE.RATING_STAR:
-                case FEEDBACKAPPANSWERTYPE.RADIO:
-                case FEEDBACKAPPANSWERTYPE.RATING_EMOJI:
-                case FEEDBACKAPPANSWERTYPE.RATING_NUMBER:
-                    if ((input as HTMLInputElement).checked || (input as HTMLInputElement).id.includes("extra-option-")) {
-                        ans.value.push(value);
-                    }
-                    break;
-                case FEEDBACKAPPANSWERTYPE.SELECT:
-                    ans.value.push(value);
-                    break;
-                case FEEDBACKAPPANSWERTYPE.BOOLEAN:
-                    if ((input as HTMLInputElement).checked) {
-                        ans.value.push(value);
-                    }
-                    break;
-                case FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX:
-                    if ((input as HTMLInputElement).checked) {
-                        ans.value.push(value);
-                    }
-                    break;
-                case FEEDBACKAPPANSWERTYPE.PRIORITY_LIST:
-                    ans.value.push(value);
-                    break;
-                default:
-                    break;
+                 case FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE:
+                 case FEEDBACKAPPANSWERTYPE.MULTIPLECHOISE_IMAGE:
+                 case FEEDBACKAPPANSWERTYPE.RATING_STAR:
+                 case FEEDBACKAPPANSWERTYPE.RADIO:
+                 case FEEDBACKAPPANSWERTYPE.RATING_EMOJI:
+                 case FEEDBACKAPPANSWERTYPE.RATING_NUMBER:
+                     if ((input as HTMLInputElement).checked || (input as HTMLInputElement).id.includes("extra-option-")) {
+                         ans.value.push(value);
+                     }
+                     break;
+                 case FEEDBACKAPPANSWERTYPE.SELECT:
+                     ans.value.push(value);
+                     break;
+                 case FEEDBACKAPPANSWERTYPE.BOOLEAN:
+                     if ((input as HTMLInputElement).checked) {
+                         ans.value.push(value);
+                     }
+                     break;
+                 case FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX:
+                     if ((input as HTMLInputElement).checked) {
+                         ans.value.push(value);
+                     }
+                     break;
+                 case FEEDBACKAPPANSWERTYPE.PRIORITY_LIST:
+                     ans.value.push(value);
+                     break;
+                 default:
+                     break;
 
 
-            }
+             }
 
-            if (surveyAnswers?.length > 0 && surveyAnswers?.find(a => a.key === ans.key)) {
-                const index = surveyAnswers.findIndex(a => a.key === ans.key);
-                surveyAnswers[index].value = [...surveyAnswers[index].value, ...ans.value];
-            } else {
-                surveyAnswers.push(ans);
-            }
-        });
+             if (surveyAnswers?.length > 0 && surveyAnswers?.find(a => a.key === ans.key)) {
+                 const index = surveyAnswers.findIndex(a => a.key === ans.key);
+                 surveyAnswers[index].value = [...surveyAnswers[index].value, ...ans.value];
+             } else {
+                 surveyAnswers.push(ans);
+             }
+         });
 
-        if (hasError) {
-            this.feedback.answers = [];// Stop the process if there's an error
-            page.setAnswer([]);
-            return;
-        }
+         if (hasError) {
+             this.feedback.answers = [];// Stop the process if there's an error
+             page.setAnswer([]);
+             return [];
+         }
 
-        // --- Agrupación especial para MULTI_QUESTION_MATRIX ---
-        try {
-            const matrixQuestions = page.questions.filter(q => q.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX);
-            matrixQuestions.forEach(mq => {
-                // Respuestas individuales capturadas como ref-rowName
-                const rowPrefix = mq.ref + '-';
-                const rowAnswers = surveyAnswers.filter(a => a.key.startsWith(rowPrefix));
-                if (rowAnswers.length === 0) return; // nada que agrupar
+         // --- Agrupación especial para MULTI_QUESTION_MATRIX ---
+         try {
+             const matrixQuestions = page.questions.filter(q => q.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX);
+             matrixQuestions.forEach(mq => {
+                 // Respuestas individuales capturadas como ref-rowName
+                 const rowPrefix = mq.ref + '-';
+                 const rowAnswers = surveyAnswers.filter(a => a.key.startsWith(rowPrefix));
+                 if (rowAnswers.length === 0) return; // nada que agrupar
 
-                // Crear estructura: [{ key: rowName, value: [selected] }, ...]
-                const groupedRows = rowAnswers.map(r => ({
-                    key: r.key.substring(rowPrefix.length),
-                    value: r.value
-                }));
+                 // Crear estructura: [{ key: rowName, value: [selected] }, ...]
+                 const groupedRows = rowAnswers.map(r => ({
+                     key: r.key.substring(rowPrefix.length),
+                     value: r.value
+                 }));
 
-                // El formato requerido: valor debe ser un array que contiene (una sola posición) un array de objetos fila
-                const matrixAnswer: NativeAnswer = {
-                    key: mq.ref,
-                    value: [JSON.stringify(groupedRows)]
-                };
+                 // El formato requerido: valor debe ser un array que contiene (una sola posición) un array de objetos fila
+                 const matrixAnswer: NativeAnswer = {
+                     key: mq.ref,
+                     value: [JSON.stringify(groupedRows)]
+                 };
 
-                // Eliminar las respuestas individuales
-                for (const ra of rowAnswers) {
-                    const idx = surveyAnswers.findIndex(s => s.key === ra.key);
-                    if (idx !== -1) surveyAnswers.splice(idx, 1);
-                }
+                 // Eliminar las respuestas individuales
+                 for (const ra of rowAnswers) {
+                     const idx = surveyAnswers.findIndex(s => s.key === ra.key);
+                     if (idx !== -1) surveyAnswers.splice(idx, 1);
+                 }
 
-                // Añadir (o reemplazar si ya existiera) la respuesta agrupada
-                const existingIndex = surveyAnswers.findIndex(a => a.key === mq.ref);
-                if (existingIndex !== -1) {
-                    surveyAnswers[existingIndex] = matrixAnswer;
-                } else {
-                    surveyAnswers.push(matrixAnswer);
-                }
-            });
-        } catch (e) {
-            this.log.err('Error agrupando MULTI_QUESTION_MATRIX', e);
-        }
+                 // Añadir (o reemplazar si ya existiera) la respuesta agrupada
+                 const existingIndex = surveyAnswers.findIndex(a => a.key === mq.ref);
+                 if (existingIndex !== -1) {
+                     surveyAnswers[existingIndex] = matrixAnswer;
+                 } else {
+                     surveyAnswers.push(matrixAnswer);
+                 }
+             });
+         } catch (e) {
+             this.log.err('Error agrupando MULTI_QUESTION_MATRIX', e);
+         }
 
-        this.feedback.answers = surveyAnswers;
-        page.setAnswer(surveyAnswers)
-    }
+         this.feedback.answers = surveyAnswers;
+         page.setAnswer(surveyAnswers)
+         return surveyAnswers;
+     }
 
     /**
      * Finish the form
