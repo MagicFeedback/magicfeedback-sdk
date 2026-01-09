@@ -514,6 +514,41 @@ export class Form {
                         throw new Error(`No response`);
                     }
                 }
+
+                // Validación específica para MULTI_QUESTION_MATRIX (todas las filas deben tener respuesta si es required)
+                if (question.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {
+                    // La respuesta de matriz se guarda agrupada bajo la key exactamente igual a question.ref
+                    const matrixAnswer = this.feedback.answers.find(a => a.key === question.ref);
+                    if (!matrixAnswer) {
+                        this.log.err(`The matrix question ${question.ref} is required`);
+                        throw new Error(`No response`);
+                    }
+
+                    // Parsear estructura: [{ key: rowKey, value: [...] }, ...]
+                    const rows = this.parseMatrixAnswerPre(matrixAnswer);
+
+                    // Si hay definición de filas en assets.options, validar contra esa lista; si no, validar que todas las filas presentes tengan valor
+                    const expectedRows: string[] = Array.isArray(assets?.options) ? assets.options : [];
+
+                    if (expectedRows.length > 0) {
+                        // Cada fila esperada debe existir y tener al menos un valor
+                        const missingOrEmpty = expectedRows.find(rowKey => {
+                            const row = rows.find(r => r.key === rowKey);
+                            return !row || !Array.isArray(row.value) || row.value.length === 0;
+                        });
+                        if (missingOrEmpty) {
+                            this.log.err(`The matrix question ${question.ref} requires an answer in every row`);
+                            throw new Error(`No response`);
+                        }
+                    } else {
+                        // Sin lista esperada, aseguramos que todas las filas presentes tengan valor
+                        if (rows.length === 0 || rows.some(r => !Array.isArray(r.value) || r.value.length === 0)) {
+                            this.log.err(`The matrix question ${question.ref} requires an answer in every row`);
+                            throw new Error(`No response`);
+                        }
+                    }
+                }
+
             }
 
             // SEND

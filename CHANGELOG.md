@@ -6,6 +6,11 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.1.5] - 2026-01-09
+- Validation: Required Multi Question Matrix now enforces an answer for every row before allowing submission.
+- UX/DX: Clearer error messages when required questions are incomplete, preventing accidental submissions.
+- Internal: Hardened matrix answer parsing/serialization used by conditional routing and validation.
+
 ## 🚀 [2.1.1] - 2025-10-20
 - Added logic to manage conditional in matrix questions: now you can set conditions based on matrix question responses.
 
