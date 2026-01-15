@@ -1580,6 +1580,8 @@ function createRatingNumberElement(
     const maxRatingNumber = assets?.max ? Number(assets?.max) : 10;
     const minRatingNumber = assets?.min ? Number(assets?.min) : 0;
 
+    const numberPlaceholders = assets?.numberPlaceholders || null;
+
     const integratePlaceholders = !(isPhone || direction === 'column');
 
     for (let i = minRatingNumber; i <= maxRatingNumber; i++) {
@@ -1614,9 +1616,13 @@ function createRatingNumberElement(
         }
 
         let inputText = i.toString();
+
         if (!integratePlaceholders) {
-            if (i === minRatingNumber && assets?.minPlaceholder) inputText += ` = ${assets?.minPlaceholder}`;
-            if (i === maxRatingNumber && assets?.maxPlaceholder) inputText += ` = ${assets?.maxPlaceholder}`;
+            if (numberPlaceholders && numberPlaceholders[i]) inputText += ` = ${numberPlaceholders[i]}`;
+            else if (i === minRatingNumber && assets?.minPlaceholder) inputText += ` = ${assets?.minPlaceholder}`;
+            else if (i === maxRatingNumber && assets?.maxPlaceholder) inputText += ` = ${assets?.maxPlaceholder}`;
+        } else{
+            if (numberPlaceholders && numberPlaceholders[i] && !isPhone) containerLabel.title = numberPlaceholders[i];
         }
 
         const input = document.createElement("input");
