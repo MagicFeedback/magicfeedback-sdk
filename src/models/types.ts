@@ -93,6 +93,7 @@ export type generateFormOptions = {
     successMessage?: string;
     questionFormat?: "standard" | "slim";
     getMetaData?: boolean;
+    customMetaData?: NativeAnswer[];
     tag?: generateFormOptionsTag;
     afterSubmitEvent?: Function;
     beforeSubmitEvent?: Function;

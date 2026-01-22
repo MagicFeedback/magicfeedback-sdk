@@ -70,8 +70,19 @@ if npm view "${PKG_NAME}@${PKG_VER}" version >/dev/null 2>&1; then
   exit 1
 fi
 
+# Determinar tag de prerelease si aplica
+TAG="${NPM_TAG:-}"
+if [[ -z "$TAG" ]]; then
+  if [[ "$PKG_VER" == *"-alpha"* ]]; then TAG="alpha"; fi
+  if [[ "$PKG_VER" == *"-beta"* ]]; then TAG="beta"; fi
+  if [[ "$PKG_VER" == *"-rc"* ]]; then TAG="rc"; fi
+fi
+
 # Soporte 2FA: exporta NPM_OTP=123456 si tu cuenta tiene 2FA obligatorio para publish (no necesario si hay NPM_TOKEN Automation)
 PUBLISH_CMD=(npm publish --access public)
+if [ -n "$TAG" ]; then
+  PUBLISH_CMD+=(--tag "$TAG")
+fi
 if [ -n "${NPM_OTP:-}" ]; then
   PUBLISH_CMD+=(--otp "${NPM_OTP}")
 fi
