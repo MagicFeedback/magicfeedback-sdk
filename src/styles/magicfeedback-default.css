@@ -1035,12 +1035,61 @@ textarea.error {
         --mf-space-xl: 1.5rem;
     }
 
+    .magicfeedback-container {
+        padding: 12px;
+        border-radius: var(--mf-radius-md);
+    }
+
+    .magicfeedback-form {
+        padding: 14px;
+        border-radius: var(--mf-radius-md);
+    }
+
+    .magicfeedback-div {
+        padding: 12px;
+    }
+
     .magicfeedback-label {
         font-size: var(--mf-font-size-base);
     }
 
+    input[type="date"],
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"],
+    textarea,
+    select {
+        padding: 0.85rem 0.95rem;
+        font-size: 1rem;
+        min-height: 46px;
+    }
+
+    .magicfeedback-radio-container,
+    .magicfeedback-checkbox-container,
+    .magicfeedback-boolean-container,
+    .magicfeedback-consent-container {
+        width: 100%;
+    }
+
+    .magicfeedback-radio-container,
+    .magicfeedback-checkbox-container {
+        padding: 10px 12px;
+        border-radius: var(--mf-radius-md);
+        background: var(--mf-surface-alt);
+        border: 1px solid var(--mf-border);
+        gap: 10px;
+    }
+
+    .magicfeedback-rating-container,
+    .magicfeedback-rating-number-container,
+    .magicfeedback-rating-star-container {
+        gap: 10px;
+    }
+
     .magicfeedback-boolean-container {
         flex-direction: column;
+        gap: 10px;
     }
 
     .magicfeedback-rating-number-container {
@@ -1059,6 +1108,7 @@ textarea.error {
     .magicfeedback-back {
         width: 100%;
         text-align: center;
+        min-height: 48px;
     }
 }
 
