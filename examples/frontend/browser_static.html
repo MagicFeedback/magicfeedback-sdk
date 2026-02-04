@@ -16,6 +16,28 @@
     <!-- Custom styles for this template -->
     <link href="../assets/cover.css" rel="stylesheet"/>
     <link href="../../public/style.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="../../dist/styles/magicfeedback-default.css"/>
+    <style>
+        .demo-card {
+            margin-top: 24px;
+            text-align: left;
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .demo-section-title {
+            font-size: 14px;
+            color: #64748b;
+            margin: 8px 0 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .magicfeedback-preview-question {
+            padding: 8px;
+        }
+    </style>
 </head>
 
 <!-- BODY -->
@@ -41,6 +63,16 @@
             <div class="breadcrumb">
             </div>
             <div id="demo_form_div" style="padding: 15px"></div>
+        </div>
+
+        <div class="card demo-card">
+            <div class="card-header">
+                <h6 class="card-title">Static Render (All Question Types)</h6>
+            </div>
+            <div class="card-body">
+                <div class="demo-section-title">Preview</div>
+                <div id="demo_preview_div" class="demo-grid"></div>
+            </div>
         </div>
     </main>
     <div class="loading">
@@ -170,6 +202,383 @@
         ]
     )
      */
+</script>
+<script>
+    const previewContainerId = "demo_preview_div";
+    const previewQuestions = [
+        {
+            id: "q_text",
+            title: "What is your name?",
+            type: "TEXT",
+            questionType: {conf: []},
+            ref: "name",
+            require: true,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 1,
+            assets: {placeholder: "Type your name"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_longtext",
+            title: "Tell us about your experience",
+            type: "LONGTEXT",
+            questionType: {conf: []},
+            ref: "experience",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 2,
+            assets: {placeholder: "Write a few lines...", maxCharacters: 120},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_number",
+            title: "How many hours per week?",
+            type: "NUMBER",
+            questionType: {conf: []},
+            ref: "hours",
+            require: false,
+            external_id: "",
+            value: ["0", "40"],
+            defaultValue: "",
+            followup: false,
+            position: 3,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_radio",
+            title: "Pick one option",
+            type: "RADIO",
+            questionType: {conf: []},
+            ref: "radio",
+            require: true,
+            external_id: "",
+            value: ["Option A", "Option B", "Option C"],
+            defaultValue: "",
+            followup: false,
+            position: 4,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_multi",
+            title: "Select all that apply",
+            type: "MULTIPLECHOICE",
+            questionType: {conf: []},
+            ref: "multi",
+            require: false,
+            external_id: "",
+            value: ["Speed", "Design", "Support"],
+            defaultValue: "",
+            followup: false,
+            position: 5,
+            assets: {maxOptions: 2},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_select",
+            title: "Choose a plan",
+            type: "SELECT",
+            questionType: {conf: []},
+            ref: "plan",
+            require: false,
+            external_id: "",
+            value: ["Free", "Pro", "Team"],
+            defaultValue: "Select a plan",
+            followup: false,
+            position: 6,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_boolean",
+            title: "Would you recommend us?",
+            type: "BOOLEAN",
+            questionType: {conf: []},
+            ref: "recommend",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 7,
+            assets: {addIcon: false},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_rating",
+            title: "How was it?",
+            type: "RATING_EMOJI",
+            questionType: {conf: []},
+            ref: "rating_emoji",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 8,
+            assets: {min: 1, max: 5, minPlaceholder: "Bad", maxPlaceholder: "Great"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_rating_number",
+            title: "NPS Style",
+            type: "RATING_NUMBER",
+            questionType: {conf: []},
+            ref: "rating_number",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 9,
+            assets: {min: 0, max: 10, minPlaceholder: "Not likely", maxPlaceholder: "Very likely"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_rating_star",
+            title: "Star rating",
+            type: "RATING_STAR",
+            questionType: {conf: []},
+            ref: "rating_star",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 10,
+            assets: {minPlaceholder: "Low", maxPlaceholder: "High"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_matrix",
+            title: "Matrix question",
+            type: "MULTI_QUESTION_MATRIX",
+            questionType: {conf: []},
+            ref: "matrix",
+            require: false,
+            external_id: "",
+            value: ["Poor", "Ok", "Great"],
+            defaultValue: "",
+            followup: false,
+            position: 11,
+            assets: {options: ["Speed", "Design", "Support"]},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_priority",
+            title: "Prioritize features",
+            type: "PRIORITY_LIST",
+            questionType: {conf: []},
+            ref: "priority",
+            require: false,
+            external_id: "",
+            value: ["Speed", "Design", "Support", "Price"],
+            defaultValue: "",
+            followup: false,
+            position: 12,
+            assets: {limitPriority: true, maxPriority: 3, placeholder: "Pick and order your top 3"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_point",
+            title: "Point system",
+            type: "POINT_SYSTEM",
+            questionType: {conf: []},
+            ref: "point_system",
+            require: false,
+            external_id: "",
+            value: ["Speed", "Design", "Support"],
+            defaultValue: "",
+            followup: false,
+            position: 13,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_multi_image",
+            title: "Pick an image",
+            type: "MULTIPLECHOISE_IMAGE",
+            questionType: {conf: []},
+            ref: "image_choice",
+            require: false,
+            external_id: "",
+            value: [
+                JSON.stringify({position: 1, url: "https://picsum.photos/200/200?1", value: "One"}),
+                JSON.stringify({position: 2, url: "https://picsum.photos/200/200?2", value: "Two"}),
+                JSON.stringify({position: 3, url: "https://picsum.photos/200/200?3", value: "Three"})
+            ],
+            defaultValue: "",
+            followup: false,
+            position: 14,
+            assets: {addTitle: true, multiOption: false},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_info",
+            title: "Info page",
+            type: "INFO_PAGE",
+            questionType: {conf: []},
+            ref: "info_page",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 15,
+            assets: {placeholder: "<strong>Tip:</strong> You can preview any question here."},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_date",
+            title: "Pick a date",
+            type: "DATE",
+            questionType: {conf: []},
+            ref: "date",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 16,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_email",
+            title: "Email",
+            type: "EMAIL",
+            questionType: {conf: []},
+            ref: "email",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 17,
+            assets: {placeholder: "you@example.com"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_password",
+            title: "Password",
+            type: "PASSWORD",
+            questionType: {conf: []},
+            ref: "password",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 18,
+            assets: {placeholder: "••••••••"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_consent",
+            title: "I agree with terms",
+            type: "CONSENT",
+            questionType: {conf: []},
+            ref: "consent",
+            require: true,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 19,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_upload_image",
+            title: "Upload an image",
+            type: "UPLOAD_IMAGE",
+            questionType: {conf: []},
+            ref: "upload_image",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 20,
+            assets: {multiple: false, maxFiles: 1},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_upload_file",
+            title: "Upload a file",
+            type: "UPLOAD_FILE",
+            questionType: {conf: []},
+            ref: "upload_file",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 21,
+            assets: {multiple: true, maxFiles: 2},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        }
+    ];
+
+    const previewForm = window.magicfeedback.form("demo", "demo");
+    previewQuestions.forEach((question) => {
+        previewForm.previewQuestion(previewContainerId, question, {
+            format: "standard",
+            language: "en",
+            product: {customIcons: false},
+            clearContainer: false,
+            wrap: true
+        });
+    });
 </script>
 </body>
 </html>
