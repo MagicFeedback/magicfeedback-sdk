@@ -917,6 +917,7 @@ function renderContainer(
                 randomPosition: randomPosition,
                 limitPriority: assets?.limitPriority || false,
                 maxPriority: assets?.maxPriority || 0,
+                placeholder: assets?.placeholder || '',
                 language: language || 'en',
             });
 
@@ -1501,7 +1502,7 @@ function createRatingNumberElement(
             if (numberPlaceholders && numberPlaceholders[i]) inputText += ` = ${numberPlaceholders[i]}`;
             else if (i === minRatingNumber && assets?.minPlaceholder) inputText += ` = ${assets?.minPlaceholder}`;
             else if (i === maxRatingNumber && assets?.maxPlaceholder) inputText += ` = ${assets?.maxPlaceholder}`;
-        } else{
+        } else {
             if (numberPlaceholders && numberPlaceholders[i] && !isPhone) containerLabel.title = numberPlaceholders[i];
         }
 
@@ -1648,9 +1649,18 @@ function createPriorityListElement(params: {
     randomPosition?: boolean;
     limitPriority?: boolean;
     maxPriority?: number;
+    placeholder?: string;
     language?: string;
 }): HTMLElement {
-    const { value, ref, randomPosition = false, limitPriority = false, maxPriority = 0, language = 'en' } = params;
+    const {
+        value,
+        ref,
+        randomPosition = false,
+        limitPriority = false,
+        maxPriority = 0,
+        language = 'en',
+        placeholder = ''
+    } = params;
 
     const t = (key: string) => {
         const dict: Record<string, Record<string, string>> = {
@@ -1664,6 +1674,7 @@ function createPriorityListElement(params: {
                 selectOptionNumber: 'Select option #',
                 prioritized: 'Prioritized',
                 of: 'of',
+                instruction: 'Your priority list can be seen below. If you wish, you can rearrange your choices using the arrows. Click \'Next\' to confirm your selection and proceed.'
             },
             es: {
                 selectUpTo: 'Selecciona hasta',
@@ -1675,6 +1686,7 @@ function createPriorityListElement(params: {
                 selectOptionNumber: 'Selecciona la opción #',
                 prioritized: 'Has priorizado',
                 of: 'de',
+                instruction: 'Tu lista de prioridades se muestra a continuación. Si lo deseas, puedes reorganizar tus elecciones usando las flechas. Haz clic en \'Siguiente\' para confirmar tu selección y continuar.'
             },
             fr: {
                 selectUpTo: 'Sélectionnez jusqu’à',
@@ -1686,6 +1698,7 @@ function createPriorityListElement(params: {
                 selectOptionNumber: 'Sélectionnez l’option #',
                 prioritized: 'Priorisé',
                 of: 'sur',
+                instruction: 'Votre liste de priorités est affichée ci-dessous. Si vous le souhaitez, vous pouvez réorganiser vos choix à l’aide des flèches. Cliquez sur « Suivant » pour confirmer votre sélection et continuer.'
             },
             de: {
                 selectUpTo: 'Wählen Sie bis zu',
@@ -1697,6 +1710,7 @@ function createPriorityListElement(params: {
                 selectOptionNumber: 'Option # auswählen',
                 prioritized: 'Priorisiert',
                 of: 'von',
+                instruction: 'Ihre Prioritätenliste wird unten angezeigt. Wenn Sie möchten, können Sie Ihre Auswahl mit den Pfeilen neu anordnen. Klicken Sie auf „Weiter“, um Ihre Auswahl zu bestätigen und fortzufahren.'
             },
             it: {
                 selectUpTo: 'Seleziona fino a',
@@ -1708,6 +1722,7 @@ function createPriorityListElement(params: {
                 selectOptionNumber: 'Seleziona l’opzione #',
                 prioritized: 'Hai dato priorità',
                 of: 'di',
+                instruction: 'La tua lista di priorità è mostrata di seguito. Se lo desideri, puoi riorganizzare le tue scelte usando le frecce. Clicca su "Avanti" per confermare la tua selezione e procedere.'
             },
             pt: {
                 selectUpTo: 'Selecione até',
@@ -1719,6 +1734,7 @@ function createPriorityListElement(params: {
                 selectOptionNumber: 'Selecione a opção #',
                 prioritized: 'Priorizado',
                 of: 'de',
+                instruction: 'Sua lista de prioridades está exibida abaixo. Se desejar, você pode reorganizar suas escolhas usando as setas. Clique em "Avançar" para confirmar sua seleção e continuar.'
             },
             da: {
                 selectUpTo: 'Vælg op til',
@@ -1730,6 +1746,7 @@ function createPriorityListElement(params: {
                 selectOptionNumber: 'Prioritér dit valg #',
                 prioritized: 'Prioriteret',
                 of: 'af',
+                instruction: 'Din prioriteringsliste kan ses herunder. Hvis du ønsker det, kan du omrangere dine valg ved hjælp af pilene. Klik "Næste" for at bekræfte dit valg og komme videre.'
             },
             fi: {
                 selectUpTo: 'Valitse enintään',
@@ -1741,6 +1758,7 @@ function createPriorityListElement(params: {
                 selectOptionNumber: 'Valitse vaihtoehto #',
                 prioritized: 'Priorisoitu',
                 of: ' / ',
+                instruction: 'Priorisointilistasi näkyy alla. Halutessasi voit järjestää valintasi uudelleen nuolien avulla. Napsauta "Seuraava" vahvistaaksesi valintasi ja jatkaaksesi.'
             },
             sv: {
                 selectUpTo: 'Välj upp till',
@@ -1752,6 +1770,7 @@ function createPriorityListElement(params: {
                 selectOptionNumber: 'Välj alternativ #',
                 prioritized: 'Prioriterat',
                 of: 'av',
+                instruction: 'Din prioriteringslista visas nedan. Om du vill kan du ordna om dina val med hjälp av pilarna. Klicka på "Nästa" för att bekräfta ditt val och fortsätta.'
             },
             no: {
                 selectUpTo: 'Velg opptil',
@@ -1763,6 +1782,7 @@ function createPriorityListElement(params: {
                 selectOptionNumber: 'Velg alternativ #',
                 prioritized: 'Prioritert',
                 of: 'av',
+                instruction: 'Prioriteringslisten din vises nedenfor. Hvis du ønsker det, kan du ordne valgene dine ved hjelp av pilene. Klikk på "Neste" for å bekrefte valget ditt og fortsette.'
             },
         };
         const lang = dict[language] ? language : 'en';
@@ -1780,7 +1800,9 @@ function createPriorityListElement(params: {
 
         const instruction = document.createElement("div");
         instruction.classList.add("magicfeedback-priority-list-instruction");
-        instruction.textContent = `${t('selectUpTo')} ${maxPriority} ${t('options')} ${t('thenOrder')} (0/${maxPriority})`;
+        instruction.textContent = placeholder !== '' ? placeholder : `${t('instruction')}`;
+        // Inicialmente ocultar la instrucción hasta que haya al menos una selección
+        instruction.style.display = "none";
 
         const openSelectorBtn = document.createElement("button");
         openSelectorBtn.type = "button";
@@ -1788,8 +1810,8 @@ function createPriorityListElement(params: {
         openSelectorBtn.classList.add("magicfeedback-button");
         openSelectorBtn.classList.add("magicfeedback-priority-list-open-btn");
 
-        header.appendChild(instruction);
         header.appendChild(openSelectorBtn);
+        header.appendChild(instruction);
 
         const reorderSection = document.createElement("div");
         reorderSection.classList.add("magicfeedback-priority-list-reorder");
@@ -1947,7 +1969,9 @@ function createPriorityListElement(params: {
                     if (selected.length >= maxPriority) {
                         cb.checked = false;
                         row.classList.add("magicfeedback-warning");
-                        setTimeout(() => { row.classList.remove("magicfeedback-warning"); }, 800);
+                        setTimeout(() => {
+                            row.classList.remove("magicfeedback-warning");
+                        }, 800);
                         return;
                     }
                     selected.push(option);
@@ -1955,7 +1979,7 @@ function createPriorityListElement(params: {
                     const idx = selected.indexOf(option);
                     if (idx !== -1) selected.splice(idx, 1);
                 }
-                instruction.textContent = `${t('selectUpTo')} ${maxPriority} ${t('options')} ${t('thenOrder')} (${selected.length}/${maxPriority})`;
+                // instruction.textContent = `${t('selectUpTo')} ${maxPriority} ${t('options')} ${t('thenOrder')} (${selected.length}/${maxPriority})`;
                 setTitleForSelection();
                 updateCounter();
             });
@@ -1974,6 +1998,8 @@ function createPriorityListElement(params: {
         const updateCounter = () => {
             const ofToken = t('of');
             modalCounter.textContent = `${t('prioritized')} ${selected.length} ${ofToken} ${maxPriority}`;
+            // Mostrar instrucción solo si hay al menos una opción seleccionada
+            instruction.style.display = selected.length > 0 ? "block" : "none";
         };
         updateCounter();
 
@@ -1984,6 +2010,14 @@ function createPriorityListElement(params: {
         closeBtn.setAttribute("aria-label", t('cancel'));
         closeBtn.title = t('cancel');
         closeBtn.textContent = "×";
+        // Posicionar arriba a la derecha dentro del modal
+        closeBtn.style.position = "absolute";
+        closeBtn.style.top = "8px";
+        closeBtn.style.right = "8px";
+        closeBtn.style.border = "none";
+        closeBtn.style.background = "transparent";
+        closeBtn.style.fontSize = "24px";
+        closeBtn.style.cursor = "pointer";
         closeBtn.addEventListener("click", () => {
             backdrop.style.display = "none";
         });

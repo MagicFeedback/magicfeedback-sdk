@@ -361,6 +361,7 @@ export class Form {
                     progress: this.progress,
                     total: this.total,
                     formData: this.formData,
+                    formOptionsConfig: this.formOptionsConfig
                 });
             }
         } catch (e) {
@@ -601,7 +602,6 @@ export class Form {
         const page = this.history.back();
         // Modo genérico: si no hay página en el historial, recolectamos respuestas directamente de los inputs
         if (!page) {
-            this.log.err("No page found");
             const inputs = form.querySelectorAll(".magicfeedback-input");
             const surveyAnswers: NativeAnswer[] = [];
             const priorityMap: Record<string, string[]> = {};
@@ -726,6 +726,13 @@ export class Form {
                         priorityMap[ans.key].push(value);
                     }
                     break;
+
+                case FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX:
+                    if ((input as HTMLInputElement).checked) {
+                        ans.value.push(value);
+                        surveyAnswers.push(ans);
+                    }
+                    break;
                 case FEEDBACKAPPANSWERTYPE.UPLOAD_IMAGE:
                 case FEEDBACKAPPANSWERTYPE.UPLOAD_FILE:
                 default:
@@ -741,6 +748,47 @@ export class Form {
             const sorted = arr.slice().sort((a, b) => Number(a.split('.')[0]) - Number(b.split('.')[0]));
             surveyAnswers.push({key: k, value: sorted});
         });
+
+        // --- Agrupación especial para MULTI_QUESTION_MATRIX ---
+        try {
+            console.log(surveyAnswers);
+            const matrixQuestions = page.questions.filter(q => q.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX);
+            matrixQuestions.forEach(mq => {
+                // Respuestas individuales capturadas como ref-rowName
+                const rowPrefix = mq.ref + '-';
+                const rowAnswers = surveyAnswers.filter(a => a.key.startsWith(rowPrefix));
+                if (rowAnswers.length === 0) return; // nada que agrupar
+
+                // Crear estructura: [{ key: rowName, value: [selected] }, ...]
+                const groupedRows = rowAnswers.map(r => ({
+                    key: r.key.substring(rowPrefix.length),
+                    value: r.value
+                }));
+
+                // El formato requerido: valor debe ser un array que contiene (una sola posición) un array de objetos fila
+                const matrixAnswer: NativeAnswer = {
+                    key: mq.ref,
+                    value: [JSON.stringify(groupedRows)]
+                };
+
+                // Eliminar las respuestas individuales
+                for (const ra of rowAnswers) {
+                    const idx = surveyAnswers.findIndex(s => s.key === ra.key);
+                    if (idx !== -1) surveyAnswers.splice(idx, 1);
+                }
+
+                // Añadir (o reemplazar si ya existiera) la respuesta agrupada
+                const existingIndex = surveyAnswers.findIndex(a => a.key === mq.ref);
+                if (existingIndex !== -1) {
+                    surveyAnswers[existingIndex] = matrixAnswer;
+                } else {
+                    surveyAnswers.push(matrixAnswer);
+                }
+            });
+        } catch (e) {
+            this.log.err('Error agrupando MULTI_QUESTION_MATRIX', e);
+        }
+
 
         this.feedback.answers = surveyAnswers;
         page.setAnswer(surveyAnswers);
