@@ -1,11 +1,11 @@
 import {beforeEach, describe, expect, test} from "@jest/globals";
-import {PageGraph} from "../src/models/pageGrafs";
+import {PageGraph} from "../src/models/pageGraphs";
 import {FEEDBACKAPPANSWERTYPE, NativeQuestion} from "../src/models/types";
 import {Page} from "../src/models/page";
 import {ConditionType, OperatorType, PageRoute, TransitionType} from "../src/models/pageRoute";
 
 
-describe('pageGrafs', () => {
+describe('pageGraphs', () => {
     let graph: PageGraph = new PageGraph([]);
 
     const defaultQuestions = (position: number, followUp: boolean): NativeQuestion => {

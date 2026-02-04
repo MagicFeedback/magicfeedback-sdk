@@ -19,11 +19,14 @@ export class PageGraph {
     private buildGraph(pages: Page[]) {
         pages.forEach((page) => {
             // Sort by created date and then by type of transition (logical first)
-            if (page.integrationPageRoutes) page.integrationPageRoutes = page.integrationPageRoutes?.sort(
-                (a, b) =>
-                    (new Date(a?.generatedAt || '').getTime() - new Date(b?.generatedAt || '').getTime() || 0) &&
-                    (a.typeCondition === 'DIRECT' ? 1 : -1)
-            ) || [];
+            if (page.integrationPageRoutes) page.integrationPageRoutes = page.integrationPageRoutes?.sort((a, b) => {
+                const aTime = new Date(a?.generatedAt || 0).getTime();
+                const bTime = new Date(b?.generatedAt || 0).getTime();
+                if (aTime !== bTime) return aTime - bTime;
+                if (a.typeCondition === 'DIRECT' && b.typeCondition !== 'DIRECT') return 1;
+                if (a.typeCondition !== 'DIRECT' && b.typeCondition === 'DIRECT') return -1;
+                return 0;
+            }) || [];
 
             const node: PageNode = new PageNode(
                 page.id,

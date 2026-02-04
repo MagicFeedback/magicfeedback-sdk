@@ -15,7 +15,7 @@ export default function main() {
     //===============================================
 
     const config: Config = new Config();
-    let log: Log;
+    let log: Log = new Log(config);
 
     /**
      *
@@ -26,8 +26,6 @@ export default function main() {
 
         config.set("url", options?.env && options?.env === "dev" ? HOST_API_URL_DEV : HOST_API_URL);
         config.set("env", options?.env);
-
-        log = new Log(config);
 
         log.log("Initialized Magicfeedback", config);
     }
