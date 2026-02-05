@@ -190,10 +190,6 @@ export function createRatingNumberElement(
         const containerLabel = document.createElement('label');
         containerLabel.htmlFor = `rating-${ref}-${i}`;
         containerLabel.classList.add('magicfeedback-rating-number-option-label-container');
-        if (integratePlaceholders) {
-            containerLabel.style.position = 'relative';
-            containerLabel.style.overflow = 'visible';
-        }
 
         if (integratePlaceholders) {
             const cap = document.createElement('span');
@@ -255,10 +251,6 @@ export function createRatingNumberElement(
         const containerLabel = document.createElement('label');
         containerLabel.htmlFor = `rating-${ref}-extra`;
         containerLabel.classList.add('magicfeedback-rating-number-option-label-container');
-        if (integratePlaceholders) {
-            containerLabel.style.position = 'relative';
-            containerLabel.style.overflow = 'visible';
-        }
 
         if (integratePlaceholders) {
             const cap = document.createElement('span');
@@ -294,61 +286,6 @@ export function createRatingNumberElement(
     }
 
     element.appendChild(ratingNumberContainer);
-
-    if (integratePlaceholders) {
-        requestAnimationFrame(() => {
-            const caps = Array.from(ratingNumberContainer.querySelectorAll('.magicfeedback-rating-number-cap')) as HTMLElement[];
-            if (caps.length === 0) return;
-            const gap = 6;
-            let maxH = 0;
-            caps.forEach(c => {
-                if (c.textContent?.trim()) {
-                    const h = c.getBoundingClientRect().height || 0;
-                    if (h > maxH) maxH = h;
-                }
-            });
-            ratingNumberContainer.style.position = 'relative';
-            ratingNumberContainer.style.paddingTop = `${maxH === 0 ? '42' : (maxH + gap)}px`;
-            caps.forEach(c => {
-                const h = c.getBoundingClientRect().height || 0;
-                c.style.position = 'absolute';
-                c.style.top = `-${maxH === 0 ? '42' : (maxH + h)}px`;
-                c.style.zIndex = '1';
-                c.style.pointerEvents = 'none';
-                c.style.padding = '0';
-                c.style.boxSizing = 'border-box';
-                c.style.whiteSpace = 'nowrap';
-                c.style.wordBreak = 'normal';
-                c.style.maxWidth = 'none';
-                c.style.width = 'max-content';
-                const type = c.dataset.capType;
-                if (type === 'min') {
-                    if (order === 'ltr') {
-                        c.style.left = '10px';
-                        c.style.textAlign = 'left';
-                    } else {
-                        c.style.right = '10px';
-                        c.style.textAlign = 'right';
-                    }
-                    c.style.transform = 'none';
-                } else if (type === 'max') {
-                    if (order === 'ltr') {
-                        c.style.right = '10px';
-                        c.style.textAlign = 'right';
-                    } else {
-                        c.style.left = '10px';
-                        c.style.textAlign = 'left';
-                    }
-                    c.style.transform = 'none';
-                } else {
-                    c.style.left = '50%';
-                    c.style.transform = 'translateX(-50%)';
-                    c.style.textAlign = 'center';
-                }
-            });
-            ratingNumberContainer.style.overflow = 'visible';
-        });
-    }
 
     return element;
 }
