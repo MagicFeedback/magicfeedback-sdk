@@ -887,23 +887,25 @@ textarea.error {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,0.4);
+  background: rgba(15, 23, 42, 0.45);
   display: none; /* toggled to flex when open */
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  backdrop-filter: blur(2px);
 }
 
 /* Modal container */
 .magicfeedback-modal {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-  max-width: 520px;
-  width: 90%;
+  background: var(--mf-surface);
+  border-radius: var(--mf-radius-lg);
+  box-shadow: var(--mf-shadow-lg);
+  border: 1px solid var(--mf-border);
+  max-width: 560px;
+  width: 92%;
   max-height: 80vh;
   overflow: auto;
-  padding: 16px;
+  padding: 18px;
 }
 
 /* Modal actions */
@@ -919,7 +921,7 @@ textarea.error {
   display: flex;
   align-items: center;
   font-size: 14px;
-  color: #444;
+  color: var(--mf-text-secondary);
 }
 
 /* Modal list */
@@ -934,6 +936,16 @@ textarea.error {
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  padding: 10px 12px;
+  border-radius: var(--mf-radius-md);
+  border: 1px solid var(--mf-border);
+  background: var(--mf-bg-secondary);
+  transition: var(--mf-transition-fast);
+}
+
+.magicfeedback-modal-row:hover {
+  border-color: var(--mf-primary);
+  background: var(--mf-bg-hover);
 }
 
 /* Priority list header */
@@ -952,13 +964,18 @@ textarea.error {
 .magicfeedback-priority-list-list {
     padding: 0;
     list-style: none;
+    margin: 0;
 }
 
 .magicfeedback-priority-list-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 5px 0;
+    margin: 6px 0;
+    padding: 10px 12px;
+    border-radius: var(--mf-radius-md);
+    background: var(--mf-surface-alt);
+    border: 1px solid var(--mf-border);
 }
 
 .magicfeedback-priority-list-item-label {
@@ -1158,14 +1175,14 @@ textarea.error {
   right: 8px;
   background: transparent;
   border: none;
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
   cursor: pointer;
-  color: #666;
+  color: var(--mf-text-secondary);
 }
 
 .magicfeedback-modal-close:hover,
 .magicfeedback-modal-close:focus {
-  color: #000;
+  color: var(--mf-text-primary);
   outline: none;
 }
