@@ -151,12 +151,12 @@ function renderContainer(
         elementContainer.classList.add("magicfeedback-consent-container");
         elementContainer.appendChild(element);
         elementContainer.appendChild(label);
-        elementContainer.appendChild(subLabel);
+        if (assets?.subtitle) elementContainer.appendChild(subLabel);
     } else {
         if (format !== 'slim') {
 
             elementContainer.appendChild(label);
-            elementContainer.appendChild(subLabel);
+            if (assets?.subtitle) elementContainer.appendChild(subLabel);
 
             if (assets?.general !== undefined && assets?.general !== "") {
                 // Add a image to the form

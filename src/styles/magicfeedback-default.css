@@ -218,6 +218,7 @@
     font-size: var(--mf-font-size-base);
     font-weight: var(--mf-font-weight-normal);
     color: var(--mf-text-secondary);
+    margin-bottom: var(--mf-space-sm);
 }
 
 h2 {
@@ -262,13 +263,6 @@ select {
 textarea {
     min-height: 100px;
     resize: vertical;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-    border-color: var(--mf-border-focus);
-    box-shadow: var(--mf-shadow-focus);
 }
 
 input::placeholder,
@@ -1129,11 +1123,6 @@ textarea.error {
     }
 }
 
-/* Focus visible for keyboard navigation */
-*:focus-visible {
-    outline: 2px solid var(--mf-primary);
-    outline-offset: 2px;
-}
 
 /* ========================================
    UTILITY CLASSES
