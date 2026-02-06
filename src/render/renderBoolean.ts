@@ -27,7 +27,6 @@ export const renderBoolean: QuestionRenderer = ({
         container.classList.add("magicfeedback-boolean-option");
         container.htmlFor = `rating-${ref}-${index}`;
         container.style.cursor = "pointer";
-        container.style.border = "1px solid #000";
         container.style.display = "flex";
         container.style.justifyContent = "center";
         container.style.alignItems = "center";
