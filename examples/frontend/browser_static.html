@@ -135,75 +135,6 @@
             },
         }
     );
-
-    /*
-    magicfeedback.send(
-        'f221a0d0-8d34-11ee-81e3-81ea6836afa4',
-        '596ce70871d352da65701709248fd687',
-        [
-            {
-                "key": "email",
-                "value": [
-                    "demo@minimals.cc"
-                ]
-            },
-            {
-                "key": "exp",
-                "value": [
-                    "Good"
-                ]
-            },
-            {
-                "key": "hours",
-                "value": [
-                    "3"
-                ]
-            },
-            {
-                "key": "features",
-                "value": [
-                    "Performance and speed"
-                ]
-            },
-            {
-                "key": "features",
-                "value": [
-                    "User interface and design"
-                ]
-            },
-            {
-                "key": "features",
-                "value": [
-                    "Additional functionality or features"
-                ]
-            },
-            {
-                "key": "renew",
-                "value": [
-                    "Neutral"
-                ]
-            },
-            {
-                "key": "started",
-                "value": [
-                    "2023-12-23"
-                ]
-            },
-            {
-                "key": "compare_product",
-                "value": [
-                    "a lot of use"
-                ]
-            },
-            {
-                "key": "name",
-                "value": [
-                    "Demo a"
-                ]
-            }
-        ]
-    )
-     */
 </script>
 <script>
     const previewContainerId = "demo_preview_div";
@@ -220,10 +151,11 @@
             defaultValue: "",
             followup: false,
             position: 1,
-            assets: {placeholder: "Type your name"},
+            assets: {placeholder: "Type your name", subtitle: "This is a subtitle for the question"},
             refMetric: "",
             integrationId: "demo",
-            integrationPageId: "demo"
+            integrationPageId: "demo",
+
         },
         {
             id: "q_longtext",
@@ -237,7 +169,7 @@
             defaultValue: "",
             followup: false,
             position: 2,
-            assets: {placeholder: "Write a few lines...", maxCharacters: 120},
+            assets: {placeholder: "Write a few lines...", maxCharacters: 120, subtitle: "This is a subtitle for the question"},
             refMetric: "",
             integrationId: "demo",
             integrationPageId: "demo"

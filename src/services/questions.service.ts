@@ -109,29 +109,7 @@ function renderContainer(
         });
         element = result.element;
         elementTypeClass = result.elementTypeClass;
-    } else switch (type) {
-        case FEEDBACKAPPANSWERTYPE.RATING_EMOJI:
-        case FEEDBACKAPPANSWERTYPE.RATING_NUMBER:
-        case FEEDBACKAPPANSWERTYPE.RATING_STAR:
-            // These are now handled by registry-based renderers.
-            break;
-        case FEEDBACKAPPANSWERTYPE.MULTIPLECHOISE_IMAGE:
-            // These are now handled by registry-based renderers.
-            break;
-        case FEEDBACKAPPANSWERTYPE.SELECT:
-        case FEEDBACKAPPANSWERTYPE.DATE:
-        case FEEDBACKAPPANSWERTYPE.CONSENT:
-        case FEEDBACKAPPANSWERTYPE.EMAIL:
-        case FEEDBACKAPPANSWERTYPE.PASSWORD:
-        case FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX:
-        case FEEDBACKAPPANSWERTYPE.PRIORITY_LIST:
-        case FEEDBACKAPPANSWERTYPE.POINT_SYSTEM:
-        case FEEDBACKAPPANSWERTYPE.UPLOAD_IMAGE:
-        case FEEDBACKAPPANSWERTYPE.UPLOAD_FILE:
-        case FEEDBACKAPPANSWERTYPE.INFO_PAGE:
-            // These are now handled by registry-based renderers.
-            break;
-        default:
+    } else {
             return elementContainer;
     }
 
