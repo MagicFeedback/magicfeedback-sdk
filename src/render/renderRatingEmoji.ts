@@ -25,7 +25,7 @@ export const renderRatingEmoji: QuestionRenderer = ({
         maxRating,
         assets?.minPlaceholder,
         assets?.maxPlaceholder,
-        assets?.extraOption,
+        assets?.extraOption ?? false,
     );
 
     for (let i = minRating; i <= maxRating; i++) {

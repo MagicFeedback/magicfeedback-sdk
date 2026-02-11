@@ -10,10 +10,10 @@ export const renderLongText: QuestionRenderer = ({
     const element = document.createElement("textarea");
     (element as HTMLTextAreaElement).rows = 3;
     if (maxCharacters > 0) (element as HTMLTextAreaElement).maxLength = maxCharacters;
-    (element as HTMLInputElement).placeholder = placeholderText || placeholder.answer(language || 'en');
+    (element as HTMLTextAreaElement).placeholder = placeholderText || placeholder.answer(language || 'en');
 
     if (urlParamValue) {
-        (element as HTMLInputElement).value = urlParamValue;
+        (element as HTMLTextAreaElement).value = urlParamValue;
     }
 
     const elementTypeClass = "magicfeedback-longtext";

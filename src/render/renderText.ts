@@ -2,7 +2,6 @@ import {placeholder} from "../services/placeholder";
 import {QuestionRenderer} from "./types";
 
 export const renderText: QuestionRenderer = ({
-    question,
     language,
     placeholderText,
     urlParamValue,

@@ -1,9 +1,9 @@
 export function createRatingPlaceholder(
     min: number,
     max: number,
-    minPlaceholder: string,
-    maxPlaceholder: string,
-    extraOption: boolean,
+    minPlaceholder?: string,
+    maxPlaceholder?: string,
+    extraOption: boolean = false,
     mobile: boolean = true,
     order = 'ltr',
     direction = 'row'
@@ -21,7 +21,7 @@ export function createRatingPlaceholder(
     if (mobile && window.innerWidth < 600) ratingPlaceholder.style.flexDirection = "column";
 
     const ratingPlaceholderMin = document.createElement('span');
-    ratingPlaceholderMin.textContent = minPlaceholder;
+    ratingPlaceholderMin.textContent = minPlaceholder ?? null;
     ratingPlaceholderMin.classList.add('magicfeedback-rating-placeholder-value');
     ratingPlaceholderMin.style.fontSize = "15px";
     ratingPlaceholderMin.style.textAlign = order === 'ltr' ? "left" : "right";
@@ -36,7 +36,7 @@ export function createRatingPlaceholder(
 
 
     const ratingPlaceholderMax = document.createElement('span');
-    ratingPlaceholderMax.textContent = maxPlaceholder;
+    ratingPlaceholderMax.textContent = maxPlaceholder ?? null;
     ratingPlaceholderMax.classList.add('magicfeedback-rating-placeholder-value');
     ratingPlaceholderMax.style.fontSize = "15px";
     ratingPlaceholderMax.style.textAlign = order === 'ltr' ? "right" : "left";
@@ -62,8 +62,8 @@ export function createRatingPlaceholder(
 
 export function createStarRating(
     ref: string,
-    minPlaceholder: string,
-    maxPlaceholder: string,
+    minPlaceholder?: string,
+    maxPlaceholder?: string,
     send: () => void = () => {
     },
     urlParamValue?: string | null

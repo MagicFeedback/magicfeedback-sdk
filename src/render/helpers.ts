@@ -1,4 +1,4 @@
-export function parseTitle(title: string, lang: string): string {
+export function parseTitle(title: string | Record<string, string> | undefined, lang: string): string {
     if (!title) return '';
     return typeof title === "object" ? (title[lang] || title['en']) : title;
 }

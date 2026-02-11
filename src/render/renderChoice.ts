@@ -32,8 +32,10 @@ export const renderChoice: QuestionRenderer = ({
         });
     }
 
-    if (assets?.extraOption && !opt.includes(assets?.extraOptionText)) {
-        opt.push(assets?.extraOptionText);
+    const extraOptionText = assets?.extraOptionText;
+
+    if (assets?.extraOption && extraOptionText && !opt.includes(extraOptionText)) {
+        opt.push(extraOptionText);
     }
 
     opt.forEach((option, index) => {

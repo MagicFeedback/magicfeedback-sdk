@@ -1,5 +1,4 @@
-import {FEEDBACKAPPANSWERTYPE, NativeQuestion} from "../models/types";
-import {placeholder} from "./placeholder";
+import {NativeQuestion} from "../models/types";
 import {getQuestionRenderer} from "../render/registry";
 import {getUrlParam, parseTitle} from "../render/helpers";
 
@@ -67,7 +66,6 @@ function renderContainer(
         ref,
         require,
         //external_id,
-        value,
         defaultValue,
         // questionType,
         assets
