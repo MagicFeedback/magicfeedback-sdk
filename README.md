@@ -9,6 +9,7 @@ user feedback and insights, driving continuous improvement and enhancing user ex
 * [Install](#install)
 * [Init](#init)
 * [How to use](#how-to-use)
+* [Answer format](#answer-format)
 * [Style](#style)
 
 ## Install
@@ -48,6 +49,10 @@ magicfeedback.init({
 
 This guide provides instructions for utilizing various features and functionalities of the application. Each section
 below highlights a specific use case and provides a code snippet to demonstrate its implementation.
+
+## Answer format
+
+See `docs/answer-format.md` for the per-type payload format produced by `Form.answer()`.
 
 ### A. Generate feedback forms
 
