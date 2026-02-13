@@ -36,4 +36,7 @@ General rules:
 
 ## Notes
 
-`MULTIPLECHOICE` extra option text, if present, is captured as a separate input with `name` equal to `extra-option-${ref}`, so it appears as its own entry in `feedback.answers`.
+- `POINT_SYSTEM` values are formatted as `${optionLabel}:${value}%`, where `optionLabel` comes from the input `id`.
+- `MULTI_QUESTION_MATRIX` rows are collected from inputs named `${ref}-${rowKey}` and grouped into a single JSON string.
+- If an `EMAIL` value is invalid, `Form.answer()` logs an error and returns an empty answers array.
+- `MULTIPLECHOICE` extra option text, if present, is captured as a separate input with `name` equal to `extra-option-${ref}`, so it appears as its own entry in `feedback.answers`.

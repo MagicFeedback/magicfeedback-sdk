@@ -640,6 +640,7 @@ export class Form {
         const inputs = form.querySelectorAll(".magicfeedback-input");
         const priorityMap: Record<string, string[]> = {};
         const multipleChoiceMap: Record<string, string[]> = {};
+        const pointSystemMap: Record<string, string[]> = {};
 
         inputs.forEach((input) => {
             const htmlInput = input as HTMLInputElement;
@@ -657,6 +658,13 @@ export class Form {
                 htmlInput.value;
 
             if (!ans.key || ans.key === "") return;
+            if (ans.key.startsWith("extra-option-")) {
+                if (value !== "") {
+                    ans.value.push(value);
+                    surveyAnswers.push(ans);
+                }
+                return;
+            }
 
             switch (question?.type) {
                 case FEEDBACKAPPANSWERTYPE.EMAIL:
@@ -665,6 +673,7 @@ export class Form {
                 case FEEDBACKAPPANSWERTYPE.NUMBER:
                 case FEEDBACKAPPANSWERTYPE.DATE:
                 case FEEDBACKAPPANSWERTYPE.CONTACT:
+                case FEEDBACKAPPANSWERTYPE.PASSWORD:
                     if (value !== "") {
                         if (inputType === "email") {
                             if (!validateEmail(value)) {
@@ -691,6 +700,7 @@ export class Form {
                     }
                     break;
                 case FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE:
+                case FEEDBACKAPPANSWERTYPE.MULTIPLECHOISE_IMAGE:
                     if (htmlInput.checked) {
                         if (!multipleChoiceMap[ans.key]) multipleChoiceMap[ans.key] = [];
                         multipleChoiceMap[ans.key].push(value);
@@ -720,6 +730,12 @@ export class Form {
                         surveyAnswers.push(ans);
                     }
                     break;
+                case FEEDBACKAPPANSWERTYPE.POINT_SYSTEM:
+                    if (inputType === 'number' && htmlInput.id) {
+                        if (!pointSystemMap[ans.key]) pointSystemMap[ans.key] = [];
+                        if (value !== "") pointSystemMap[ans.key].push(`${htmlInput.id}:${value}%`);
+                    }
+                    break;
                 case FEEDBACKAPPANSWERTYPE.PRIORITY_LIST:
                     // Agrupar los inputs hidden del priority list bajo la misma key
                     if (inputType === 'hidden') {
@@ -745,6 +761,12 @@ export class Form {
 
         // Agregar MULTIPLECHOICE como un único NativeAnswer por pregunta
         Object.entries(multipleChoiceMap).forEach(([k, arr]) => {
+            if (!arr || arr.length === 0) return;
+            surveyAnswers.push({key: k, value: arr});
+        });
+
+        // Agregar POINT_SYSTEM como un único NativeAnswer
+        Object.entries(pointSystemMap).forEach(([k, arr]) => {
             if (!arr || arr.length === 0) return;
             surveyAnswers.push({key: k, value: arr});
         });

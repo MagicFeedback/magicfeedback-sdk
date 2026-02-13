@@ -15,14 +15,78 @@ import {
 
 import {Form} from "../src/models/form";
 import {Config} from "../src/models/config";
+import {FormData} from "../src/models/formData";
 import {Page} from "../src/models/page";
 import {PageNode} from "../src/models/pageNode";
+
+const buildQuestion = (overrides: Partial<NativeQuestion> = {}): NativeQuestion => ({
+    id: overrides.id || "q-1",
+    title: overrides.title || "Question",
+    type: overrides.type || FEEDBACKAPPANSWERTYPE.TEXT,
+    questionType: overrides.questionType || ({conf: null} as any),
+    ref: overrides.ref || "q-1",
+    require: overrides.require ?? false,
+    external_id: overrides.external_id || "",
+    value: overrides.value || [],
+    defaultValue: overrides.defaultValue || "",
+    appId: overrides.appId || "app-id",
+    followup: overrides.followup ?? false,
+    position: overrides.position ?? 1,
+    assets: overrides.assets || {},
+    refMetric: overrides.refMetric || "",
+    integrationId: overrides.integrationId || "integration-1",
+    integrationPageId: overrides.integrationPageId || "page-1",
+    generatedAt: overrides.generatedAt ?? null,
+    updatedAt: overrides.updatedAt ?? null,
+    status: overrides.status || "ACTIVE",
+    followupQuestion: overrides.followupQuestion || [],
+});
+
+const buildFormData = (questions: NativeQuestion[], pages?: Page[]): FormData => {
+    return new FormData(
+        "form-1",
+        "Test Form",
+        "",
+        "MAGICFORM",
+        "MAGICFORM",
+        "ACTIVE",
+        new Date(),
+        new Date(),
+        null,
+        "company-1",
+        "product-1",
+        {customIcons: false, id: "product-1"},
+        "user-1",
+        {},
+        {},
+        questions,
+        ["en"],
+        {},
+        pages || [new Page("page-1", 1, "integration-1", questions, [])]
+    );
+};
+
+const setupForm = (
+    questions: NativeQuestion[],
+    options: generateFormOptions = {}
+): Form => {
+    const form = new Form(new Config(), "app-id", "public-key");
+    const pages = [new Page("page-1", 1, "integration-1", questions, [])];
+    (form as any).formData = buildFormData(questions, pages);
+    (form as any).selector = "form-container";
+    (form as any).formOptionsConfig = {
+        ...(form as any).formOptionsConfig,
+        ...options,
+    };
+    return form;
+};
 
 /**
  * Form.generate
  */
 describe("Form.generate", () => {
     let container: HTMLElement;
+    let logSpy: ReturnType<typeof jest.spyOn>;
 
     /**
      * @jest-environment jsdom
@@ -32,6 +96,7 @@ describe("Form.generate", () => {
         container = document.createElement("div");
         container.id = "form-container";
         document.body.appendChild(container);
+        logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     });
 
     /**
@@ -40,45 +105,32 @@ describe("Form.generate", () => {
     afterEach(() => {
         // Clean up the container element after each test
         container.remove();
+        logSpy.mockRestore();
     });
 
     /**
      *
      */
-    test("should generate a form with text input fields", () => {
-        const questions: NativeQuestion[] = [
-            {
+    test("should generate a form with text input fields", async () => {
+        const questions = [
+            buildQuestion({
                 id: "1",
                 title: "Name",
                 type: FEEDBACKAPPANSWERTYPE.TEXT,
                 ref: "name",
-                require: true,
-                external_id: "123",
-                value: [],
-                defaultValue: "",
-                appId: "456",
-                followup: false,
-                followupQuestion: [],
-            },
-            {
+                position: 1,
+            }),
+            buildQuestion({
                 id: "2",
                 title: "Email",
                 type: FEEDBACKAPPANSWERTYPE.TEXT,
                 ref: "email",
-                require: true,
-                external_id: "456",
-                value: [],
-                defaultValue: "",
-                appId: "789",
-                followup: false,
-                followupQuestion: [],
-            },
+                position: 2,
+            }),
         ];
 
-        const form = new Form(new Config(), "app-id", 'public-key');
-
-        form.questions = questions;
-        form["generateForm"]("form-container");
+        const form = setupForm(questions);
+        await (form as any).generateForm();
 
         const formSelect = container.querySelector("form");
         const nameInput = container.querySelector('input[name="name"]');
@@ -91,46 +143,31 @@ describe("Form.generate", () => {
         expect(emailInput?.getAttribute("type")).toBe("text");
     });
 
-    /**
-     *
-     */
-    test("should generate a form with a submit button", () => {
-        const questions: NativeQuestion[] = [];
-
-        let options: generateFormOptions = {addButton: true};
-        const form = new Form(new Config(), "app-id", 'public-key');
-        form.questions = questions;
-        form["generateForm"]("form-container", options);
+    test("should generate a form with a submit button", async () => {
+        const form = setupForm([]);
+        await (form as any).generateForm();
 
         const formSelect = container.querySelector("form");
         const submitButton = container.querySelector('button[type="submit"]');
 
         expect(formSelect).not.toBeNull();
         expect(submitButton).not.toBeNull();
-        expect(submitButton?.textContent).toBe("Submit");
+        expect(submitButton?.textContent).toBe("Send");
     });
 
-    test("should generate a form with a textarea for LONGTEXT type", () => {
-        const questions: NativeQuestion[] = [
-            {
+    test("should generate a form with a textarea for LONGTEXT type", async () => {
+        const questions = [
+            buildQuestion({
                 id: "3",
                 title: "Feedback",
                 type: FEEDBACKAPPANSWERTYPE.LONGTEXT,
                 ref: "feedback",
-                require: true,
-                external_id: "789",
-                value: [],
-                defaultValue: "",
-                appId: "123",
-                followup: false,
-                followupQuestion: [],
-            },
+                position: 1,
+            }),
         ];
 
-        const form = new Form(new Config(), "app-id", 'public-key');
-
-        form.questions = questions;
-        form["generateForm"]("form-container");
+        const form = setupForm(questions);
+        await (form as any).generateForm();
 
         const textarea = container.querySelector('textarea[name="feedback"]');
 
@@ -138,26 +175,21 @@ describe("Form.generate", () => {
         expect(textarea?.getAttribute("rows")).toBe("3");
     });
 
-    test("should generate a form with a number input field for NUMBER type", () => {
-        const questions: NativeQuestion[] = [
-            {
+    test("should generate a form with a number input field for NUMBER type", async () => {
+        const questions = [
+            buildQuestion({
                 id: "4",
                 title: "Age",
                 type: FEEDBACKAPPANSWERTYPE.NUMBER,
                 ref: "age",
-                require: true,
-                external_id: "123",
                 value: ["18", "25", "30"],
                 defaultValue: "18",
-                appId: "456",
-                followup: false,
-                followupQuestion: [],
-            },
+                position: 1,
+            }),
         ];
 
-        const form = new Form(new Config(), "app-id", 'public-key');
-        form.questions = questions;
-        form["generateForm"]("form-container");
+        const form = setupForm(questions);
+        await (form as any).generateForm();
 
         const numberInput = container.querySelector('input[name="age"]');
 
@@ -168,26 +200,21 @@ describe("Form.generate", () => {
         expect((numberInput as HTMLInputElement)?.value).toBe("18");
     });
 
-    test("should generate a form with radio buttons for RADIO type", () => {
-        const questions: NativeQuestion[] = [
-            {
+    test("should generate a form with radio buttons for RADIO type", async () => {
+        const questions = [
+            buildQuestion({
                 id: "5",
                 title: "Gender",
                 type: FEEDBACKAPPANSWERTYPE.RADIO,
                 ref: "gender",
-                require: true,
-                external_id: "789",
                 value: ["Male", "Female"],
                 defaultValue: "Male",
-                appId: "123",
-                followup: false,
-                followupQuestion: [],
-            },
+                position: 1,
+            }),
         ];
 
-        const form = new Form(new Config(), "app-id", 'public-key');
-        form.questions = questions;
-        form["generateForm"]("form-container");
+        const form = setupForm(questions);
+        await (form as any).generateForm();
 
         const radioButtons = container.querySelectorAll('input[name="gender"]');
         const maleRadioButton = container.querySelector(
@@ -202,29 +229,22 @@ describe("Form.generate", () => {
         expect(femaleRadioButton).not.toBeNull();
         expect(maleRadioButton?.getAttribute("type")).toBe("radio");
         expect(femaleRadioButton?.getAttribute("type")).toBe("radio");
-        //expect(maleRadioButton?.checked).toBe(true);
     });
 
-    test("should generate a form with checkboxes for MULTIPLECHOICE type", () => {
-        const questions: NativeQuestion[] = [
-            {
+    test("should generate a form with checkboxes for MULTIPLECHOICE type", async () => {
+        const questions = [
+            buildQuestion({
                 id: "6",
                 title: "Hobbies",
                 type: FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE,
                 ref: "hobbies",
-                require: true,
-                external_id: "123",
                 value: ["Reading", "Gaming", "Sports"],
-                defaultValue: "",
-                appId: "456",
-                followup: false,
-                followupQuestion: [],
-            },
+                position: 1,
+            }),
         ];
 
-        const form = new Form(new Config(), "app-id", 'public-key');
-        form.questions = questions;
-        form["generateForm"]("form-container");
+        const form = setupForm(questions);
+        await (form as any).generateForm();
 
         const checkboxes = container.querySelectorAll('input[name="hobbies"]');
         const readingCheckbox = container.querySelector(
@@ -244,69 +264,47 @@ describe("Form.generate", () => {
         expect(readingCheckbox?.getAttribute("type")).toBe("checkbox");
         expect(gamingCheckbox?.getAttribute("type")).toBe("checkbox");
         expect(sportsCheckbox?.getAttribute("type")).toBe("checkbox");
-        //expect(readingCheckbox?.checked).toBe(false);
-        //expect(gamingCheckbox?.checked).toBe(false);
-        //expect(sportsCheckbox?.checked).toBe(false);
     });
 
-    /**
-     *
-     */
-    test("should generate a form with a select dropdown for SELECT type", () => {
-        const questions: NativeQuestion[] = [
-            {
+    test("should generate a form with a select dropdown for SELECT type", async () => {
+        const questions = [
+            buildQuestion({
                 id: "7",
                 title: "Country",
                 type: FEEDBACKAPPANSWERTYPE.SELECT,
                 ref: "country",
-                require: true,
-                external_id: "789",
                 value: ["USA", "Canada", "UK"],
                 defaultValue: "Canada",
-                appId: "123",
-                followup: false,
-                followupQuestion: [],
-            },
+                position: 1,
+            }),
         ];
 
-        const form = new Form(new Config(), "app-id", 'public-key');
-        form.questions = questions;
-        form["generateForm"]("form-container");
+        const form = setupForm(questions);
+        await (form as any).generateForm();
 
         const select = container.querySelector('select[name="country"]');
         const options = container.querySelectorAll('select[name="country"] option');
 
         expect(select).not.toBeNull();
-        expect(options.length).toBe(3);
-        expect((options[0] as HTMLInputElement).value).toBe("USA");
-        expect((options[1] as HTMLInputElement).value).toBe("Canada");
-        expect((options[2] as HTMLInputElement).value).toBe("UK");
-        //expect(options[1].selected).toBe(true);
+        expect(options.length).toBe(4);
+        expect((options[1] as HTMLOptionElement).value).toBe("USA");
+        expect((options[2] as HTMLOptionElement).value).toBe("Canada");
+        expect((options[3] as HTMLOptionElement).value).toBe("UK");
     });
 
-    /**
-     *
-     */
-    test("should generate a form with a date input field for DATE type", () => {
-        const questions: NativeQuestion[] = [
-            {
+    test("should generate a form with a date input field for DATE type", async () => {
+        const questions = [
+            buildQuestion({
                 id: "8",
                 title: "Date of Birth",
                 type: FEEDBACKAPPANSWERTYPE.DATE,
                 ref: "dob",
-                require: true,
-                external_id: "123",
-                value: [],
-                defaultValue: "",
-                appId: "456",
-                followup: false,
-                followupQuestion: [],
-            },
+                position: 1,
+            }),
         ];
 
-        const form = new Form(new Config(), "app-id", 'public-key');
-        form.questions = questions;
-        form["generateForm"]("form-container");
+        const form = setupForm(questions);
+        await (form as any).generateForm();
 
         const dateInput = container.querySelector('input[name="dob"]');
 
@@ -314,95 +312,51 @@ describe("Form.generate", () => {
         expect(dateInput?.getAttribute("type")).toBe("date");
     });
 
-    /**
-     *
-     */
-    test("should generate a form with a checkbox for BOOLEAN type", () => {
-        const questions: NativeQuestion[] = [
-            {
+    test("should generate a form with a checkbox for BOOLEAN type", async () => {
+        const questions = [
+            buildQuestion({
                 id: "9",
                 title: "Agree to Terms",
                 type: FEEDBACKAPPANSWERTYPE.BOOLEAN,
                 ref: "agree",
-                require: true,
-                external_id: "789",
-                value: [],
-                defaultValue: "",
-                appId: "123",
-                followup: false,
-                followupQuestion: [],
-            },
+                position: 1,
+            }),
         ];
 
-        const form = new Form(new Config(), "app-id", 'public-key');
-        form.questions = questions;
-        form["generateForm"]("form-container");
+        const form = setupForm(questions);
+        await (form as any).generateForm();
 
         const checkbox = container.querySelector('input[name="agree"]');
 
         expect(checkbox).not.toBeNull();
-        expect(checkbox?.getAttribute("type")).toBe("checkbox");
+        expect(checkbox?.getAttribute("type")).toBe("radio");
     });
 
-    /**
-     *
-     */
-    test("should generate a form without a submit button when `addButton` option is false", () => {
-        const questions: NativeQuestion[] = [
-            // Define your questions here
-        ];
-
-        const form = new Form(new Config(), "app-id", 'public-key');
-        form.questions = questions;
-        form["generateForm"]("form-container", {
-            addButton: false,
-        });
+    test("should generate a form without a submit button when `addButton` option is false", async () => {
+        const form = setupForm([], {addButton: false});
+        await (form as any).generateForm();
 
         const submitButton = container.querySelector(".magicfeedback-submit");
 
         expect(submitButton).toBeNull();
     });
 
-    /**
-     *
-     */
-    /*test("should add custom event listeners for beforeSubmitEvent and afterSubmitEvent", () => {
-      const questions: NativeQuestion[] = [
-        // Define your questions here
-      ];
+    test("should log an error message when the specified selector is not found", async () => {
+        const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+        const form = setupForm([
+            buildQuestion({
+                id: "10",
+                title: "Name",
+                type: FEEDBACKAPPANSWERTYPE.TEXT,
+                ref: "name",
+                position: 1,
+            }),
+        ]);
+        (form as any).selector = "nonexistent-container";
+        await (form as any).generateForm();
 
-      const mockBeforeSubmitEvent = jest.fn();
-      const mockAfterSubmitEvent = jest.fn();
-
-      generateForm("app-id", questions, "form-container", {
-        beforeSubmitEvent: mockBeforeSubmitEvent,
-        afterSubmitEvent: mockAfterSubmitEvent,
-      });
-
-      const form = container.querySelector(".magicfeedback-form");
-
-      form?.dispatchEvent(new Event("submit"));
-
-      expect(mockBeforeSubmitEvent).toHaveBeenCalledTimes(1);
-      expect(mockAfterSubmitEvent).toHaveBeenCalledTimes(1);
-    });
-
-    /**
-     *
-     */
-    test("should log an error message when the specified selector is not found", () => {
-        const questions: NativeQuestion[] = [
-            // Define your questions here
-        ];
-
-        console.error = jest.fn(); // Mock console.error method
-
-        const appId = "nonexistent-app-id";
-        const form = new Form(new Config(), appId, 'public-key');
-        form.questions = questions;
-        form["generateForm"]("nonexistent-container");
-
-        expect(console.error).toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalled();
+        consoleSpy.mockRestore();
     });
 });
 
@@ -411,6 +365,8 @@ describe("Form.generate", () => {
  */
 describe("Form.answer", () => {
     const appId = "app-id";
+    let logSpy: ReturnType<typeof jest.spyOn>;
+    let errorSpy: ReturnType<typeof jest.spyOn>;
 
     type AnswerCase = {
         name: string;
@@ -420,26 +376,6 @@ describe("Form.answer", () => {
         expectedAnswers: NativeAnswer[];
         expectedProfile?: NativeAnswer[];
     };
-
-    const buildQuestion = (overrides: Partial<NativeQuestion>): NativeQuestion => ({
-        id: overrides.id || "q-1",
-        title: overrides.title || "Question",
-        type: overrides.type || FEEDBACKAPPANSWERTYPE.TEXT,
-        questionType: overrides.questionType || ({} as any),
-        ref: overrides.ref || "q-1",
-        require: overrides.require || false,
-        external_id: overrides.external_id || "ext-1",
-        value: overrides.value || [],
-        defaultValue: overrides.defaultValue || "",
-        appId,
-        followup: overrides.followup || false,
-        position: overrides.position || 0,
-        assets: overrides.assets || {},
-        refMetric: overrides.refMetric || "",
-        integrationId: overrides.integrationId || "integration-1",
-        integrationPageId: overrides.integrationPageId || "page-1",
-        followupQuestion: overrides.followupQuestion || [],
-    });
 
     const seedHistory = (form: Form, questions: NativeQuestion[]) => {
         const page = new Page("page-1", 0, "integration-1", questions, []);
@@ -481,15 +417,20 @@ describe("Form.answer", () => {
 
     beforeEach(() => {
         document.body.innerHTML = "";
+        logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+        errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    });
+    afterEach(() => {
+        logSpy.mockRestore();
+        errorSpy.mockRestore();
     });
 
     test("returns empty answers if the form with the specified ID is not found", () => {
-        const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
         const form = new Form(new Config(), "nonexistent-app-id", "public-key");
         form.answer();
         const feedback = (form as any).feedback;
         expect(feedback.answers).toEqual([]);
-        consoleSpy.mockRestore();
+        expect(errorSpy).toHaveBeenCalled();
     });
 
     test("returns empty answers if no inputs are present in the form", () => {
