@@ -639,6 +639,7 @@ export class Form {
 
         const inputs = form.querySelectorAll(".magicfeedback-input");
         const priorityMap: Record<string, string[]> = {};
+        const multipleChoiceMap: Record<string, string[]> = {};
 
         inputs.forEach((input) => {
             const htmlInput = input as HTMLInputElement;
@@ -691,8 +692,8 @@ export class Form {
                     break;
                 case FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE:
                     if (htmlInput.checked) {
-                        ans.value.push(value);
-                        surveyAnswers.push(ans);
+                        if (!multipleChoiceMap[ans.key]) multipleChoiceMap[ans.key] = [];
+                        multipleChoiceMap[ans.key].push(value);
                     }
                     break;
                 case FEEDBACKAPPANSWERTYPE.BOOLEAN:
@@ -741,6 +742,12 @@ export class Form {
         });
 
         if (hasError) return [];
+
+        // Agregar MULTIPLECHOICE como un único NativeAnswer por pregunta
+        Object.entries(multipleChoiceMap).forEach(([k, arr]) => {
+            if (!arr || arr.length === 0) return;
+            surveyAnswers.push({key: k, value: arr});
+        });
 
         // Agregar PRIORITY_LIST como un único NativeAnswer ordenado por índice
         Object.entries(priorityMap).forEach(([k, arr]) => {
