@@ -570,6 +570,7 @@ export class Form {
             const question = page.questions.find(q => (input as HTMLInputElement).name?.includes(q.ref));
             const inputType = (input as HTMLInputElement).type;
             const elementTypeClass = (input as HTMLInputElement).classList[0];
+            let skipAnswer = false;
 
             const ans: NativeAnswer = {
                 key: (input as HTMLInputElement).name,
@@ -583,12 +584,19 @@ export class Form {
             if (!ans.key || ans.key === "") return;
 
             switch (question?.type) {
+                case FEEDBACKAPPANSWERTYPE.INFO_PAGE:
+                case FEEDBACKAPPANSWERTYPE.UPLOAD_FILE:
+                case FEEDBACKAPPANSWERTYPE.UPLOAD_IMAGE:
+                    // No values are sent for these types yet
+                    skipAnswer = true;
+                    break;
                 case FEEDBACKAPPANSWERTYPE.EMAIL:
                 case FEEDBACKAPPANSWERTYPE.TEXT:
                 case FEEDBACKAPPANSWERTYPE.LONGTEXT:
                 case FEEDBACKAPPANSWERTYPE.NUMBER:
                 case FEEDBACKAPPANSWERTYPE.DATE:
                 case FEEDBACKAPPANSWERTYPE.CONTACT:
+                case FEEDBACKAPPANSWERTYPE.PASSWORD:
                     if (value !== "") {
                         if (inputType === "email") {
                             if (!validateEmail(value)) {
@@ -644,6 +652,8 @@ export class Form {
 
 
             }
+
+            if (skipAnswer) return;
 
             if (surveyAnswers?.length > 0 && surveyAnswers?.find(a => a.key === ans.key)) {
                 const index = surveyAnswers.findIndex(a => a.key === ans.key);
