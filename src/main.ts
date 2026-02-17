@@ -22,7 +22,8 @@ export default function main() {
      * @param options
      */
     function init(options?: InitOptions) {
-        if (options?.debug) config.set("debug", options?.debug);
+        if (typeof options?.debug === "boolean") config.set("debug", options.debug);
+        if (typeof options?.dryRun === "boolean") config.set("dryRun", options.dryRun);
 
         config.set("url", options?.env && options?.env === "dev" ? HOST_API_URL_DEV : HOST_API_URL);
         config.set("env", options?.env);
@@ -69,6 +70,11 @@ export default function main() {
         }
 
         try {
+            if (config.get<boolean>("dryRun")) {
+                log.log("Dry run enabled: skipping native feedback submit");
+                return `dry-run-${Date.now()}`;
+            }
+
             const res = await sendFeedback(url as string, body, log);
             log.log(`sent native feedback`);
             return res;

@@ -3,6 +3,7 @@ export type Key = string;
 export type InitOptions = {
     env?: 'dev' | 'prod';
     debug?: boolean;
+    dryRun?: boolean;
 };
 
 export type NativeFeedbackAnswer = {

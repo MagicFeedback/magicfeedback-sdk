@@ -442,6 +442,40 @@ textarea.error {
     margin: var(--mf-space-sm) 0;
 }
 
+@media (min-width: 600px) {
+    .magicfeedback-rating-container,
+    .magicfeedback-rating-number-container,
+    .magicfeedback-rating-star-container {
+        position: relative;
+    }
+
+    .magicfeedback-rating-container--with-placeholder,
+    .magicfeedback-rating-number-container--with-placeholder {
+        padding-top: calc(var(--mf-space-md) + var(--mf-space-sm) - 4px);
+        padding-bottom: calc(var(--mf-space-md) - var(--mf-space-sm));
+    }
+
+    .magicfeedback-rating-placeholder {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        margin: 0;
+        padding: 0 4px;
+        box-sizing: border-box;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .magicfeedback-rating-placeholder-value {
+        margin: 0;
+        max-width: 50%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: normal;
+    }
+}
+
 /* Rating with Images */
 .magicfeedback-rating-option-label-container input[type="radio"] {
     position: absolute;

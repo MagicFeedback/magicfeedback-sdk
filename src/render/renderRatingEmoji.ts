@@ -140,8 +140,10 @@ export const renderRatingEmoji: QuestionRenderer = ({
         extraOption.appendChild(containerLabel);
         ratingContainer.appendChild(extraOption);
     }
-
-    element.appendChild(ratingPlaceholder);
+    if (ratingPlaceholder.childElementCount > 0) {
+        ratingContainer.classList.add('magicfeedback-rating-container--with-placeholder');
+        ratingContainer.insertBefore(ratingPlaceholder, ratingContainer.firstChild);
+    }
     element.appendChild(ratingContainer);
 
     return {element, elementTypeClass};

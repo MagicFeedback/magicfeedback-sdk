@@ -40,10 +40,13 @@ This method is optional. You can start actived the debug mode to see on console 
 ```js
 magicfeedback.init({
     debug: true | false, // Default false
-    env: "prod" // Default 
+    env: "prod", // Default
+    dryRun: true | false // Default false. If true, survey answers are not sent to API.
 })
 
 ```
+
+`dryRun` is useful to preview surveys and test conditional logic without creating real feedback in MagicFeedback.
 
 ## How to use
 

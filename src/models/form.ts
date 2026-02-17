@@ -905,6 +905,12 @@ export class Form {
      */
     private async pushAnswers(completed: boolean = false): Promise<string> {
         try {
+            if (this.config.get<boolean>("dryRun")) {
+                const dryRunSession = this.id || `dry-run-${this.appId}-${Date.now()}`;
+                this.log.log(`Dry run enabled: skipping feedback submit for form ${this.appId}`);
+                return dryRunSession;
+            }
+
             // Define the URL and request payload
             const url = this.config.get("url");
             const body = {
@@ -941,6 +947,11 @@ export class Form {
     private async callFollowUpQuestion(question: NativeQuestion | null): Promise<NativeQuestion | null> {
         if (!question?.followup) return null;
         try {
+            if (this.config.get<boolean>("dryRun")) {
+                this.log.log(`Dry run enabled: skipping follow up API for question ${question.ref}`);
+                return null;
+            }
+
             if (this.feedback.answers.length === 0) throw new Error("No answers provided");
 
             // Define the URL and request payload

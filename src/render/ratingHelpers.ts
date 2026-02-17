@@ -24,6 +24,10 @@ export function createRatingPlaceholder(
     ratingPlaceholderMin.textContent = minPlaceholder ?? null;
     ratingPlaceholderMin.classList.add('magicfeedback-rating-placeholder-value');
     ratingPlaceholderMin.style.fontSize = "15px";
+    ratingPlaceholderMin.style.display = "block";
+    ratingPlaceholderMin.style.minWidth = "0";
+    ratingPlaceholderMin.style.overflowWrap = "anywhere";
+    ratingPlaceholderMin.style.wordBreak = "break-word";
     ratingPlaceholderMin.style.textAlign = order === 'ltr' ? "left" : "right";
     ratingPlaceholderMin.style.width = `50%`;
 
@@ -39,6 +43,10 @@ export function createRatingPlaceholder(
     ratingPlaceholderMax.textContent = maxPlaceholder ?? null;
     ratingPlaceholderMax.classList.add('magicfeedback-rating-placeholder-value');
     ratingPlaceholderMax.style.fontSize = "15px";
+    ratingPlaceholderMax.style.display = "block";
+    ratingPlaceholderMax.style.minWidth = "0";
+    ratingPlaceholderMax.style.overflowWrap = "anywhere";
+    ratingPlaceholderMax.style.wordBreak = "break-word";
     ratingPlaceholderMax.style.textAlign = order === 'ltr' ? "right" : "left";
     ratingPlaceholderMax.style.width = `50%`;
 
@@ -147,7 +155,11 @@ export function createStarRating(
         ratingContainer.appendChild(ratingOption);
     }
 
-    ratingContainer.appendChild(createRatingPlaceholder(1, 5, minPlaceholder, maxPlaceholder, false, false));
+    const ratingPlaceholder = createRatingPlaceholder(1, 5, minPlaceholder, maxPlaceholder, false, false);
+    if (ratingPlaceholder.childElementCount > 0) {
+        ratingContainer.classList.add('magicfeedback-rating-container--with-placeholder');
+        ratingContainer.insertBefore(ratingPlaceholder, ratingContainer.firstChild);
+    }
 
     return ratingContainer;
 }
@@ -180,7 +192,25 @@ export function createRatingNumberElement(
 
     const numberPlaceholders = assets?.numberPlaceholders || null;
 
-    const integratePlaceholders = !(isPhone || direction === 'column');
+    const useOverlayPlaceholders = !(isPhone || direction === 'column') && (assets?.minPlaceholder || assets?.maxPlaceholder);
+
+    if (useOverlayPlaceholders) {
+        const ratingPlaceholder = createRatingPlaceholder(
+            minRatingNumber,
+            maxRatingNumber,
+            assets?.minPlaceholder,
+            assets?.maxPlaceholder,
+            assets?.extraOption ?? false,
+            false,
+            order,
+            'row',
+        );
+
+        if (ratingPlaceholder.childElementCount > 0) {
+            ratingNumberContainer.classList.add('magicfeedback-rating-number-container--with-placeholder');
+            ratingNumberContainer.insertBefore(ratingPlaceholder, ratingNumberContainer.firstChild);
+        }
+    }
 
     for (let i = minRatingNumber; i <= maxRatingNumber; i++) {
         const ratingOption = document.createElement('div');
@@ -191,26 +221,9 @@ export function createRatingNumberElement(
         containerLabel.htmlFor = `rating-${ref}-${i}`;
         containerLabel.classList.add('magicfeedback-rating-number-option-label-container');
 
-        if (integratePlaceholders) {
-            const cap = document.createElement('span');
-            cap.classList.add('magicfeedback-rating-number-cap');
-            cap.classList.add('magicfeedback-rating-placeholder-value');
-            cap.style.fontSize = "14px";
-            cap.style.whiteSpace = 'nowrap';
-            cap.style.wordBreak = 'normal';
-            if (i === minRatingNumber && assets?.minPlaceholder) {
-                cap.textContent = assets.minPlaceholder;
-                cap.dataset.capType = 'min';
-            } else if (i === maxRatingNumber && assets?.maxPlaceholder) {
-                cap.textContent = assets.maxPlaceholder;
-                cap.dataset.capType = 'max';
-            } else cap.dataset.capType = 'mid';
-            containerLabel.appendChild(cap);
-        }
-
         let inputText = i.toString();
 
-        if (!integratePlaceholders) {
+        if (!useOverlayPlaceholders) {
             if (numberPlaceholders && numberPlaceholders[i]) inputText += ` = ${numberPlaceholders[i]}`;
             else if (i === minRatingNumber && assets?.minPlaceholder) inputText += ` = ${assets?.minPlaceholder}`;
             else if (i === maxRatingNumber && assets?.maxPlaceholder) inputText += ` = ${assets?.maxPlaceholder}`;
@@ -251,16 +264,6 @@ export function createRatingNumberElement(
         const containerLabel = document.createElement('label');
         containerLabel.htmlFor = `rating-${ref}-extra`;
         containerLabel.classList.add('magicfeedback-rating-number-option-label-container');
-
-        if (integratePlaceholders) {
-            const cap = document.createElement('span');
-            cap.classList.add('magicfeedback-rating-number-cap');
-            cap.dataset.capType = 'extra';
-            cap.style.fontSize = '12px';
-            cap.style.whiteSpace = 'nowrap';
-            cap.style.wordBreak = 'normal';
-            containerLabel.appendChild(cap);
-        }
 
         const input = document.createElement("input");
         input.id = `rating-${ref}-extra`;
