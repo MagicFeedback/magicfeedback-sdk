@@ -50,6 +50,9 @@ export type QuestionAssetsBase = {
     placeholder?: string;
     subtitle?: string | Record<string, string>;
     subtitleStyle?: string | string[];
+    titleSize?: string;
+    titleAlign?: string;
+    titleStyle?: string | string[];
     maxCharacters?: number;
     randomPosition?: boolean;
     direction?: "row" | "column" | string;

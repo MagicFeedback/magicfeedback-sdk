@@ -358,6 +358,59 @@ describe("Form.generate", () => {
         expect(consoleSpy).toHaveBeenCalled();
         consoleSpy.mockRestore();
     });
+
+    test("should not render an empty content block for INFO_PAGE with only title", async () => {
+        const questions = [
+            buildQuestion({
+                id: "11",
+                title: "Information only",
+                type: FEEDBACKAPPANSWERTYPE.INFO_PAGE,
+                ref: "info-only",
+                assets: {},
+                position: 1,
+            }),
+        ];
+
+        const form = setupForm(questions);
+        await (form as any).generateForm();
+
+        const label = container.querySelector(".magicfeedback-label");
+        const infoMessage = container.querySelector(".magicfeedback-info-message");
+
+        expect(label?.textContent).toBe("Information only");
+        expect(infoMessage).toBeNull();
+    });
+
+    test("should apply INFO_PAGE title styles from assets", async () => {
+        const questions = [
+            buildQuestion({
+                id: "12",
+                title: "Styled info title",
+                type: FEEDBACKAPPANSWERTYPE.INFO_PAGE,
+                ref: "styled-info",
+                assets: {
+                    placeholder: "<strong>Tip:</strong> Styled content",
+                    titleSize: "medium",
+                    titleAlign: "center",
+                    titleStyle: ["bold", "italic", "underline"],
+                },
+                position: 1,
+            }),
+        ];
+
+        const form = setupForm(questions);
+        await (form as any).generateForm();
+
+        const label = container.querySelector(".magicfeedback-label") as HTMLElement;
+
+        expect(label.style.getPropertyValue("font-size")).toBe("1.2rem");
+        expect(label.style.getPropertyPriority("font-size")).toBe("important");
+        expect(label.style.getPropertyValue("text-align")).toBe("center");
+        expect(label.style.getPropertyPriority("text-align")).toBe("important");
+        expect(label.style.getPropertyValue("font-style")).toBe("italic");
+        expect(label.style.getPropertyValue("font-weight")).toBe("bold");
+        expect(label.style.getPropertyValue("text-decoration")).toBe("underline");
+    });
 });
 
 /**

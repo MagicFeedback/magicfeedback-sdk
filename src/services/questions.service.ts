@@ -3,6 +3,49 @@ import {getQuestionRenderer} from "../render/registry";
 import {getUrlParam, parseTitle} from "../render/helpers";
 
 const defaultUrl = `https://survey-dev.magicfeedback.io/assets/emojis`;
+const titleSizeMap: Record<string, string> = {
+    small: "1rem",
+    medium: "1.2rem",
+    large: "1.5rem",
+};
+
+function normalizeStyleTokens(value?: string | string[]): string[] {
+    if (Array.isArray(value)) return value;
+    return value ? [value] : [];
+}
+
+function resolveTitleSize(size?: string): string | undefined {
+    if (!size) return undefined;
+    return titleSizeMap[size] || size;
+}
+
+function applyInfoPageTitleStyles(label: HTMLElement, question: NativeQuestion): void {
+    if (question.type !== "INFO_PAGE") return;
+
+    const {assets} = question;
+    const titleSize = resolveTitleSize(assets?.titleSize);
+    const titleStyle = normalizeStyleTokens(assets?.titleStyle);
+
+    if (titleSize) {
+        label.style.setProperty("font-size", titleSize, "important");
+    }
+
+    if (assets?.titleAlign) {
+        label.style.setProperty("width", "100%", "important");
+        label.style.setProperty("align-self", "stretch", "important");
+        label.style.setProperty("text-align", assets.titleAlign, "important");
+    }
+
+    if (titleStyle.includes("italic")) {
+        label.style.setProperty("font-style", "italic", "important");
+    }
+    if (titleStyle.includes("bold")) {
+        label.style.setProperty("font-weight", "bold", "important");
+    }
+    if (titleStyle.includes("underline")) {
+        label.style.setProperty("text-decoration", "underline", "important");
+    }
+}
 
 export function renderQuestions(
     appQuestions: NativeQuestion[],
@@ -129,6 +172,7 @@ function renderContainer(
     label.setAttribute("for", `magicfeedback-${id}`);
     label.textContent = parseTitle(title, language);
     label.classList.add("magicfeedback-label");
+    applyInfoPageTitleStyles(label, question);
 
     const subLabel = document.createElement("label");
     subLabel.textContent = parseTitle(assets?.subtitle, language);
