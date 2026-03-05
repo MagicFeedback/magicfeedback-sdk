@@ -351,8 +351,8 @@ export class Form {
                 });
             }
 
-            // init time to complete in seconds
-            this.timeToCompleted = new Date().getTime() / 1000;
+            // init time to complete in milliseconds
+            this.timeToCompleted = Date.now();
 
             // Send the data to manage loadings and progress
             if (this.formOptionsConfig.onLoadedEvent) {
@@ -831,7 +831,7 @@ export class Form {
 
     public async finish() {
         this.completed = true;
-        this.timeToCompleted = new Date().getTime() - this.timeToCompleted;
+        this.timeToCompleted = Date.now() - this.timeToCompleted;
         this.feedback.metadata.push({key: "time-to-complete", value: [this.timeToCompleted.toString()]});
         if (this.formOptionsConfig.addSuccessScreen) {
             const container = document.getElementById("magicfeedback-container-" + this.appId) as HTMLElement;
