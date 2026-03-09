@@ -1,515 +1,400 @@
-# MagicFeedbackAI SDK
+# MagicFeedback SDK
 
-This JavaScript library empowers you to effortlessly integrate the power
-of [MagicFeedback.io](https://magicfeedback.io/) into your web applications. With minimal code, you can capture valuable
-user feedback and insights, driving continuous improvement and enhancing user experience.
+Browser SDK for rendering MagicFeedback surveys/forms, resuming sessions, previewing question definitions, and sending feedback directly from your app.
 
-## Table of Contents
+## What this SDK covers
 
-* [Install](#install)
-* [Init](#init)
-* [How to use](#how-to-use)
-* [Style](#style)
+- Render a hosted MagicFeedback form with `appId` + `publicKey`
+- Resume an existing survey flow with `sessionId`
+- Submit feedback directly when you already own the UI
+- Preview one or more question objects locally
+- Use the bundled default theme or override CSS variables
+
+## Important before you start
+
+- This is a browser-oriented SDK. It relies on `window`, `document`, `navigator`, and `localStorage`.
+- Use it on the client side only. Server-side rendering and Node-only execution are not supported.
+- Call `magicfeedback.init()` before `form()`, `session()`, or `send()`. `init()` sets the API base URL.
+- `form.generate()` expects a DOM element id such as `"survey-root"`, not a CSS selector such as `"#survey-root"`.
 
 ## Install
 
-This library is available as a [package on NPM](https://www.npmjs.com/package/@magicfeedback/native). To install into a
-project using NPM with a front-end packager such as [Browserify](http://browserify.org/)
-or [Webpack](https://webpack.github.io/):
+Install from [npm](https://www.npmjs.com/package/@magicfeedback/native):
 
 ```sh
-npm i @magicfeedback/native
+npm install @magicfeedback/native
 ```
 
-You can then require the lib like a standard Node.js module:
+## Quick start
 
-```js
-var magicfeedback = require("@magicfeedback/native");
-
-// or
-
-import magicfeedback from "@magicfeedback/native";
-
-```
-
-## Init
-
-This method is optional. You can start actived the debug mode to see on console the messages
-
-```js
-magicfeedback.init({
-    debug: true | false, // Default false
-    env: "prod" // Default 
-})
-
-```
-
-## How to use
-
-This guide provides instructions for utilizing various features and functionalities of the application. Each section
-below highlights a specific use case and provides a code snippet to demonstrate its implementation.
-
-### A. Generate feedback forms
-
-The feedback form generation functionality allows you to easily create and display feedback forms on your website. This
-section provides an overview of how to use this feature and the necessary code snippets.
-
-To generate a feedback form, you need to include the following HTML code snippet in your web page:
+### Plain HTML
 
 ```html
+<link
+  rel="stylesheet"
+  href="./node_modules/@magicfeedback/native/dist/styles/magicfeedback-default.css"
+/>
 
-<div id="demo_form_div"></div>
+<div id="survey-root"></div>
+
+<script src="./node_modules/@magicfeedback/native/dist/magicfeedback-sdk.browser.js"></script>
+<script>
+  window.magicfeedback.init({
+    env: "prod",
+    debug: false
+  });
+
+  const form = window.magicfeedback.form("APP_ID", "PUBLIC_KEY");
+
+  form.generate("survey-root", {
+    addButton: true,
+    addSuccessScreen: true
+  });
+</script>
 ```
 
-This code snippet creates a placeholder element with the ID "demo_form_div" where the feedback form will be inserted.
+### Vite / Webpack / SPA
 
-Next, you need to include the following JavaScript code snippet in your application:
+```ts
+import magicfeedback from "@magicfeedback/native";
+import "@magicfeedback/native/dist/styles/magicfeedback-default.css";
 
-```js
-let form = window.magicfeedback.form(
-    "$_APP_ID",
-    "$_PUBLIC_KEY"
-);
-// or 
-let form = window.magicfeedback.session(
-    "$_SESSION_ID",
-);
+magicfeedback.init({
+  env: "prod"
+});
 
-form.generate(
-    "demo_form_div",
-    {
-        addButton: true | false, // Default false, option to add a button to send the form
-        sendButtonText: string, // Default "Send", option to change the text of the send button
-        backButtonText: string, // Default "Back", option to change the text of the back button
-        nextButtonText: string, // Default "Next", option to change the text of the next button
-        addSuccessScreen: boolean, // Default flase, option to add a success screen after send the form
-        successMessage: string, // Default "Thank you for your feedback!", option to change the success message
-        questionFormat: "standard" | "slim", // Default "standard", option to change the format of the questions.
-        getMetaData: boolean, // Default true, option to get the metadata of the form  
-        beforeSubmitEvent: ({
-                              loading: boolean,
-                              progress: number,
-                              total: number
-                            }) => {
-        }, //Function to execute before send the form
-        afterSubmitEvent: ({
-                             loading: boolean,
-                             progress: number,
-                             total: number,
-                             response: string, // Response of the server if everything is ok
-                             error: string, // Error of the server if something is wrong
-                           }) => {
-        }, //Function to execute after send the form with the response
-        onLoadedEvent: ({
-                            loading: boolean,
-                            progress: number,
-                            total: number,
-                            formData: FormData
-                        }) => {
-        }, //Function to execute after load the form
-        onBackEvent: ({
-                            loading: boolean,
-                            progress: number,
-                            followup: boolean,
-                            error: string, // Error of the server if something is wrong
-                        }) => {
-        } //Function to execute after back the form
-        /*
-        class FormData {
-            id: string;
-            name: string;        
-            description: string;        
-            type: string;       
-            identity: string;        
-            status: string;       
-            createdAt: Date;        
-            updatedAt: Date;        
-            externalId?: string | null;       
-            companyId: string;        
-            productId: string;       
-            userId: string;        
-            setting: Record<string, any>;        
-            conf: Record<string, any>; 
-      */
-    }
-)
+const form = magicfeedback.form("APP_ID", "PUBLIC_KEY");
+
+await form.generate("survey-root", {
+  addButton: true,
+  addSuccessScreen: true
+});
 ```
 
-In this code snippet, you need to replace $_APP_ID with the actual ID of your feedback application. This ID is provided
-by the magicfeedback service.
-
-The **form.generate()** function generates the feedback form inside the specified container element ("demo_form_div" in
-this example). You can customize the form generation by including the optional parameters:
-
-* **addButton**: This setting determines whether to include a "Submit" button that enables users to submit the form
-  themselves. By default, this value is set to false, indicating that the button will not be displayed.
-* **beforeSubmitEvent**: An optional function that you can define to execute some actions or validations before the form
-  is submitted.
-* **afterSubmitEvent**: An optional function that you can define to execute actions after the form is submitted. This
-  function receives the server response as a parameter.
-* **onLoadedEvent**: An optional function that you can define to execute actions after the form is loaded.
-
-In teh case that you don't want to use the buttons of the sdk to manage the send and back actions, you can use the
-following functions to manage the form.
-
-```js 
-form.send() // Get the answers in the form to send and go to the next question or finish.
-
-form.back() // Go to the previous question.
+```html
+<div id="survey-root"></div>
 ```
 
-If you would like to include additional information with your feedback, you can do so by adding it to the `metadata`
-, `metrics` o `profile` variables. These variables are optional and should be formatted as follows:
+## Initialization
 
-```js
-[
-  {
-    "key": "key_1",
-    "value": "value_1"
+`init()` should be called once before any networked usage.
+
+```ts
+magicfeedback.init({
+  env: "prod",
+  debug: false,
+  dryRun: false
+});
+```
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `env` | `"prod" \| "dev"` | `"prod"` | Selects the production or development API host. |
+| `debug` | `boolean` | `false` | Enables console logging. |
+| `dryRun` | `boolean` | `false` | Loads and navigates forms without sending feedback or requesting follow-up questions. |
+
+`dryRun` is the safest way to QA a survey before giving it to a client.
+
+## Render a form
+
+Create a form instance with an app id and public key:
+
+```ts
+const form = magicfeedback.form("APP_ID", "PUBLIC_KEY");
+```
+
+Then render it into a container:
+
+```ts
+await form.generate("survey-root", {
+  addButton: true,
+  sendButtonText: "Send",
+  backButtonText: "Back",
+  nextButtonText: "Next",
+  startButtonText: "Start",
+  addSuccessScreen: true,
+  successMessage: "Thank you for your feedback!",
+  questionFormat: "standard",
+  getMetaData: true,
+  customMetaData: [
+    { key: "customer-id", value: ["acme-42"] },
+    { key: "plan", value: ["enterprise"] }
+  ],
+  onLoadedEvent: ({ formData, progress, total, error }) => {
+    console.log("loaded", { formData, progress, total, error });
   },
-  {
-    "key": "key_2",
-    "value": "value_2"
+  beforeSubmitEvent: ({ progress, total }) => {
+    console.log("before submit", { progress, total });
   },
-  /* ... */
-]
+  afterSubmitEvent: ({ response, progress, total, completed, followup, error }) => {
+    console.log("after submit", {
+      response,
+      progress,
+      total,
+      completed,
+      followup,
+      error
+    });
+  },
+  onBackEvent: ({ progress, followup, error }) => {
+    console.log("back", { progress, followup, error });
+  }
+});
 ```
 
-Here is an example of how to submit feedback with additional information:
+### `generate()` options used by the current runtime
 
-```js
-form.send(
-    metadata, //{key:string, value:string[]}[] OPTIONAL
-    metrics, //{key:string, value:string[]}[] OPTIONAL
-    profile, //{key:string, value:string[]}[] OPTIONAL
-)
+| Option | Default | Description |
+| --- | --- | --- |
+| `addButton` | `true` | Renders the built-in action buttons. |
+| `sendButtonText` | `"Send"` | Label for the final submit button. |
+| `backButtonText` | `"Back"` | Label for the back button. |
+| `nextButtonText` | `"Next"` | Label for the next button in multi-step flows. |
+| `startButtonText` | `"Go!"` | Label for the start button when the form has a backend start message. |
+| `addSuccessScreen` | `true` | Shows the built-in success view when the flow finishes. |
+| `successMessage` | `"Thank you for your feedback!"` | Custom success text. |
+| `questionFormat` | `"standard"` | `"standard"` or `"slim"`. |
+| `getMetaData` | `true` | Appends browser and page metadata automatically. |
+| `customMetaData` | `[]` | Extra metadata merged into `feedback.metadata` when `getMetaData` is enabled. |
+| `onLoadedEvent` | `undefined` | Called after the form or start screen is ready. |
+| `beforeSubmitEvent` | `undefined` | Called before a page is submitted. |
+| `afterSubmitEvent` | `undefined` | Called after a page submit, follow-up render, or final completion. |
+| `onBackEvent` | `undefined` | Called after navigating back. |
+
+When `getMetaData` is enabled, the SDK includes the current URL, origin, pathname, query string, user agent, browser language, platform, app metadata, screen size, and the session id when rendering from `session()`.
+
+## Resume an existing session
+
+If you already have a MagicFeedback session id, render it directly:
+
+```ts
+magicfeedback.init({ env: "prod" });
+
+const form = magicfeedback.session("SESSION_ID");
+await form.generate("survey-root", {
+  addButton: true
+});
 ```
 
-This function triggers the submission of the generated feedback form.
+## Manual navigation
 
-![](./public/A_form.png)
+If you want to control your own buttons, disable the built-in actions and call `send()` / `back()` yourself.
 
-By following these steps and including the appropriate HTML and JavaScript code snippets, you can easily generate and
-display feedback forms on your website using the magicfeedback service.
+```ts
+const form = magicfeedback.form("APP_ID", "PUBLIC_KEY");
 
-### B. Send feedback directly
+await form.generate("survey-root", {
+  addButton: false
+});
 
-With this option you can send feedback directly without generate a form. This section provides an overview of how to use
-this feature and the necessary code snippets.
+document.getElementById("next-btn")?.addEventListener("click", () => {
+  form.send(
+    [{ key: "source", value: ["pricing-page"] }],
+    [{ key: "account-score", value: ["92"] }],
+    [{ key: "customer-email", value: ["user@example.com"] }]
+  );
+});
 
-To send feedback directly, you need to include the following JavaScript code snippet in your application:
-
-```js 
-window.magicfeedback.send(
-    "$_APP_ID",
-    "$_PUBLIC_KEY",
-    feedbackData,
-    completed, // Default true
-    "$_ID", // Optional
-    "$_PRIVATE_KEY", // Optional
-)
+document.getElementById("back-btn")?.addEventListener("click", () => {
+  form.back();
+});
 ```
 
-In this code snippet, you need to replace $_APP_ID with the actual ID of your feedback application and the $_PUBLIC_KEY
-with the public key of your feedback application. This ID and key is provided by the magicfeedback service.
+`form.send()` accepts arguments in this order:
 
-###### FeedbackData
+1. `metadata`
+2. `metrics`
+3. `profile`
 
-Then, you can include the feedback data in an object with the following structure:
+Each item should follow the same shape:
 
-```js
-    {
-    text: "string", /* Optional */
+```ts
+{ key: "some-key", value: ["some-value"] }
+```
+
+## Send feedback directly
+
+Use `magicfeedback.send()` when you do not want the SDK to render any UI.
+
+```ts
+await magicfeedback.send(
+  "APP_ID",
+  "PUBLIC_KEY",
+  {
+    text: "",
     answers: [
-      {
-          key: 'string',
-          value: ["string"]
-      },
+      { key: "nps", value: ["9"] },
+      { key: "favorite-feature", value: ["Conditional logic"] }
     ],
     metadata: [
-      {
-          key: 'string',
-          value: "string"
-      },
+      { key: "source", value: ["pricing-page"] }
     ],
     metrics: [
-      {
-          key: 'string',
-          value: "string"
-      },
+      { key: "plan", value: ["pro"] }
     ],
     profile: [
-      {
-          key: 'string',
-          value: "string"
-      },
+      { key: "email", value: ["user@example.com"] }
     ]
-}
+  },
+  true
+);
 ```
 
-* **key**: This setting determines the key of the feedback data.
-* **value**: This setting determines the value of the feedback data.
+Signature:
 
-Not all the fields are required. You can send only the fields that you need. But you need to send one of that minimal.
+```ts
+magicfeedback.send(
+  appId,
+  publicKey,
+  feedback,
+  completed = true,
+  id?,
+  privateKey?
+);
+```
 
-Finally, to send the feedback, you can use the magicfeedback.send() function.
+## Preview a question locally
 
-## Style
+`previewQuestion()` renders one question or an array of questions without changing the internal flow state.
 
-This section provides the CSS code you can use to customize the appearance of your Magicfeedback form. By applying these
-styles to the corresponding classes in your HTML, you can control the layout, colors, fonts, and other visual aspects of
-your feedback form.
+```ts
+const previewForm = magicfeedback.form("demo", "demo");
 
-Feel free to adapt and expand upon the provided styles to match your desired design and branding.
+previewForm.previewQuestion("preview-root", {
+  id: "q_text",
+  title: "What is your name?",
+  type: "TEXT",
+  questionType: { conf: [] },
+  ref: "name",
+  require: true,
+  external_id: "",
+  value: [],
+  defaultValue: "",
+  followup: false,
+  position: 1,
+  assets: {
+    placeholder: "Type your name",
+    subtitle: "Used only for preview"
+  },
+  refMetric: "",
+  integrationId: "demo",
+  integrationPageId: "demo"
+}, {
+  format: "standard",
+  language: "en",
+  product: { customIcons: false },
+  clearContainer: true,
+  wrap: true
+});
+```
+
+This is useful for QA, local demos, and visual regression checks.
+
+## Supported rendered question types
+
+The renderer currently supports these question types:
+
+- `TEXT`
+- `LONGTEXT`
+- `NUMBER`
+- `RADIO`
+- `MULTIPLECHOICE`
+- `SELECT`
+- `DATE`
+- `EMAIL`
+- `PASSWORD`
+- `BOOLEAN`
+- `CONSENT`
+- `RATING_STAR`
+- `RATING_EMOJI`
+- `RATING_NUMBER`
+- `MULTIPLECHOISE_IMAGE`
+- `MULTI_QUESTION_MATRIX`
+- `POINT_SYSTEM`
+- `PRIORITY_LIST`
+- `INFO_PAGE`
+- `UPLOAD_FILE`
+- `UPLOAD_IMAGE`
+
+For the output payload generated by `Form.answer()`, see [docs/answer-format.md](docs/answer-format.md). That document describes payload serialization, while the list above reflects the question types currently rendered by the browser UI.
+
+Important payload notes:
+
+- `EMAIL` answers are also copied into `feedback.profile` as `email`.
+- `POINT_SYSTEM` answers are serialized as values such as `"Quality:60%"`.
+- `MULTI_QUESTION_MATRIX` answers are grouped into a single JSON string entry.
+- Required `MULTI_QUESTION_MATRIX` questions must have an answer in every row before the SDK allows submission.
+- `INFO_PAGE`, `UPLOAD_FILE`, and `UPLOAD_IMAGE` render in the UI but do not currently create answer entries.
+
+## Styling
+
+Import the bundled stylesheet:
+
+```ts
+import "@magicfeedback/native/dist/styles/magicfeedback-default.css";
+```
+
+Or with plain HTML:
+
+```html
+<link
+  rel="stylesheet"
+  href="./node_modules/@magicfeedback/native/dist/styles/magicfeedback-default.css"
+/>
+```
+
+You can override the main CSS variables without modifying the distributed file:
 
 ```css
-/* Overall container for the feedback form */
-.magicfeedback-container {
-  /* ... add your container styles here ... */
-}
+:root {
+  --mf-primary: #0f766e;
+  --mf-primary-hover: #115e59;
+  --mf-primary-light: #ccfbf1;
 
-/* Main form element */
-.magicfeedback-form {
-  /* ... add your form styles here ... */
-}
+  --mf-text-primary: #0f172a;
+  --mf-text-secondary: #475569;
 
-/* Section for questions */
-.magicfeedback-questions {
-  /* ... add your questions section styles here ... */
-}
+  --mf-bg-primary: #ffffff;
+  --mf-bg-secondary: #f8fafc;
 
-/* Section for div */
-.magicfeedback-div {
-  /* ... add your generic div styles here ... */
-}
+  --mf-border: #cbd5e1;
+  --mf-border-focus: #0f766e;
 
-/* Generic styles for various input elements */
-.magicfeedback-label,
-.magicfeedback-input,
-.magicfeedback-contact,
-.magicfeedback-password,
-.magicfeedback-email,
-.magicfeedback-boolean,
-.magicfeedback-consent,
-.magicfeedback-date,
-.magicfeedback-select,
-.magicfeedback-radio,
-.magicfeedback-checkbox,
-.magicfeedback-rating,
-.magicfeedback-rating-container,
-.magicfeedback-rating-option,
-.magicfeedback-rating-option-label-container,
-.magicfeedback-number,
-.magicfeedback-longtext,
-.magicfeedback-text,
-.magicfeedback-priority-list{
-  /* ... add your generic input styles here ... */
-}
-
-.magicfeedback-skip-container {
-  /* ... add your skip container styles here ... */
-}
-
-.magicfeedback-skip{
-    /* ... add your skip button styles here ... */
-}
-
-.magicfeedback-image {
-  /* ... add your image styles here ... */
-}
-
-/* Specific styles for individual input types */
-.magicfeedback-radio-container,
-.magicfeedback-boolean-container,
-.magicfeedback-consent-container,
-.magicfeedback-checkbox-container,
-.magicfeedback-longtext-container,
-.magicfeedback-priority-list-container{
-  /* ... add styles for radio/checkbox containers ... */
-}
-
-.magicfeedback-rating-placeholder {
-  /* ... add your rating placeholder styles here ... */
-}
-
-.magicfeedback-rating-placeholder-min {
-  /* ... add your rating placeholder min styles here ... */
-}
-
-.magicfeedback-rating-placeholder-max {
-  /* ... add your rating placeholder max styles here ... */
-}
-
-.magicfeedback-rating-image1,
-.magicfeedback-rating-image2,
-.magicfeedback-rating-image3,
-.magicfeedback-rating-image4,
-.magicfeedback-rating-image5,
-.magicfeedback-rating-image6,
-.magicfeedback-rating-image7,
-.magicfeedback-rating-image8,
-.magicfeedback-rating-image9,
-.magicfeedback-rating-image10,
-.magicfeedback-rating-image-extra {
-  /* ... add styles for rating images ... */
-}
-
-/* Section for number rating */
-.magicfeedback-rating-number-container {
-  /* ... add your number rating container styles here ... */
-}
-
-.magicfeedback-rating-number-placeholder {
-  /* ... add your number rating placeholder styles here ... */
-}
-
-.magicfeedback-rating-number-placeholder-min {
-  /* ... add your number rating placeholder min styles here ... */
-}
-
-.magicfeedback-rating-number-placeholder-max {
-  /* ... add your number rating placeholder max styles here ... */
-}
-
-.magicfeedback-rating-number-option {
-  /* ... add your number rating option styles here ... */
-}
-
-.magicfeedback-rating-number-option-label-container {
-  /* ... add your number rating option label container styles here ... */
-}
-
-
-/* Section for star rating */
-.magicfeedback-rating-star {
-  /* ... add your star rating container styles here ... */
-}
-
-.magicfeedback-rating-star-container {
-  /* ... add your star rating styles here ... */
-}
-
-.magicfeedback-rating-star-option {
-  /* ... add your star rating option styles here ... */
-}
-
-.magicfeedback-rating-star-selected {
-  /* ... add your star rating selected styles here ... */
-}
-
-/* Section for multiple choice image */
-.magicfeedback-multiple-choice-image {
-  /* ... add your multiple choice image container styles here ... */
-}
-
-.magicfeedback-multiple-choice-image-container {
-  /* ... add your multiple choice image styles here ... */
-}
-
-.magicfeedback-multiple-choice-image-option {
-  /* ... add your multiple choice image option styles here ... */
-}
-
-.magicfeedback-image-option-label-container {
-  /* ... add your multiple choice image option label container styles here ... */
-}
-
-.magicfeedback-multiple-choice-image-label {
-  /* ... add your multiple choice image label styles here ... */
-}
-
-.magicfeedback-multiple-choice-image-input {
-  /* ... add your multiple choice image input styles here ... */
-}
-
-.magicfeedback-multiple-choice-image-image {
-  /* ... add your multiple choice image image styles here ... */
-}
-
-/* Section for priority-list */
-.magicfeedback-priority-list-container {
-  /* ... add your priority list container styles here ... */
-}
-.magicfeedback-priority-list-list {
-  /* ... add your priority list list styles here ... */
-}
-.magicfeedback-priority-list-item{
-    /* ... add your priority list item styles here ... */
-}
-.magicfeedback-priority-list-item-label{
-    /* ... add your priority list item label styles here ... */
-}
-.magicfeedback-priority-list-arrow-up,
-.magicfeedback-priority-list-arrow-down{
-      /* ... add your priority list arrow up styles here ... */
-    
-}
-/* Action buttons container */
-.magicfeedback-action-container {
-  /* ... add your action button container styles here ... */
-}
-
-/* Submit button */
-.magicfeedback-submit {
-  /* ... add your submit button styles here ... */
-}
-
-/* Back button */
-.magicfeedback-back {
-  /* ... add your back button styles here ... */
-}
-
-/* Start message */
-.magicfeedback-start-message-container {
-  /* ... add your start message container styles here ... */
-}
-
-.magicfeedback-start-message {
-  /* ... add your start message styles here ... */
-}
-
-.magicfeedback-start-message-button {
-  /* ... add your start message button styles here ... */
-}
-
-.magicfeedback-info-page {
-  /* ... add your info page styles here ... */
-}
-
-.magicfeedback-info-message{
-  /* ... add your info message styles here ... */ 
-}
-
-/* Success message (if applicable) */
-.magicfeedback-success {
-  /* ... add your success message styles here ... */
+  --mf-radius-md: 0.5rem;
+  --mf-shadow-md: 0 10px 20px rgba(15, 23, 42, 0.08);
 }
 ```
 
-## Collected Metadata
+For deeper customization, inspect `dist/styles/magicfeedback-default.css` and override the generated classes from your own stylesheet.
 
-### Browser Metadata (navigator object):
+## QA and staging
 
-* **navigator-url (Browser URL)**: This captures the full URL, including any query parameters, using window.location.href.
-* **navigator-origin (Browser Origin)**: This retrieves the origin portion of the URL (protocol, host, and port) using
-window.location.origin.
-* **navigator-pathname (Browser Pathname)**: This extracts the path component of the URL using window.location.pathname.
-* **navigator-search (Browser Search Parameters): This captures the query string (search parameters) from the URL using
-window.location.search.
-* **navigator-user (User Agent)**: This retrieves a string identifying the browser and its version using navigator.userAgent.
+Recommended setup for client review:
 
-* **navigator-language (Browser Language)**: This captures the user's preferred language setting from the browser using
-navigator.language.
-* **navigator-platform (Browser Platform)**: This retrieves the operating system platform the browser is running on using
-navigator.platform.
-* **navigator-appVersion (Browser Application Version)**: This captures the browser application version using
-navigator.appVersion. 
-* **navigator-appName (Browser Application Name)**: This retrieves the name of the browser application using
-navigator.appName. 
-* **navigator-product (Browser Product)**: This captures the name of the browser's rendering engine using navigator.product.
+```ts
+magicfeedback.init({
+  env: "dev",
+  debug: true,
+  dryRun: true
+});
+```
 
+This combination lets you load the survey, navigate questions, and inspect callbacks without creating real feedback records.
 
-### Screen Metadata (screen object):
+## Examples in this repository
 
-* **screen-width (Screen Width)**: This retrieves the width of the user's screen in pixels using window.screen.width.
-* **screen-height (Screen Height)**: This captures the height of the user's screen in pixels using window.screen.height.
+- `examples/frontend/browser.html` - minimal browser integration
+- `examples/frontend/browser_static.html` - live form plus local previews for all supported question types
+- `examples/frontend/form.html` - embed the SDK inside an existing page layout
+- `examples/frontend/embedded_in_form.html` - combine static inputs with SDK-managed questions
+- `docs/answer-format.md` - exact payload format produced by `Form.answer()`
+
+## Troubleshooting
+
+If the form does not load:
+
+- Confirm that `magicfeedback.init()` has been called.
+- Confirm that the container id passed to `generate()` exists in the DOM.
+- Check that you are using the correct `APP_ID`, `PUBLIC_KEY`, or `SESSION_ID`.
+- Turn on `debug: true` to inspect SDK logs.
+- Use `dryRun: true` when validating the flow before production rollout.

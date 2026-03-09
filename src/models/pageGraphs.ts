@@ -19,11 +19,14 @@ export class PageGraph {
     private buildGraph(pages: Page[]) {
         pages.forEach((page) => {
             // Sort by created date and then by type of transition (logical first)
-            if (page.integrationPageRoutes) page.integrationPageRoutes = page.integrationPageRoutes?.sort(
-                (a, b) =>
-                    (new Date(a?.generatedAt || '').getTime() - new Date(b?.generatedAt || '').getTime() || 0) &&
-                    (a.typeCondition === 'DIRECT' ? 1 : -1)
-            ) || [];
+            if (page.integrationPageRoutes) page.integrationPageRoutes = page.integrationPageRoutes?.sort((a, b) => {
+                const aTime = new Date(a?.generatedAt || 0).getTime();
+                const bTime = new Date(b?.generatedAt || 0).getTime();
+                if (aTime !== bTime) return aTime - bTime;
+                if (a.typeCondition === 'DIRECT' && b.typeCondition !== 'DIRECT') return 1;
+                if (a.typeCondition !== 'DIRECT' && b.typeCondition === 'DIRECT') return -1;
+                return 0;
+            }) || [];
 
             const node: PageNode = new PageNode(
                 page.id,
@@ -47,6 +50,11 @@ export class PageGraph {
      */
     getNextEdgeByDefault(node: PageNode): string | undefined {
         if (!node) return undefined;
+
+        const direct = node.edges.find((e) => e.typeCondition === ConditionType.DIRECT);
+        if (direct && [TransitionType.FINISH, TransitionType.REDIRECT].includes(direct.transition as TransitionType)) return undefined;
+        if (direct && direct.transitionDestiny) return direct.transitionDestiny;
+
         for (const n of this.nodes.values()) {
             if (n.position === (node.position + 1)) return n.id;
         }
@@ -106,6 +114,9 @@ export class PageGraph {
 
             // Normalizar edge.value a array
             const edgeVals = Array.isArray(edge.value) ? edge.value : [edge.value];
+
+            console.log('Evaluating edge:', edgeVals);
+            console.log('Evaluating value:', answerValue);
 
             switch (edge.typeOperator) {
                 case OperatorType.EQUAL:
@@ -202,11 +213,11 @@ export class PageGraph {
 
         // Start DFS from the first node
         const visited: Set<PageNode> = new Set()
-        const haveFollowup = !!n.questions.find(q => q.followup);
+        // const haveFollowup = !!n.questions.find(q => q.followup);
 
         //console.log(this.nodes);
         // If the first node have followup questions, the depth is 2
-        let max_depth: number = haveFollowup ? 2 : 1;
+        let max_depth: number = 1; // haveFollowup ? 2 : 1;
         max_depth = Math.max(max_depth, this.DFSUtil(n, visited, max_depth))
 
         return max_depth
@@ -249,8 +260,8 @@ export class PageGraph {
             const node = this.getNodeById(neighbour.transitionDestiny);
 
             if (node && !visited.has(node)) {
-                const haveFollowup = !!node.questions.find(q => q.followup);
-                const new_depth = haveFollowup ? depth + 2 : depth + 1;
+                // const haveFollowup = !!node.questions.find(q => q.followup);
+                const new_depth = depth + 1; // haveFollowup ? depth + 2 : depth + 1;
                 // Make a copy of the visited set to only for this branch
                 const visitedBranch = new Set(visited);
                 const dfs = this.DFSUtil(node, visitedBranch, new_depth);

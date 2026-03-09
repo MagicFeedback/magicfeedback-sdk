@@ -9,67 +9,107 @@
 
     <title>MagicFeedbackAI for Bootstrap</title>
 
-    <!-- Bootstrap core CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-
-    <!-- Custom styles for this template -->
-    <link href="../assets/cover.css" rel="stylesheet"/>
-    <link href="../../public/style.css" rel="stylesheet"/>
+    <!-- MagicFeedback default styles -->
+    <link rel="stylesheet" href="../../dist/styles/magicfeedback-default.css"/>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #f8fafc;
+            font-family: "Nunito", "Quicksand", "Avenir Next", "Trebuchet MS", sans-serif;
+            color: #1e293b;
+        }
+        .page-shell {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+        .demo-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .demo-tab {
+            border: 2px solid #e2e8f0;
+            background: #fff;
+            border-radius: 9999px;
+            padding: 8px 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .demo-tab.active {
+            border-color: #1e293b;
+            background: #1e293b;
+            color: #fff;
+        }
+        .demo-panel {
+            display: none;
+        }
+        .demo-panel.active {
+            display: block;
+        }
+        .demo-card {
+            margin-top: 16px;
+            text-align: left;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        }
+        .demo-section-title {
+            font-size: 12px;
+            color: #64748b;
+            margin: 8px 0 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .demo-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .magicfeedback-preview-question {
+            padding: 8px;
+        }
+    </style>
 </head>
 
 <!-- BODY -->
-<body class="text-center">
+<body>
+<div class="page-shell">
+    <div class="demo-tabs">
+        <button class="demo-tab active" data-tab="live">Live Demo</button>
+        <button class="demo-tab" data-tab="examples">Examples</button>
+    </div>
 
-<div class="cover-container d-flex h-100 p-3 mx-auto flex-column">
-    <!-- HEADER -->
-    <header class="masthead">
-        <div class="inner">
-            <nav class="nav nav-masthead justify-content-center">
-                <!-- LOGO -->
-                <img src="../assets/logo-dark-long.png" alt="MagicFeedbackAI" width="250px" height="auto">
-            </nav>
+    <div class="demo-panel active" id="tab-live">
+        <div class="demo-card">
+            <div class="demo-section-title">Live Survey</div>
+            <div id="demo_form_div"></div>
         </div>
-    </header>
+    </div>
 
-    <!-- FORM -->
-    <main role="main" class="inner cover">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="card-title" id="count-questions"></h6>
-            </div>
-            <div class="breadcrumb">
-            </div>
-            <div id="demo_form_div" style="padding: 15px"></div>
+    <div class="demo-panel" id="tab-examples">
+        <div class="demo-card">
+            <div class="demo-section-title">All Question Types</div>
+            <div id="demo_preview_div" class="demo-column"></div>
         </div>
-    </main>
-    <div class="loading">
-        <div class="spin"></div>
     </div>
 </div>
-<!-- FOOTER -->
-<footer class="mastfoot mt-auto">
-    <div class="inner">
-        <p>Demo for <a href="https://magicfeedback.io/">MagicFeedback SDK</a>, by <a
-                href="https://magicfeedback.io/">@magicfeedbackAI</a>.</p>
-    </div>
-</footer>
-</body>
 <!-- JavaScript
 ================================================== -->
 <script src="../../dist/magicfeedback-sdk.browser.js"></script>
 <script>
-    const countQuestions = document.getElementById('count-questions');
     let total = 0;
     window.magicfeedback.init({
         debug: true,
-        env: "dev"
+        env: "prod"
     });
 
     // Create the form
     let form = window.magicfeedback.form(
-        "2b6902e0-67b1-11f0-9df6-e3d2638554bd",
-        "0110654ec2f9f6d1deb0535558634335"
+        "6f07a2b0-109c-11f1-b913-513a3716d05c",
+        "02b809f20e024bce47c57f123cff8735"
     );
 
     // Generate form
@@ -80,96 +120,410 @@
             sendButtonText: "Send my friend",
             beforeSubmitEvent: function (response) {
                 console.log("BEFORE")
-                document.querySelector(".loading").style.visibility = "visible";
             },
             afterSubmitEvent: function (response) {
                 console.log("AFTER", response);
                 total = response.total;
-                document.querySelector(".loading").style.visibility = "hidden";
-                countQuestions.innerHTML = `${response.progress} of ${total} answered`;
                 if (response.error) alert(response.error);
             },
             onLoadedEvent: function (response) {
                 console.log("LOADED", response);
                 total = response.total;
-                document.querySelector(".loading").style.visibility = "hidden";
-                countQuestions.innerHTML = `${response.progress} of ${total} answered`;
             },
             onBackEvent: function (response) {
                 console.log("BACK", response);
-                countQuestions.innerHTML = `${response.progress} of ${total} answered`;
             },
         }
     );
+</script>
+<script>
+    const previewContainerId = "demo_preview_div";
+    const previewQuestions = [
+        {
+            id: "q_text",
+            title: "What is your name?",
+            type: "TEXT",
+            questionType: {conf: []},
+            ref: "name",
+            require: true,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 1,
+            assets: {placeholder: "Type your name", subtitle: "This is a subtitle for the question"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo",
 
-    /*
-    magicfeedback.send(
-        'f221a0d0-8d34-11ee-81e3-81ea6836afa4',
-        '596ce70871d352da65701709248fd687',
-        [
-            {
-                "key": "email",
-                "value": [
-                    "demo@minimals.cc"
-                ]
-            },
-            {
-                "key": "exp",
-                "value": [
-                    "Good"
-                ]
-            },
-            {
-                "key": "hours",
-                "value": [
-                    "3"
-                ]
-            },
-            {
-                "key": "features",
-                "value": [
-                    "Performance and speed"
-                ]
-            },
-            {
-                "key": "features",
-                "value": [
-                    "User interface and design"
-                ]
-            },
-            {
-                "key": "features",
-                "value": [
-                    "Additional functionality or features"
-                ]
-            },
-            {
-                "key": "renew",
-                "value": [
-                    "Neutral"
-                ]
-            },
-            {
-                "key": "started",
-                "value": [
-                    "2023-12-23"
-                ]
-            },
-            {
-                "key": "compare_product",
-                "value": [
-                    "a lot of use"
-                ]
-            },
-            {
-                "key": "name",
-                "value": [
-                    "Demo a"
-                ]
-            }
-        ]
-    )
-     */
+        },
+        {
+            id: "q_longtext",
+            title: "Tell us about your experience",
+            type: "LONGTEXT",
+            questionType: {conf: []},
+            ref: "experience",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 2,
+            assets: {placeholder: "Write a few lines...", maxCharacters: 120, subtitle: "This is a subtitle for the question"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_number",
+            title: "How many hours per week?",
+            type: "NUMBER",
+            questionType: {conf: []},
+            ref: "hours",
+            require: false,
+            external_id: "",
+            value: ["0", "40"],
+            defaultValue: "",
+            followup: false,
+            position: 3,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_radio",
+            title: "Pick one option",
+            type: "RADIO",
+            questionType: {conf: []},
+            ref: "radio",
+            require: true,
+            external_id: "",
+            value: ["Option A", "Option B", "Option C"],
+            defaultValue: "",
+            followup: false,
+            position: 4,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_multi",
+            title: "Select all that apply",
+            type: "MULTIPLECHOICE",
+            questionType: {conf: []},
+            ref: "multi",
+            require: false,
+            external_id: "",
+            value: ["Speed", "Design", "Support"],
+            defaultValue: "",
+            followup: false,
+            position: 5,
+            assets: {maxOptions: 2},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_select",
+            title: "Choose a plan",
+            type: "SELECT",
+            questionType: {conf: []},
+            ref: "plan",
+            require: false,
+            external_id: "",
+            value: ["Free", "Pro", "Team"],
+            defaultValue: "Select a plan",
+            followup: false,
+            position: 6,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_boolean",
+            title: "Would you recommend us?",
+            type: "BOOLEAN",
+            questionType: {conf: []},
+            ref: "recommend",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 7,
+            assets: {addIcon: false},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_rating",
+            title: "How was it?",
+            type: "RATING_EMOJI",
+            questionType: {conf: []},
+            ref: "rating_emoji",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 8,
+            assets: {min: 1, max: 5, minPlaceholder: "Bad", maxPlaceholder: "Great"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_rating_number",
+            title: "NPS Style",
+            type: "RATING_NUMBER",
+            questionType: {conf: []},
+            ref: "rating_number",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 9,
+            assets: {min: 0, max: 10, minPlaceholder: "Not likely", maxPlaceholder: "Very likely"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_rating_star",
+            title: "Star rating",
+            type: "RATING_STAR",
+            questionType: {conf: []},
+            ref: "rating_star",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 10,
+            assets: {minPlaceholder: "Low", maxPlaceholder: "High"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_matrix",
+            title: "Matrix question",
+            type: "MULTI_QUESTION_MATRIX",
+            questionType: {conf: []},
+            ref: "matrix",
+            require: false,
+            external_id: "",
+            value: ["Poor", "Ok", "Great"],
+            defaultValue: "",
+            followup: false,
+            position: 11,
+            assets: {options: ["Speed", "Design", "Support"]},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_priority",
+            title: "Prioritize features",
+            type: "PRIORITY_LIST",
+            questionType: {conf: []},
+            ref: "priority",
+            require: false,
+            external_id: "",
+            value: ["Speed", "Design", "Support", "Price"],
+            defaultValue: "",
+            followup: false,
+            position: 12,
+            assets: {limitPriority: true, maxPriority: 3, placeholder: "Pick and order your top 3"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_point",
+            title: "Point system",
+            type: "POINT_SYSTEM",
+            questionType: {conf: []},
+            ref: "point_system",
+            require: false,
+            external_id: "",
+            value: ["Speed", "Design", "Support"],
+            defaultValue: "",
+            followup: false,
+            position: 13,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_multi_image",
+            title: "Pick an image",
+            type: "MULTIPLECHOISE_IMAGE",
+            questionType: {conf: []},
+            ref: "image_choice",
+            require: false,
+            external_id: "",
+            value: [
+                JSON.stringify({position: 1, url: "https://picsum.photos/200/200?1", value: "One"}),
+                JSON.stringify({position: 2, url: "https://picsum.photos/200/200?2", value: "Two"}),
+                JSON.stringify({position: 3, url: "https://picsum.photos/200/200?3", value: "Three"})
+            ],
+            defaultValue: "",
+            followup: false,
+            position: 14,
+            assets: {addTitle: true, multiOption: false},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_info",
+            title: "Info page",
+            type: "INFO_PAGE",
+            questionType: {conf: []},
+            ref: "info_page",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 15,
+            assets: {placeholder: "<strong>Tip:</strong> You can preview any question here."},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_date",
+            title: "Pick a date",
+            type: "DATE",
+            questionType: {conf: []},
+            ref: "date",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 16,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_email",
+            title: "Email",
+            type: "EMAIL",
+            questionType: {conf: []},
+            ref: "email",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 17,
+            assets: {placeholder: "you@example.com"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_password",
+            title: "Password",
+            type: "PASSWORD",
+            questionType: {conf: []},
+            ref: "password",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 18,
+            assets: {placeholder: "••••••••"},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_consent",
+            title: "I agree with terms",
+            type: "CONSENT",
+            questionType: {conf: []},
+            ref: "consent",
+            require: true,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 19,
+            assets: {},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_upload_image",
+            title: "Upload an image",
+            type: "UPLOAD_IMAGE",
+            questionType: {conf: []},
+            ref: "upload_image",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 20,
+            assets: {multiple: false, maxFiles: 1},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        },
+        {
+            id: "q_upload_file",
+            title: "Upload a file",
+            type: "UPLOAD_FILE",
+            questionType: {conf: []},
+            ref: "upload_file",
+            require: false,
+            external_id: "",
+            value: [],
+            defaultValue: "",
+            followup: false,
+            position: 21,
+            assets: {multiple: true, maxFiles: 2},
+            refMetric: "",
+            integrationId: "demo",
+            integrationPageId: "demo"
+        }
+    ];
+
+    const previewForm = window.magicfeedback.form("demo", "demo");
+    previewQuestions.forEach((question) => {
+        previewForm.previewQuestion(previewContainerId, question, {
+            format: "standard",
+            language: "en",
+            product: {customIcons: false},
+            clearContainer: false,
+            wrap: true
+        });
+    });
+
+    document.querySelectorAll(".demo-tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+            document.querySelectorAll(".demo-tab").forEach((t) => t.classList.remove("active"));
+            tab.classList.add("active");
+            const key = tab.getAttribute("data-tab");
+            document.querySelectorAll(".demo-panel").forEach((p) => p.classList.remove("active"));
+            const panel = document.getElementById(`tab-${key}`);
+            if (panel) panel.classList.add("active");
+        });
+    });
 </script>
 </body>
 </html>

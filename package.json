@@ -1,6 +1,6 @@
 {
   "name": "@magicfeedback/native",
-  "version": "2.1.2-alpha.3",
+  "version": "2.1.11",
   "main": "./dist/magicfeedback-sdk.node.js",
   "browser": "./dist/magicfeedback-sdk.browser.js",
   "types": "./dist/types/src/index.d.ts",
@@ -15,12 +15,14 @@
     "dev": "vite",
     "build": "webpack",
     "build:watch": "webpack --watch --mode development",
-    "publish": "npm publish --access public",
-    "publish:beta": "npm publish --access public --tag beta",
-    "publish:alpha": "npm publish --access public --tag alpha",
+    "release": "npm publish --access public",
+    "release:beta": "npm publish --access public --tag beta",
+    "release:alpha": "npm publish --access public --tag alpha",
     "test": "jest",
     "test:watch": "jest --watchAll",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "publish:sdk": "bash publish.sh",
+    "publish:sdk:dry-run": "NPM_DRY_RUN=1 bash publish.sh"
   },
   "files": [
     "dist"
@@ -31,6 +33,7 @@
     "@types/webpack": "^5.28.0",
     "@types/webpack-node-externals": "^2.5.3",
     "c8": "^7.11.0",
+    "copy-webpack-plugin": "^11.0.0",
     "jest": "^29.5.0",
     "jest-environment-jsdom": "^29.5.0",
     "jest-fetch-mock": "^3.0.3",
@@ -58,5 +61,6 @@
   "directories": {
     "example": "examples",
     "test": "test"
-  }
+  },
+  "style": "./dist/styles/magicfeedback-default.css"
 }
