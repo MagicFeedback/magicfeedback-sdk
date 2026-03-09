@@ -6,6 +6,13 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.1.11] - 2026-03-09
+- New feature: Added `dryRun` mode to validate and navigate feedback flows without sending submissions or follow-up requests.
+- New feature: Expanded answer processing for `MULTI_QUESTION_MATRIX`, `POINT_SYSTEM`, and multiple choice questions, including stricter validation for required matrix rows.
+- Improvement: Added support for custom metadata and improved `INFO_PAGE` rendering with styled titles and conditional content handling.
+- Improvement: Refactored renderers and default styles to improve modal consistency, rating placeholders, and mobile responsiveness.
+- Fix: Switched time-to-complete tracking from seconds to milliseconds for more accurate analytics.
+
 ## 🚀 [2.1.5] - 2026-01-09
 - Validation: Required Multi Question Matrix now enforces an answer for every row before allowing submission.
 - UX/DX: Clearer error messages when required questions are incomplete, preventing accidental submissions.
