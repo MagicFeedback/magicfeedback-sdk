@@ -6,6 +6,7 @@ export class Config {
 
       this.variables["env"] = 'prod';
       this.variables["debug"] = false;
+      this.variables["dryRun"] = false;
     }
 
     public get<T>(key: string): T | undefined {

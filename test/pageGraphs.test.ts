@@ -1,11 +1,11 @@
 import {beforeEach, describe, expect, test} from "@jest/globals";
-import {PageGraph} from "../src/models/pageGrafs";
+import {PageGraph} from "../src/models/pageGraphs";
 import {FEEDBACKAPPANSWERTYPE, NativeQuestion} from "../src/models/types";
 import {Page} from "../src/models/page";
 import {ConditionType, OperatorType, PageRoute, TransitionType} from "../src/models/pageRoute";
 
 
-describe('pageGrafs', () => {
+describe('pageGraphs', () => {
     let graph: PageGraph = new PageGraph([]);
 
     const defaultQuestions = (position: number, followUp: boolean): NativeQuestion => {
@@ -219,7 +219,7 @@ describe('pageGrafs', () => {
                 defaultValue: '',
                 position: 2,
                 followup: false,
-                assets: {min:'1',max:'10'},
+                assets: {min: 1, max: 10},
                 integrationId,
                 integrationPageId: 'cbc7a4b0-b646-11f0-b9c6-0becd5ece65f',
                 type: FEEDBACKAPPANSWERTYPE.RATING_NUMBER,
@@ -287,7 +287,7 @@ describe('pageGrafs', () => {
                 defaultValue: '',
                 position: 6,
                 followup: false,
-                assets: {min:'1',max:'5'},
+                assets: {min: 1, max: 5},
                 integrationId,
                 integrationPageId: 'fc4d6a50-be6d-11f0-b877-294bea1dbc24',
                 type: FEEDBACKAPPANSWERTYPE.RATING_NUMBER,

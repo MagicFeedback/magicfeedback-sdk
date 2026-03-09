@@ -3,6 +3,7 @@ export type Key = string;
 export type InitOptions = {
     env?: 'dev' | 'prod';
     debug?: boolean;
+    dryRun?: boolean;
 };
 
 export type NativeFeedbackAnswer = {
@@ -44,10 +45,102 @@ export class QuestionType{
     conf: any;
 }
 
-export type NativeQuestion = {
+export type QuestionAssetsBase = {
+    [key: string]: any;
+    placeholder?: string;
+    subtitle?: string | Record<string, string>;
+    subtitleStyle?: string | string[];
+    titleSize?: string;
+    titleAlign?: string;
+    titleStyle?: string | string[];
+    maxCharacters?: number;
+    randomPosition?: boolean;
+    direction?: "row" | "column" | string;
+    order?: "ltr" | "rtl" | string;
+    min?: number;
+    max?: number;
+    minPlaceholder?: string;
+    maxPlaceholder?: string;
+    extraOption?: boolean;
+    extraOptionText?: string;
+    extraOptionPlaceholder?: string;
+};
+
+export type QuestionAssetsByType = {
+    [FEEDBACKAPPANSWERTYPE.TEXT]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.LONGTEXT]: QuestionAssetsBase & {
+        maxCharacters?: number;
+    };
+    [FEEDBACKAPPANSWERTYPE.NUMBER]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.RADIO]: QuestionAssetsBase & {
+        exclusiveAnswers?: string[];
+        maxOptions?: number;
+        extraOption?: boolean;
+        extraOptionText?: string;
+        extraOptionPlaceholder?: string;
+    };
+    [FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE]: QuestionAssetsByType[FEEDBACKAPPANSWERTYPE.RADIO];
+    [FEEDBACKAPPANSWERTYPE.SELECT]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.DATE]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.EMAIL]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.PASSWORD]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.BOOLEAN]: QuestionAssetsBase & {
+        addIcon?: boolean;
+    };
+    [FEEDBACKAPPANSWERTYPE.CONSENT]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.RATING_EMOJI]: QuestionAssetsBase & {
+        min?: number;
+        max?: number;
+        minPlaceholder?: string;
+        maxPlaceholder?: string;
+        extraOption?: boolean;
+        extraOptionText?: string;
+    };
+    [FEEDBACKAPPANSWERTYPE.RATING_NUMBER]: QuestionAssetsBase & {
+        min?: number;
+        max?: number;
+        minPlaceholder?: string;
+        maxPlaceholder?: string;
+        numberPlaceholders?: Record<number, string>;
+        extraOption?: boolean;
+        extraOptionText?: string;
+        ariaLabel?: string;
+    };
+    [FEEDBACKAPPANSWERTYPE.RATING_STAR]: QuestionAssetsBase & {
+        minPlaceholder?: string;
+        maxPlaceholder?: string;
+    };
+    [FEEDBACKAPPANSWERTYPE.MULTIPLECHOISE_IMAGE]: QuestionAssetsBase & {
+        addTitle?: boolean;
+        multiOption?: boolean;
+        extraOption?: boolean;
+        extraOptionValue?: any[];
+    };
+    [FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX]: QuestionAssetsBase & {
+        options?: string[];
+        exclusiveAnswers?: string[];
+    };
+    [FEEDBACKAPPANSWERTYPE.PRIORITY_LIST]: QuestionAssetsBase & {
+        limitPriority?: boolean;
+        maxPriority?: number;
+    };
+    [FEEDBACKAPPANSWERTYPE.POINT_SYSTEM]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.INFO_PAGE]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.UPLOAD_FILE]: QuestionAssetsBase & {
+        multiple?: boolean;
+        maxFiles?: number;
+    };
+    [FEEDBACKAPPANSWERTYPE.UPLOAD_IMAGE]: QuestionAssetsByType[FEEDBACKAPPANSWERTYPE.UPLOAD_FILE];
+    [FEEDBACKAPPANSWERTYPE.CONTACT]: QuestionAssetsBase;
+};
+
+export type QuestionAssetsFor<T extends FEEDBACKAPPANSWERTYPE | string> =
+    T extends FEEDBACKAPPANSWERTYPE ? QuestionAssetsByType[T] & QuestionAssetsBase : QuestionAssetsBase;
+
+export type NativeQuestion<T extends FEEDBACKAPPANSWERTYPE | string = FEEDBACKAPPANSWERTYPE | string> = {
     id: string;
     title: string;
-    type: FEEDBACKAPPANSWERTYPE | string;
+    type: T;
     questionType: QuestionType;
     ref: string;
     require: boolean;
@@ -57,7 +150,7 @@ export type NativeQuestion = {
     appId?: string;
     followup: boolean;
     position: number;
-    assets: any;
+    assets: QuestionAssetsFor<T>;
     refMetric: string;
     integrationId: string;
     integrationPageId: string;

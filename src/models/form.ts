@@ -5,7 +5,7 @@ import {Log} from "../utils/log";
 import {getFollowUpQuestion, getForm, getSessionForm, sendFeedback, validateEmail} from "../services/request.service";
 import {FormData} from "./formData";
 import {renderActions, renderQuestions, renderStartMessage, renderSuccess} from "../services/questions.service";
-import {PageGraph} from "./pageGrafs";
+import {PageGraph} from "./pageGraphs";
 import {Page} from "./page";
 import {OperatorType, PageRoute, TransitionType} from "./pageRoute";
 import {History} from "./History";
@@ -351,8 +351,8 @@ export class Form {
                 });
             }
 
-            // init time to complete in seconds
-            this.timeToCompleted = new Date().getTime() / 1000;
+            // init time to complete in milliseconds
+            this.timeToCompleted = Date.now();
 
             // Send the data to manage loadings and progress
             if (this.formOptionsConfig.onLoadedEvent) {
@@ -639,6 +639,8 @@ export class Form {
 
         const inputs = form.querySelectorAll(".magicfeedback-input");
         const priorityMap: Record<string, string[]> = {};
+        const multipleChoiceMap: Record<string, string[]> = {};
+        const pointSystemMap: Record<string, string[]> = {};
 
         inputs.forEach((input) => {
             const htmlInput = input as HTMLInputElement;
@@ -656,6 +658,13 @@ export class Form {
                 htmlInput.value;
 
             if (!ans.key || ans.key === "") return;
+            if (ans.key.startsWith("extra-option-")) {
+                if (value !== "") {
+                    ans.value.push(value);
+                    surveyAnswers.push(ans);
+                }
+                return;
+            }
 
             switch (question?.type) {
                 case FEEDBACKAPPANSWERTYPE.EMAIL:
@@ -664,6 +673,7 @@ export class Form {
                 case FEEDBACKAPPANSWERTYPE.NUMBER:
                 case FEEDBACKAPPANSWERTYPE.DATE:
                 case FEEDBACKAPPANSWERTYPE.CONTACT:
+                case FEEDBACKAPPANSWERTYPE.PASSWORD:
                     if (value !== "") {
                         if (inputType === "email") {
                             if (!validateEmail(value)) {
@@ -690,9 +700,10 @@ export class Form {
                     }
                     break;
                 case FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE:
+                case FEEDBACKAPPANSWERTYPE.MULTIPLECHOISE_IMAGE:
                     if (htmlInput.checked) {
-                        ans.value.push(value);
-                        surveyAnswers.push(ans);
+                        if (!multipleChoiceMap[ans.key]) multipleChoiceMap[ans.key] = [];
+                        multipleChoiceMap[ans.key].push(value);
                     }
                     break;
                 case FEEDBACKAPPANSWERTYPE.BOOLEAN:
@@ -719,6 +730,12 @@ export class Form {
                         surveyAnswers.push(ans);
                     }
                     break;
+                case FEEDBACKAPPANSWERTYPE.POINT_SYSTEM:
+                    if (inputType === 'number' && htmlInput.id) {
+                        if (!pointSystemMap[ans.key]) pointSystemMap[ans.key] = [];
+                        if (value !== "") pointSystemMap[ans.key].push(`${htmlInput.id}:${value}%`);
+                    }
+                    break;
                 case FEEDBACKAPPANSWERTYPE.PRIORITY_LIST:
                     // Agrupar los inputs hidden del priority list bajo la misma key
                     if (inputType === 'hidden') {
@@ -741,6 +758,18 @@ export class Form {
         });
 
         if (hasError) return [];
+
+        // Agregar MULTIPLECHOICE como un único NativeAnswer por pregunta
+        Object.entries(multipleChoiceMap).forEach(([k, arr]) => {
+            if (!arr || arr.length === 0) return;
+            surveyAnswers.push({key: k, value: arr});
+        });
+
+        // Agregar POINT_SYSTEM como un único NativeAnswer
+        Object.entries(pointSystemMap).forEach(([k, arr]) => {
+            if (!arr || arr.length === 0) return;
+            surveyAnswers.push({key: k, value: arr});
+        });
 
         // Agregar PRIORITY_LIST como un único NativeAnswer ordenado por índice
         Object.entries(priorityMap).forEach(([k, arr]) => {
@@ -802,7 +831,7 @@ export class Form {
 
     public async finish() {
         this.completed = true;
-        this.timeToCompleted = new Date().getTime() - this.timeToCompleted;
+        this.timeToCompleted = Date.now() - this.timeToCompleted;
         this.feedback.metadata.push({key: "time-to-complete", value: [this.timeToCompleted.toString()]});
         if (this.formOptionsConfig.addSuccessScreen) {
             const container = document.getElementById("magicfeedback-container-" + this.appId) as HTMLElement;
@@ -876,6 +905,12 @@ export class Form {
      */
     private async pushAnswers(completed: boolean = false): Promise<string> {
         try {
+            if (this.config.get<boolean>("dryRun")) {
+                const dryRunSession = this.id || `dry-run-${this.appId}-${Date.now()}`;
+                this.log.log(`Dry run enabled: skipping feedback submit for form ${this.appId}`);
+                return dryRunSession;
+            }
+
             // Define the URL and request payload
             const url = this.config.get("url");
             const body = {
@@ -912,6 +947,11 @@ export class Form {
     private async callFollowUpQuestion(question: NativeQuestion | null): Promise<NativeQuestion | null> {
         if (!question?.followup) return null;
         try {
+            if (this.config.get<boolean>("dryRun")) {
+                this.log.log(`Dry run enabled: skipping follow up API for question ${question.ref}`);
+                return null;
+            }
+
             if (this.feedback.answers.length === 0) throw new Error("No answers provided");
 
             // Define the URL and request payload
