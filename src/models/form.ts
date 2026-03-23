@@ -279,7 +279,6 @@ export class Form {
      */
     private async generateForm() {
         try {
-            console.log('Generating form for appId:', this.appId);
             if (!this.formData || !this.formData.pages || this.formData.pages.length === 0) {
                 throw new Error("No form data");
             }
@@ -424,7 +423,6 @@ export class Form {
      */
 
     private getMetaData() {
-        console.log('Generating meta data', this.formOptionsConfig.customMetaData);
         if (this.formOptionsConfig.customMetaData) {
             this.feedback.metadata = [...this.feedback.metadata, ...this.formOptionsConfig.customMetaData];
         }
@@ -433,6 +431,16 @@ export class Form {
         this.feedback.metadata.push({key: "navigator-origin", value: [window.location.origin]});
         this.feedback.metadata.push({key: "navigator-pathname", value: [window.location.pathname]});
         this.feedback.metadata.push({key: "navigator-search", value: [window.location.search]});
+
+        // Add query params as metadata entries
+        const searchParams = new URLSearchParams(window.location.search);
+        const queryKeys = Array.from(new Set(searchParams.keys()));
+        queryKeys.forEach((key) => {
+            const values = searchParams.getAll(key);
+            if (values.length > 0) {
+                this.feedback.metadata.push({key: `query-${key}`, value: values});
+            }
+        });
 
         // Add the navigator metadata
         this.feedback.metadata.push({key: "navigator-user", value: [navigator.userAgent]});
@@ -780,7 +788,6 @@ export class Form {
 
         // --- Agrupación especial para MULTI_QUESTION_MATRIX ---
         try {
-            console.log(surveyAnswers);
             const matrixQuestions = page.questions.filter(q => q.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX);
             matrixQuestions.forEach(mq => {
                 // Respuestas individuales capturadas como ref-rowName
@@ -1074,7 +1081,6 @@ export class Form {
         //console.log(page, this.feedback.answers);
         let nextPage = this.graph.getNextPage(page, this.feedback.answers);
 
-        console.log(nextPage);
         if (!nextPage) {
             this.finish();
             return;
@@ -1089,22 +1095,22 @@ export class Form {
         });
 
         if (preconditionalRoute?.length > 0) {
-            // Look for the answer in previous PageNodes
-            let foundAnswer: any = null;
-            const allRefs = preconditionalRoute.map(route => route.questionRef);
-            // Search in the history from the most recent backwards
-            for (let i = this.history.size() - 1; i >= 0; i--) {
-                const node = this.history.get(i);
-                if (!node) continue;
-                foundAnswer = node.answers?.find((ans: NativeAnswer) => allRefs.includes(ans.key));
-                if (foundAnswer) break;
-            }
-            // If there is an answer, evaluate the condition
-            let allowToContinue = !preconditionalRoute.some(route => route.transition === TransitionType.ALLOW);
+            // Determine if there are ALLOW routes — if so, ALL must be satisfied (AND logic)
+            const hasAllowRoutes = preconditionalRoute.some(route => route.transition === TransitionType.ALLOW);
+            let allAllowMet = hasAllowRoutes; // starts true, will be set to false if any ALLOW fails
 
-            if (foundAnswer) {
-                for (const route of preconditionalRoute) {
-                    let conditionMet = false;
+            for (const route of preconditionalRoute) {
+                // FIX: Search the answer SPECIFIC to this route's questionRef, not a generic one
+                let foundAnswer: NativeAnswer | undefined;
+                for (let i = this.history.size() - 1; i >= 0; i--) {
+                    const node = this.history.get(i);
+                    if (!node) continue;
+                    foundAnswer = node.answers?.find((ans: NativeAnswer) => ans.key === route.questionRef);
+                    if (foundAnswer) break;
+                }
+
+                let conditionMet = false;
+                if (foundAnswer) {
                     const question = this.formData?.questions.find(q => q.ref === route.questionRef);
                     const answerVals = Array.isArray(foundAnswer.value) ? foundAnswer.value : [foundAnswer.value];
                     const routeVals = Array.isArray(route.value) ? route.value : [route.value];
@@ -1115,11 +1121,9 @@ export class Form {
                     } else {
                         switch (route.typeOperator) {
                             case 'EQUAL':
-                                // At least one answer value equals one expected value
                                 conditionMet = answerVals.some((v: any) => routeVals.includes(v));
                                 break;
                             case 'NOEQUAL':
-                                // None of the answer values equals any expected value
                                 conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
                                 break;
                             case 'GREATER':
@@ -1135,32 +1139,31 @@ export class Form {
                                 conditionMet = answerVals.some((v: any) => Number(v) <= Number(routeVals[0]));
                                 break;
                             case 'INQ':
-                                // Some answer value is included in route.value (array)
                                 conditionMet = answerVals.some((v: any) => routeVals.includes(v));
                                 break;
                             case 'NINQ':
-                                // No answer value is included in route.value (array)
                                 conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
                                 break;
                             default:
                                 break;
                         }
                     }
+                }
 
-                    // If condition is met, apply the transition
-                    if (conditionMet) {
-                        this.feedback.answers = []
-                        switch (route.transition) {
-                            case TransitionType.NEXT:
-                                if (nextPage) await this.renderNextQuestion(form, nextPage);
-                                return;
-                            case TransitionType.ALLOW:
-                                allowToContinue = true;
-                                break;
-                        }
+                // Apply transition logic per route
+                if (route.transition === TransitionType.ALLOW) {
+                    // FIX: AND logic — if ANY ALLOW condition fails, page is not allowed
+                    if (!conditionMet) {
+                        allAllowMet = false;
                     }
+                } else if (route.transition === TransitionType.NEXT && conditionMet) {
+                    this.feedback.answers = [];
+                    if (nextPage) await this.renderNextQuestion(form, nextPage);
+                    return;
                 }
             }
+
+            const allowToContinue = hasAllowRoutes ? allAllowMet : true;
             if (!allowToContinue) {
                 this.feedback.answers = []
                 if (nextPage) await this.renderNextQuestion(form, nextPage);

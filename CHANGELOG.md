@@ -6,6 +6,15 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.1.12] - 2026-03-20
+- **Fix:** Preconditional ALLOW routes now use AND logic — all conditions must be satisfied for a page to be shown. Previously, a single matching condition was enough (OR logic), causing pages to appear when they shouldn't (e.g. Matas survey: page 29 was incorrectly shown for users on "Club Matas appen").
+- **Fix:** Each preconditional route now looks up the answer specific to its own `questionRef` instead of reusing a single shared answer across all routes. This prevents incorrect evaluation when multiple preconditions reference different questions.
+- **Improvement:** URL query parameters are now captured individually as metadata entries (`query-<key>`), enabling better attribution and segmentation of feedback responses.
+- **Improvement:** Removed stray `console.log` statements from `form.ts` and `pageGraphs.ts` that leaked debug output into production builds.
+- **Tests:** Added comprehensive test suite for `PageGraph` methods: `getFirstPage`, `getNodeById`, `getNextEdgeByDefault`, `getNextPage` (all operators, DIRECT/LOGICAL/PRECONDITIONAL routes, branching, FINISH transitions, multiplechoice answers, edge cases).
+- **Tests:** Added `findDepth` tests and preconditional-aware depth calculation tests (Matas-like surveys).
+- **Tests:** Added dedicated `preconditional.test.ts` that reproduces the multi-ALLOW bug and validates the AND-logic fix against the old OR-logic behavior.
+
 ## 🚀 [2.1.11] - 2026-03-09
 - New feature: Added `dryRun` mode to validate and navigate feedback flows without sending submissions or follow-up requests.
 - New feature: Expanded answer processing for `MULTI_QUESTION_MATRIX`, `POINT_SYSTEM`, and multiple choice questions, including stricter validation for required matrix rows.
