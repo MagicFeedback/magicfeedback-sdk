@@ -50,8 +50,10 @@ export class Form {
      * @param config
      * @param appId
      * @param publicKey
+     * @param profile
+     * @param metadata
      */
-    constructor(config: Config, appId: string, publicKey?: string) {
+    constructor(config: Config, appId: string, publicKey?: string, profile?: NativeAnswer[], metadata?: NativeAnswer[]) {
         // SDK Config
         this.config = config;
         this.log = new Log(config);
@@ -82,9 +84,9 @@ export class Form {
         this.feedback = {
             text: "",
             answers: [],
-            profile: [],
+            profile: profile ?? [],
             metrics: [],
-            metadata: [],
+            metadata: metadata ?? [],
         };
 
         this.history = new History<PageNode>();
