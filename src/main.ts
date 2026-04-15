@@ -1,4 +1,4 @@
-import {InitOptions, NativeFeedback} from "./models/types";
+import {InitOptions, NativeAnswer, NativeFeedback} from "./models/types";
 import {Form} from "./models/form";
 import {Config} from "./models/config";
 import {Log} from "./utils/log";
@@ -88,12 +88,14 @@ export default function main() {
      *
      * @param appId
      * @param publicKey
+     * @param profile
+     * @param metadata
      * @returns
      */
-    function form(appId: string, publicKey: string) {
+    function form(appId: string, publicKey: string, profile?: NativeAnswer[], metadata?: NativeAnswer[]) {
         if (!appId) log.err("No appID provided");
         if (!publicKey) log.err("No publicKey provided");
-        return new Form(config, appId, publicKey);
+        return new Form(config, appId, publicKey, profile, metadata);
     }
 
     /**
