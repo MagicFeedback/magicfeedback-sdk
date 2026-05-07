@@ -6,6 +6,14 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.2.2] - 2026-05-07
+- **New feature:** Added `sdk.previewPage(selector, input, options?)` and `Form.previewPage(...)` to render a single page from the survey creator without fetching the form from the API and without persisting answers to `/feedback`. The render reuses the production pipeline so behavior (validation, buttons, followups, styling) is identical.
+- **New type:** Exported `PreviewPageInput` (`page`, `identity`, `lang`, `product`, `style`, `appId`) for typed preview payloads.
+- **Improvement (`form()` constructor):** Accepts optional `profile` and `metadata` parameters to pre-seed the feedback payload at construction time.
+- **Fix (`dryRun`):** Followup questions now keep their production behavior under `dryRun`. Previously `Form.callFollowUpQuestion` short-circuited and returned `null` in dry-run, which made followup branches disappear in test/preview flows. POST `/feedback` is still skipped under `dryRun`; only the followup API call was restored.
+- **Tests:** Added `test/preview-page.test.ts` covering single-page render, no API fetch, and no `/feedback` POST on submit. Updated `test/dry-run.test.ts` to assert the followup API is called under `dryRun`.
+- **Docs:** Added `docs/preview-page-implementation.md` as a self-contained implementation guide for the preview API and the followup fix.
+
 ## 🚀 [2.1.12] - 2026-03-20
 - **Fix:** Preconditional ALLOW routes now use AND logic — all conditions must be satisfied for a page to be shown. Previously, a single matching condition was enough (OR logic), causing pages to appear when they shouldn't (e.g. Matas survey: page 29 was incorrectly shown for users on "Club Matas appen").
 - **Fix:** Each preconditional route now looks up the answer specific to its own `questionRef` instead of reusing a single shared answer across all routes. This prevents incorrect evaluation when multiple preconditions reference different questions.

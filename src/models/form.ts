@@ -1,4 +1,4 @@
-import {FEEDBACKAPPANSWERTYPE, generateFormOptions, NativeAnswer, NativeFeedback, NativeQuestion} from "./types";
+import {FEEDBACKAPPANSWERTYPE, generateFormOptions, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
 
 import {Config} from "./config";
 import {Log} from "../utils/log";
@@ -204,6 +204,82 @@ export class Form {
                 });
             }
 
+            return;
+        }
+    }
+
+    /**
+     * Preview a single page in the survey creator without fetching from the API
+     * and without persisting answers to /feedback. The caller provides the page
+     * (with its questions) and minimal context (lang, product, identity). Followup
+     * API calls and same UI behavior are preserved (dryRun is enabled internally),
+     * so the page renders and behaves exactly as in production except no answers
+     * are sent to /feedback.
+     *
+     * @param selector container element id where the preview will be rendered
+     * @param input page + context to render
+     * @param options form rendering options (buttons, callbacks, etc.)
+     */
+    public async previewPage(
+        selector: string,
+        input: PreviewPageInput,
+        options: generateFormOptions = {}
+    ): Promise<void> {
+        try {
+            if (!input || !input.page) throw new Error("[MagicFeedback] No page provided for preview");
+            if (!input.page.integrationQuestions || input.page.integrationQuestions.length === 0) {
+                throw new Error("[MagicFeedback] No questions provided for preview");
+            }
+
+            // Force dryRun so any submit/followup persistence is skipped.
+            this.config.set("dryRun", true);
+
+            // Default options for preview: do not pull metadata from the page URL,
+            // since this is a creator preview, not a real submission.
+            this.formOptionsConfig = {
+                ...this.formOptionsConfig,
+                getMetaData: false,
+                ...options,
+            };
+            this.selector = selector;
+
+            // Normalize the page into a Page instance.
+            const activeQuestions = (input.page.integrationQuestions || [])
+                .filter((q: NativeQuestion) => !q.status || q.status === 'ACTIVE')
+                .sort((a: NativeQuestion, b: NativeQuestion) => a.position - b.position);
+
+            const previewPage = new Page(
+                input.page.id ?? '1',
+                input.page.position ?? 1,
+                input.appId ?? this.appId,
+                activeQuestions,
+                (input.page.integrationPageRoutes as any) ?? []
+            );
+
+            // Build a minimal FormData stub. We cast because we only need a subset
+            // of the FormData surface for rendering a single page.
+            this.formData = {
+                id: input.appId ?? this.appId,
+                identity: input.identity ?? 'MAGICFORM',
+                lang: [input.lang ?? 'en'],
+                product: input.product ?? {customIcons: false},
+                style: input.style ?? {},
+                questions: activeQuestions,
+                pages: [previewPage],
+            } as unknown as FormData;
+
+            // Reuse the existing render pipeline. Single-page graph + dryRun keep
+            // the behavior identical to production minus the network calls.
+            await this.generateForm();
+        } catch (e) {
+            this.log.err(e);
+
+            if (this.formOptionsConfig.onLoadedEvent) {
+                await this.formOptionsConfig.onLoadedEvent({
+                    loading: false,
+                    error: e,
+                });
+            }
             return;
         }
     }
@@ -956,11 +1032,6 @@ export class Form {
     private async callFollowUpQuestion(question: NativeQuestion | null): Promise<NativeQuestion | null> {
         if (!question?.followup) return null;
         try {
-            if (this.config.get<boolean>("dryRun")) {
-                this.log.log(`Dry run enabled: skipping follow up API for question ${question.ref}`);
-                return null;
-            }
-
             if (this.feedback.answers.length === 0) throw new Error("No answers provided");
 
             // Define the URL and request payload

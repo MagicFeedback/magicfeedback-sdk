@@ -1,4 +1,4 @@
-import {InitOptions, NativeAnswer, NativeFeedback} from "./models/types";
+import {InitOptions, NativeAnswer, NativeFeedback, PreviewPageInput, generateFormOptions} from "./models/types";
 import {Form} from "./models/form";
 import {Config} from "./models/config";
 import {Log} from "./utils/log";
@@ -108,6 +108,34 @@ export default function main() {
         return new Form(config, sessionId);
     }
 
+    /**
+     * Render a single page from the survey creator without hitting the API
+     * and without persisting answers. Useful for previewing an exclusive page
+     * (with all of its questions) while building a survey.
+     *
+     * The preview enables dryRun internally, so:
+     *  - POST /feedback is skipped on submit
+     *  - Followup question API calls still run (same UI behavior)
+     *
+     * @param selector container id where the preview will be rendered
+     * @param input page + context (questions, lang, product, identity, ...)
+     * @param options form rendering options
+     * @returns the underlying Form instance, in case the caller needs to interact
+     */
+    async function previewPage(
+        selector: string,
+        input: PreviewPageInput,
+        options?: generateFormOptions
+    ): Promise<Form> {
+        if (!selector) log.err("No selector provided");
+        if (!input || !input.page) log.err("No page provided for preview");
+
+        const previewAppId = input?.appId || `preview-${Date.now()}`;
+        const form = new Form(config, previewAppId);
+        await form.previewPage(selector, input, options);
+        return form;
+    }
+
     //===============================================
     // Return
     //===============================================
@@ -119,5 +147,6 @@ export default function main() {
         send,
         form,
         session,
+        previewPage,
     };
 }

@@ -1,5 +1,4 @@
 .magicfeedback-container {
-    margin-bottom: 10px;
     width: 100%;
 }
 
@@ -7,7 +6,7 @@
 .magicfeedback-success-message,
 .magicfeedback-info-message,
 .magicfeedback-start-message,
-.magicfeedback-container {
+.magicfeedback-container{
     animation-duration: 0.5s;
     animation-name: animate-fade;
     animation-delay: 0.25s;
@@ -22,12 +21,8 @@
 }
 
 @keyframes animate-fade {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
+    0% { opacity: 0; }
+    100% { opacity: 1; }
 }
 
 .magicfeedback-form {
@@ -37,7 +32,6 @@
     align-items: center;
     width: 100%;
 }
-
 .magicfeedback-questions {
     display: flex;
     flex-direction: column;
@@ -58,9 +52,9 @@
 .magicfeedback-label {
     margin-bottom: 25px;
     margin-top: 20px;
-    font-weight: 700;
+    font-weight: 400;
     font-family: inherit;
-    font-size: 20px;
+    font-size: 1.2rem;
     color: #212529;
     text-align: start;
     word-wrap: break-word;
@@ -293,15 +287,6 @@ input.error, select.error {
     color: #212529;
 }
 
-.magicfeedback-action-container .magicfeedback-submit:hover {
-    background-color: #1E293B;
-}
-
-.magicfeedback-action-container .magicfeedback-back:hover {
-    shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    background-color: #1E293B;
-    color: white;
-}
 
 
 /* Rating styles */
@@ -329,7 +314,7 @@ input.error, select.error {
 }
 
 .magicfeedback-rating-placeholder-value,
-.magicfeedback-rating-placeholder {
+.magicfeedback-rating-placeholder{
     text-align: center;
     align-content: center;
     justify-content: center;
@@ -354,8 +339,7 @@ input.error, select.error {
         font-size: 0.75rem;
         margin-bottom: 1px;
     }
-
-    .magicfeedback-rating-placeholder {
+    .magicfeedback-rating-placeholder{
         justify-content: center;
     }
 
@@ -409,13 +393,12 @@ input.error, select.error {
 .magicfeedback-rating-number {
     width: 100%;
 }
-
 .magicfeedback-rating-container,
 .magicfeedback-rating-number-container {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: center;
 
     margin: 15px 0;
     padding: 0;
@@ -446,13 +429,33 @@ input.error, select.error {
     width: 100%;
 }
 
+.magicfeedback-rating-number-option-row{
+    max-width: 100% !important;
+}
+
+.magicfeedback-rating-number-top-placeholder,
+.magicfeedback-rating-number-bottom-placeholder{
+    text-align: center !important;
+    align-content: center;
+    justify-content: center;
+    text-wrap: wrap;
+
+    font-size: 15px;
+    color: #475569;
+
+    width: 100%;
+    margin: auto;
+}
+
 @media (min-width: 650px) {
-    .magicfeedback-rating-number-option-row:first-child {
+    .magicfeedback-rating-number-option-row +.magicfeedback-rating-number-container-ltr:first-child,
+    .magicfeedback-rating-number-option-row + +.magicfeedback-rating-number-container-rtl:last-child {
         margin-left: 0;
         width: calc(100% - 10px);
     }
 
-    .magicfeedback-rating-number-option-row:last-child {
+    .magicfeedback-rating-number-option-row +.magicfeedback-rating-number-container-rtl:first-child,
+    .magicfeedback-rating-number-option-row + +.magicfeedback-rating-number-container-ltr:last-child {
         margin-right: 0;
         width: calc(100% - 10px);
     }
@@ -475,7 +478,7 @@ input.error, select.error {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin: 0;
+    margin: 0 10px;
     font-weight: 600;
     font-size: 14px;
     color: #475569;
@@ -502,14 +505,15 @@ input.error, select.error {
     cursor: pointer;
 }
 
-.magicfeedback-rating-number-option-label-container input[type=radio] + label:hover {
-    color: #007bff;
-}
-
+.magicfeedback-rating-number-option-label-container input[type=radio] + label:hover,
 .magicfeedback-rating-number-option-label-container input[type=radio]:checked + label {
     color: #007bff;
     border: 1px solid #007bff;
     background-color: rgba(86, 168, 253, 0.29);
+}
+
+.magicfeedback-rating-number-container-column{
+    align-items: flex-start !important;
 }
 
 @media (max-width: 650px) {
@@ -524,9 +528,9 @@ input.error, select.error {
     }
 
     .magicfeedback-rating-number-option {
-        width: 300px;
-        max-width: 80%;
+        max-width: 100%;
         height: 55px;
+        margin: 5px 0;
     }
 }
 
@@ -589,7 +593,7 @@ input.error, select.error {
     border: 1px solid transparent !important;
 }
 
-.magicfeedback-image-option-label-container {
+.magicfeedback-image-option-label-container{
     margin: 10px !important;
     height: calc(100% - 20px) !important;
     width: calc(100% - 20px) !important;
@@ -625,15 +629,14 @@ input.error, select.error {
 .magicfeedback-success-message,
 .magicfeedback-info-message,
 .magicfeedback-start-message {
-    margin: 5px;
-    width: 100%;
+    margin: 35px 5px;
 }
 
 .magicfeedback-success-message p,
 .magicfeedback-info-message p,
 .magicfeedback-start-message p {
     font-style: normal;
-    text-align: justify;
+    text-align: start;
     font-weight: 400;
     font-size: 16px;
     color: #475569;
@@ -711,6 +714,9 @@ input.error, select.error {
     padding-bottom: 10px;
 }
 
+.magicfeedback-multi-question-matrix-label{
+    text-align: left !important;
+}
 .magicfeedback-priority-list-item {
     display: flex;
     flex-direction: row;
@@ -752,11 +758,11 @@ input.error, select.error {
     margin-bottom: 20px;
 }
 
-.magicfeedback-multi-question-matrix-table th {
+.magicfeedback-multi-question-matrix-table th{
     text-align: center;
     font-weight: 400 !important;
     font-size: 1rem !important;
-    padding: 0 10px;
+    padding: 0  10px !important;
 }
 
 .magicfeedback-multi-question-matrix-table th,
@@ -768,7 +774,7 @@ input.error, select.error {
     font-size: 1rem !important;
     color: #475569 !important;
     cursor: pointer !important;
-    margin: 0 10px 0 0 !important;
+    margin: 0 !important;
     line-height: inherit;
 }
 
@@ -777,7 +783,7 @@ input.error, select.error {
     margin: 5px 0;
 }
 
-.magicfeedback-multi-question-matrix-row-tr {
+.magicfeedback-multi-question-matrix-row-tr{
     border-radius: 5px;
     margin: 10px 0 !important;
 }
@@ -819,13 +825,13 @@ input.error, select.error {
     cursor: pointer;
 }
 
-.magicfeedback-image {
+.magicfeedback-image{
     max-height: 400px !important;
     height: auto !important;
     max-width: 100% !important;
     margin: 10px auto !important;
 }
 
-.magicfeedback-error {
+.magicfeedback-error{
     margin-top: 5px;
 }

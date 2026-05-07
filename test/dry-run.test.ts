@@ -45,13 +45,13 @@ describe("Dry run mode", () => {
         expect(response).toMatch(/^dry-run-/);
     });
 
-    test("Form skips feedback/followup API calls when dryRun is enabled", async () => {
+    test("Form skips feedback API call but still calls followup API when dryRun is enabled", async () => {
         const config = new Config();
         config.set("url", "https://example.com");
         config.set("dryRun", true);
 
         const form = new Form(config, "app-id", "public-key");
-        (form as any).feedback.answers = [{key: "q1", value: ["a1"]}];
+        (form as any).feedback.answers = [{key: "q-2", value: ["a1"]}];
 
         const sessionId = await (form as any).pushAnswers(false);
         expect(sessionId).toMatch(/^dry-run-app-id-/);
@@ -80,9 +80,12 @@ describe("Dry run mode", () => {
             followupQuestion: [],
         };
 
+        const followupResponse: NativeQuestion = {...followupQuestion, id: "q-2-followup", ref: "q-2-followup"};
+        requestService.getFollowUpQuestion.mockResolvedValueOnce(followupResponse);
+
         const followup = await (form as any).callFollowUpQuestion(followupQuestion);
 
-        expect(followup).toBeNull();
-        expect(requestService.getFollowUpQuestion).not.toHaveBeenCalled();
+        expect(requestService.getFollowUpQuestion).toHaveBeenCalledTimes(1);
+        expect(followup).toEqual(followupResponse);
     });
 });
