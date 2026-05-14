@@ -545,11 +545,16 @@ export class Form {
      * @param profile
      * @param metrics
      * @param metadata
+     * @param answers Optional answers payload. When provided the SDK skips the
+     *                DOM scrape and required-question validation and submits
+     *                the supplied answers directly. Use this to drive the
+     *                survey from custom UI without rendering the SDK widgets.
      */
     public async send(
         metadata?: NativeAnswer[],
         metrics?: NativeAnswer[],
-        profile?: NativeAnswer[]
+        profile?: NativeAnswer[],
+        answers?: NativeAnswer[]
     ) {
         const questionContainer = document.getElementById("magicfeedback-questions-" + this.appId) as HTMLElement;
 
@@ -557,6 +562,34 @@ export class Form {
             if (profile) this.feedback.profile = [...this.feedback.profile, ...profile];
             if (metrics) this.feedback.metrics = [...this.feedback.metrics, ...metrics];
             if (metadata) this.feedback.metadata = [...this.feedback.metadata, ...metadata];
+
+            // Programmatic submission path: caller supplies answers, we skip
+            // DOM scraping and required-question validation entirely.
+            if (answers) {
+                this.feedback.answers = [...this.feedback.answers, ...answers];
+
+                if (this.formOptionsConfig.beforeSubmitEvent) {
+                    await this.formOptionsConfig.beforeSubmitEvent({
+                        loading: true,
+                        progress: this.progress,
+                        total: this.total
+                    });
+                }
+
+                const programmaticResponse = await this.pushAnswers(false);
+                if (!programmaticResponse) throw new Error("No response");
+                this.id = programmaticResponse;
+
+                if (this.formOptionsConfig.afterSubmitEvent) {
+                    await this.formOptionsConfig.afterSubmitEvent({
+                        loading: false,
+                        progress: this.progress,
+                        total: this.total
+                    });
+                }
+
+                return;
+            }
 
             // Get the survey answers from the answer() function
             this.answer();
