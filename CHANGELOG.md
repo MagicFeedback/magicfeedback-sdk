@@ -6,6 +6,11 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.2.4] - 2026-05-15
+- **New feature (`Form.send`):** Added an optional fourth parameter `answers: NativeAnswer[]`. When provided, the SDK skips the DOM scrape and the required-question validation loop, pushes the supplied answers directly into `feedback.answers`, and submits via `pushAnswers`. Lets host apps drive a survey from custom UI components without rendering the SDK widgets.
+- **Lifecycle hooks preserved:** `beforeSubmitEvent` and `afterSubmitEvent` still fire when answers are passed programmatically, so consumers keep the same submission lifecycle.
+- **Backwards compatible:** Existing call sites of `Form.send` are unaffected — the new parameter is optional.
+
 ## 🚀 [2.2.2] - 2026-05-07
 - **New feature:** Added `sdk.previewPage(selector, input, options?)` and `Form.previewPage(...)` to render a single page from the survey creator without fetching the form from the API and without persisting answers to `/feedback`. The render reuses the production pipeline so behavior (validation, buttons, followups, styling) is identical.
 - **New type:** Exported `PreviewPageInput` (`page`, `identity`, `lang`, `product`, `style`, `appId`) for typed preview payloads.
