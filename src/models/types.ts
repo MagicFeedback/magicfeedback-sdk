@@ -199,3 +199,40 @@ enum generateFormOptionsTag {
     FORM = "form",
     DIV = "div",
 }
+
+/**
+ * Input for previewing a single page in the survey creator without persisting feedback.
+ * The caller provides everything needed to render the page so no API call is made.
+ */
+export type PreviewPageInput = {
+    /**
+     * Page to render. Can be a Page instance or a plain object with at least integrationQuestions.
+     */
+    page: {
+        id?: string;
+        position?: number;
+        integrationQuestions: NativeQuestion[];
+        integrationPageRoutes?: any[];
+    };
+    /**
+     * Survey identity. Affects buttons (MAGICSURVEY shows back/next, MAGICFORM shows submit).
+     * Defaults to 'MAGICFORM'.
+     */
+    identity?: string;
+    /**
+     * Language code used to localize question titles. Defaults to 'en'.
+     */
+    lang?: string;
+    /**
+     * Product config (custom icons, ids, etc). Optional.
+     */
+    product?: any;
+    /**
+     * Style overrides. Optional.
+     */
+    style?: Record<string, any>;
+    /**
+     * Optional app id used as a label/identifier for the preview container. Defaults to 'preview'.
+     */
+    appId?: string;
+};

@@ -161,7 +161,7 @@ await form.generate("survey-root", {
 | `afterSubmitEvent` | `undefined` | Called after a page submit, follow-up render, or final completion. |
 | `onBackEvent` | `undefined` | Called after navigating back. |
 
-When `getMetaData` is enabled, the SDK includes the current URL, origin, pathname, query string, user agent, browser language, platform, app metadata, screen size, and the session id when rendering from `session()`.
+When `getMetaData` is enabled, the SDK includes the current URL, origin, pathname, query string, user agent, browser language, platform, app metadata, screen size, and the session id when rendering from `session()`. Query params are also expanded into metadata entries as `query-<param>` with all values for that param.
 
 ## Resume an existing session
 

@@ -1,4 +1,4 @@
-import {FEEDBACKAPPANSWERTYPE, generateFormOptions, NativeAnswer, NativeFeedback, NativeQuestion} from "./types";
+import {FEEDBACKAPPANSWERTYPE, generateFormOptions, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
 
 import {Config} from "./config";
 import {Log} from "../utils/log";
@@ -50,8 +50,10 @@ export class Form {
      * @param config
      * @param appId
      * @param publicKey
+     * @param profile
+     * @param metadata
      */
-    constructor(config: Config, appId: string, publicKey?: string) {
+    constructor(config: Config, appId: string, publicKey?: string, profile?: NativeAnswer[], metadata?: NativeAnswer[]) {
         // SDK Config
         this.config = config;
         this.log = new Log(config);
@@ -82,9 +84,9 @@ export class Form {
         this.feedback = {
             text: "",
             answers: [],
-            profile: [],
+            profile: profile ?? [],
             metrics: [],
-            metadata: [],
+            metadata: metadata ?? [],
         };
 
         this.history = new History<PageNode>();
@@ -207,6 +209,82 @@ export class Form {
     }
 
     /**
+     * Preview a single page in the survey creator without fetching from the API
+     * and without persisting answers to /feedback. The caller provides the page
+     * (with its questions) and minimal context (lang, product, identity). Followup
+     * API calls and same UI behavior are preserved (dryRun is enabled internally),
+     * so the page renders and behaves exactly as in production except no answers
+     * are sent to /feedback.
+     *
+     * @param selector container element id where the preview will be rendered
+     * @param input page + context to render
+     * @param options form rendering options (buttons, callbacks, etc.)
+     */
+    public async previewPage(
+        selector: string,
+        input: PreviewPageInput,
+        options: generateFormOptions = {}
+    ): Promise<void> {
+        try {
+            if (!input || !input.page) throw new Error("[MagicFeedback] No page provided for preview");
+            if (!input.page.integrationQuestions || input.page.integrationQuestions.length === 0) {
+                throw new Error("[MagicFeedback] No questions provided for preview");
+            }
+
+            // Force dryRun so any submit/followup persistence is skipped.
+            this.config.set("dryRun", true);
+
+            // Default options for preview: do not pull metadata from the page URL,
+            // since this is a creator preview, not a real submission.
+            this.formOptionsConfig = {
+                ...this.formOptionsConfig,
+                getMetaData: false,
+                ...options,
+            };
+            this.selector = selector;
+
+            // Normalize the page into a Page instance.
+            const activeQuestions = (input.page.integrationQuestions || [])
+                .filter((q: NativeQuestion) => !q.status || q.status === 'ACTIVE')
+                .sort((a: NativeQuestion, b: NativeQuestion) => a.position - b.position);
+
+            const previewPage = new Page(
+                input.page.id ?? '1',
+                input.page.position ?? 1,
+                input.appId ?? this.appId,
+                activeQuestions,
+                (input.page.integrationPageRoutes as any) ?? []
+            );
+
+            // Build a minimal FormData stub. We cast because we only need a subset
+            // of the FormData surface for rendering a single page.
+            this.formData = {
+                id: input.appId ?? this.appId,
+                identity: input.identity ?? 'MAGICFORM',
+                lang: [input.lang ?? 'en'],
+                product: input.product ?? {customIcons: false},
+                style: input.style ?? {},
+                questions: activeQuestions,
+                pages: [previewPage],
+            } as unknown as FormData;
+
+            // Reuse the existing render pipeline. Single-page graph + dryRun keep
+            // the behavior identical to production minus the network calls.
+            await this.generateForm();
+        } catch (e) {
+            this.log.err(e);
+
+            if (this.formOptionsConfig.onLoadedEvent) {
+                await this.formOptionsConfig.onLoadedEvent({
+                    loading: false,
+                    error: e,
+                });
+            }
+            return;
+        }
+    }
+
+    /**
      * Format pages in case of the survey don't have pages
      * @private
      */
@@ -279,7 +357,6 @@ export class Form {
      */
     private async generateForm() {
         try {
-            console.log('Generating form for appId:', this.appId);
             if (!this.formData || !this.formData.pages || this.formData.pages.length === 0) {
                 throw new Error("No form data");
             }
@@ -424,7 +501,6 @@ export class Form {
      */
 
     private getMetaData() {
-        console.log('Generating meta data', this.formOptionsConfig.customMetaData);
         if (this.formOptionsConfig.customMetaData) {
             this.feedback.metadata = [...this.feedback.metadata, ...this.formOptionsConfig.customMetaData];
         }
@@ -433,6 +509,16 @@ export class Form {
         this.feedback.metadata.push({key: "navigator-origin", value: [window.location.origin]});
         this.feedback.metadata.push({key: "navigator-pathname", value: [window.location.pathname]});
         this.feedback.metadata.push({key: "navigator-search", value: [window.location.search]});
+
+        // Add query params as metadata entries
+        const searchParams = new URLSearchParams(window.location.search);
+        const queryKeys = Array.from(new Set(searchParams.keys()));
+        queryKeys.forEach((key) => {
+            const values = searchParams.getAll(key);
+            if (values.length > 0) {
+                this.feedback.metadata.push({key: `query-${key}`, value: values});
+            }
+        });
 
         // Add the navigator metadata
         this.feedback.metadata.push({key: "navigator-user", value: [navigator.userAgent]});
@@ -459,11 +545,16 @@ export class Form {
      * @param profile
      * @param metrics
      * @param metadata
+     * @param answers Optional answers payload. When provided the SDK skips the
+     *                DOM scrape and required-question validation and submits
+     *                the supplied answers directly. Use this to drive the
+     *                survey from custom UI without rendering the SDK widgets.
      */
     public async send(
         metadata?: NativeAnswer[],
         metrics?: NativeAnswer[],
-        profile?: NativeAnswer[]
+        profile?: NativeAnswer[],
+        answers?: NativeAnswer[]
     ) {
         const questionContainer = document.getElementById("magicfeedback-questions-" + this.appId) as HTMLElement;
 
@@ -471,6 +562,34 @@ export class Form {
             if (profile) this.feedback.profile = [...this.feedback.profile, ...profile];
             if (metrics) this.feedback.metrics = [...this.feedback.metrics, ...metrics];
             if (metadata) this.feedback.metadata = [...this.feedback.metadata, ...metadata];
+
+            // Programmatic submission path: caller supplies answers, we skip
+            // DOM scraping and required-question validation entirely.
+            if (answers) {
+                this.feedback.answers = [...this.feedback.answers, ...answers];
+
+                if (this.formOptionsConfig.beforeSubmitEvent) {
+                    await this.formOptionsConfig.beforeSubmitEvent({
+                        loading: true,
+                        progress: this.progress,
+                        total: this.total
+                    });
+                }
+
+                const programmaticResponse = await this.pushAnswers(false);
+                if (!programmaticResponse) throw new Error("No response");
+                this.id = programmaticResponse;
+
+                if (this.formOptionsConfig.afterSubmitEvent) {
+                    await this.formOptionsConfig.afterSubmitEvent({
+                        loading: false,
+                        progress: this.progress,
+                        total: this.total
+                    });
+                }
+
+                return;
+            }
 
             // Get the survey answers from the answer() function
             this.answer();
@@ -780,7 +899,6 @@ export class Form {
 
         // --- Agrupación especial para MULTI_QUESTION_MATRIX ---
         try {
-            console.log(surveyAnswers);
             const matrixQuestions = page.questions.filter(q => q.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX);
             matrixQuestions.forEach(mq => {
                 // Respuestas individuales capturadas como ref-rowName
@@ -947,11 +1065,6 @@ export class Form {
     private async callFollowUpQuestion(question: NativeQuestion | null): Promise<NativeQuestion | null> {
         if (!question?.followup) return null;
         try {
-            if (this.config.get<boolean>("dryRun")) {
-                this.log.log(`Dry run enabled: skipping follow up API for question ${question.ref}`);
-                return null;
-            }
-
             if (this.feedback.answers.length === 0) throw new Error("No answers provided");
 
             // Define the URL and request payload
@@ -1074,7 +1187,6 @@ export class Form {
         //console.log(page, this.feedback.answers);
         let nextPage = this.graph.getNextPage(page, this.feedback.answers);
 
-        console.log(nextPage);
         if (!nextPage) {
             this.finish();
             return;
@@ -1089,22 +1201,22 @@ export class Form {
         });
 
         if (preconditionalRoute?.length > 0) {
-            // Look for the answer in previous PageNodes
-            let foundAnswer: any = null;
-            const allRefs = preconditionalRoute.map(route => route.questionRef);
-            // Search in the history from the most recent backwards
-            for (let i = this.history.size() - 1; i >= 0; i--) {
-                const node = this.history.get(i);
-                if (!node) continue;
-                foundAnswer = node.answers?.find((ans: NativeAnswer) => allRefs.includes(ans.key));
-                if (foundAnswer) break;
-            }
-            // If there is an answer, evaluate the condition
-            let allowToContinue = !preconditionalRoute.some(route => route.transition === TransitionType.ALLOW);
+            // Determine if there are ALLOW routes — if so, ALL must be satisfied (AND logic)
+            const hasAllowRoutes = preconditionalRoute.some(route => route.transition === TransitionType.ALLOW);
+            let allAllowMet = hasAllowRoutes; // starts true, will be set to false if any ALLOW fails
 
-            if (foundAnswer) {
-                for (const route of preconditionalRoute) {
-                    let conditionMet = false;
+            for (const route of preconditionalRoute) {
+                // FIX: Search the answer SPECIFIC to this route's questionRef, not a generic one
+                let foundAnswer: NativeAnswer | undefined;
+                for (let i = this.history.size() - 1; i >= 0; i--) {
+                    const node = this.history.get(i);
+                    if (!node) continue;
+                    foundAnswer = node.answers?.find((ans: NativeAnswer) => ans.key === route.questionRef);
+                    if (foundAnswer) break;
+                }
+
+                let conditionMet = false;
+                if (foundAnswer) {
                     const question = this.formData?.questions.find(q => q.ref === route.questionRef);
                     const answerVals = Array.isArray(foundAnswer.value) ? foundAnswer.value : [foundAnswer.value];
                     const routeVals = Array.isArray(route.value) ? route.value : [route.value];
@@ -1115,11 +1227,9 @@ export class Form {
                     } else {
                         switch (route.typeOperator) {
                             case 'EQUAL':
-                                // At least one answer value equals one expected value
                                 conditionMet = answerVals.some((v: any) => routeVals.includes(v));
                                 break;
                             case 'NOEQUAL':
-                                // None of the answer values equals any expected value
                                 conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
                                 break;
                             case 'GREATER':
@@ -1135,32 +1245,31 @@ export class Form {
                                 conditionMet = answerVals.some((v: any) => Number(v) <= Number(routeVals[0]));
                                 break;
                             case 'INQ':
-                                // Some answer value is included in route.value (array)
                                 conditionMet = answerVals.some((v: any) => routeVals.includes(v));
                                 break;
                             case 'NINQ':
-                                // No answer value is included in route.value (array)
                                 conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
                                 break;
                             default:
                                 break;
                         }
                     }
+                }
 
-                    // If condition is met, apply the transition
-                    if (conditionMet) {
-                        this.feedback.answers = []
-                        switch (route.transition) {
-                            case TransitionType.NEXT:
-                                if (nextPage) await this.renderNextQuestion(form, nextPage);
-                                return;
-                            case TransitionType.ALLOW:
-                                allowToContinue = true;
-                                break;
-                        }
+                // Apply transition logic per route
+                if (route.transition === TransitionType.ALLOW) {
+                    // FIX: AND logic — if ANY ALLOW condition fails, page is not allowed
+                    if (!conditionMet) {
+                        allAllowMet = false;
                     }
+                } else if (route.transition === TransitionType.NEXT && conditionMet) {
+                    this.feedback.answers = [];
+                    if (nextPage) await this.renderNextQuestion(form, nextPage);
+                    return;
                 }
             }
+
+            const allowToContinue = hasAllowRoutes ? allAllowMet : true;
             if (!allowToContinue) {
                 this.feedback.answers = []
                 if (nextPage) await this.renderNextQuestion(form, nextPage);
