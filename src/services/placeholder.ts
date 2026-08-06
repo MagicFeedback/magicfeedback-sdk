@@ -130,5 +130,154 @@ export const placeholder = {
             default:
                 return "The total points must be 100 %"
         }
+    },
+    upload: {
+        cta: (language: string) => {
+            switch (language) {
+                case "es":
+                    return "Arrastra y suelta o haz clic para subir";
+                case "da":
+                    return "Træk og slip eller klik for at uploade";
+                case "fi":
+                    return "Vedä ja pudota tai napsauta ladataksesi";
+                case "sv":
+                    return "Dra och släpp eller klicka för att ladda upp";
+                case "no":
+                    return "Dra og slipp eller klikk for å laste opp";
+                case "ar":
+                    return "اسحب وأفلت أو انقر للتحميل";
+                case "bn":
+                    return "টেনে আনুন বা আপলোড করতে ক্লিক করুন";
+                case "en":
+                default:
+                    return "Drag & drop or click to upload";
+            }
+        },
+        formats: (language: string, kind: "image" | "file") => {
+            if (kind === "image") {
+                switch (language) {
+                    case "es":
+                        return "Solo imágenes";
+                    case "da":
+                        return "Kun billeder";
+                    case "fi":
+                        return "Vain kuvat";
+                    case "sv":
+                        return "Endast bilder";
+                    case "no":
+                        return "Kun bilder";
+                    case "ar":
+                        return "الصور فقط";
+                    case "bn":
+                        return "শুধুমাত্র ছবি";
+                    case "en":
+                    default:
+                        return "Images only";
+                }
+            }
+            switch (language) {
+                case "es":
+                    return "Cualquier tipo de archivo";
+                case "da":
+                    return "Enhver filtype";
+                case "fi":
+                    return "Mikä tahansa tiedostotyyppi";
+                case "sv":
+                    return "Alla filtyper";
+                case "no":
+                    return "Alle filtyper";
+                case "ar":
+                    return "أي نوع من الملفات";
+                case "bn":
+                    return "যেকোনো ধরনের ফাইল";
+                case "en":
+                default:
+                    return "Any file type";
+            }
+        },
+        maxFiles: (language: string, n: number) => {
+            switch (language) {
+                case "es":
+                    return `Máx. ${n} archivos`;
+                case "da":
+                    return `Maks. ${n} filer`;
+                case "fi":
+                    return `Enintään ${n} tiedostoa`;
+                case "sv":
+                    return `Max ${n} filer`;
+                case "no":
+                    return `Maks ${n} filer`;
+                case "ar":
+                    return `${n} ملفات كحد أقصى`;
+                case "bn":
+                    return `সর্বোচ্চ ${n}টি ফাইল`;
+                case "en":
+                default:
+                    return `Max ${n} files`;
+            }
+        },
+        maxSize: (language: string, mb: number) => {
+            switch (language) {
+                case "es":
+                    return `Máx. ${mb} MB`;
+                case "da":
+                    return `Maks. ${mb} MB`;
+                case "fi":
+                    return `Enintään ${mb} MB`;
+                case "sv":
+                    return `Max ${mb} MB`;
+                case "no":
+                    return `Maks ${mb} MB`;
+                case "ar":
+                    return `${mb} ميغابايت كحد أقصى`;
+                case "bn":
+                    return `সর্বোচ্চ ${mb} MB`;
+                case "en":
+                default:
+                    return `Max ${mb} MB`;
+            }
+        },
+        tooLarge: (language: string, mb: number) => {
+            switch (language) {
+                case "es":
+                    return `Archivo demasiado grande (máx. ${mb} MB)`;
+                case "da":
+                    return `Filen er for stor (maks. ${mb} MB)`;
+                case "fi":
+                    return `Tiedosto on liian suuri (enintään ${mb} MB)`;
+                case "sv":
+                    return `Filen är för stor (max ${mb} MB)`;
+                case "no":
+                    return `Filen er for stor (maks ${mb} MB)`;
+                case "ar":
+                    return `الملف كبير جدًا (الحد الأقصى ${mb} ميغابايت)`;
+                case "bn":
+                    return `ফাইলটি খুব বড় (সর্বোচ্চ ${mb} MB)`;
+                case "en":
+                default:
+                    return `File is too large (max ${mb} MB)`;
+            }
+        },
+        remove: (language: string) => {
+            switch (language) {
+                case "es":
+                    return "Eliminar";
+                case "da":
+                    return "Fjern";
+                case "fi":
+                    return "Poista";
+                case "sv":
+                    return "Ta bort";
+                case "no":
+                    return "Fjern";
+                case "ar":
+                    return "إزالة";
+                case "bn":
+                    return "সরান";
+                case "en":
+                default:
+                    return "Remove";
+            }
+        }
     }
 };

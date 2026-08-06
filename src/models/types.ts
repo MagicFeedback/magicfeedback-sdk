@@ -129,6 +129,8 @@ export type QuestionAssetsByType = {
     [FEEDBACKAPPANSWERTYPE.UPLOAD_FILE]: QuestionAssetsBase & {
         multiple?: boolean;
         maxFiles?: number;
+        /** Maximum size per file, in megabytes (MB). 0 / undefined = unlimited. */
+        maxFileSize?: number;
     };
     [FEEDBACKAPPANSWERTYPE.UPLOAD_IMAGE]: QuestionAssetsByType[FEEDBACKAPPANSWERTYPE.UPLOAD_FILE];
     [FEEDBACKAPPANSWERTYPE.CONTACT]: QuestionAssetsBase;

@@ -5,6 +5,7 @@ import {Log} from "../utils/log";
 import {getFollowUpQuestion, getForm, getSessionForm, sendFeedback, validateEmail} from "../services/request.service";
 import {FormData} from "./formData";
 import {renderActions, renderQuestions, renderStartMessage, renderSuccess} from "../services/questions.service";
+import {awaitUploadReady, getUploadValues} from "../render/uploadHelpers";
 import {PageGraph} from "./pageGraphs";
 import {Page} from "./page";
 import {OperatorType, PageRoute, TransitionType} from "./pageRoute";
@@ -591,6 +592,10 @@ export class Form {
                 return;
             }
 
+            // Wait for any in-flight file encoding before collecting answers so
+            // upload questions include their (base64) contents.
+            await awaitUploadReady(questionContainer);
+
             // Get the survey answers from the answer() function
             this.answer();
 
@@ -739,6 +744,12 @@ export class Form {
                     priorityMap[key].push(value);
                     return;
                 }
+                // Manejo especial para uploads (valores base64 ya codificados)
+                if (elementTypeClass?.includes('magicfeedback-upload')) {
+                    const uploadValues = getUploadValues(htmlInput);
+                    if (uploadValues.length) surveyAnswers.push({key, value: uploadValues});
+                    return;
+                }
                 const val = elementTypeClass === 'magicfeedback-consent' ? htmlInput.checked.toString() : value;
                 if (val === undefined || val === null) return;
                 const ans: NativeAnswer = {key, value: [val]};
@@ -870,7 +881,14 @@ export class Form {
                     }
                     break;
                 case FEEDBACKAPPANSWERTYPE.UPLOAD_IMAGE:
-                case FEEDBACKAPPANSWERTYPE.UPLOAD_FILE:
+                case FEEDBACKAPPANSWERTYPE.UPLOAD_FILE: {
+                    const uploadValues = getUploadValues(htmlInput);
+                    if (uploadValues.length) {
+                        ans.value.push(...uploadValues);
+                        surveyAnswers.push(ans);
+                    }
+                    break;
+                }
                 default:
                     break;
             }

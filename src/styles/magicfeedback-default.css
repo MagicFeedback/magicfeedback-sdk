@@ -1200,3 +1200,209 @@ textarea.error {
     color: #000;
     outline: none;
 }
+
+/* ========================================
+   FILE / IMAGE UPLOAD
+   ======================================== */
+.magicfeedback-upload {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mf-space-md);
+    width: 100%;
+    margin: 10px 0;
+}
+
+/* The native input is an invisible, focusable overlay covering the dropzone. */
+.magicfeedback-upload-native {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.magicfeedback-upload-dropzone {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--mf-space-sm);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 150px;
+    padding: var(--mf-space-xl);
+    text-align: center;
+    border: 2px dashed var(--mf-border);
+    border-radius: var(--mf-radius-md);
+    background-color: var(--mf-surface-alt);
+    cursor: pointer;
+    transition: var(--mf-transition);
+}
+
+.magicfeedback-upload-dropzone:hover {
+    border-color: var(--mf-primary);
+    background-color: var(--mf-bg-hover);
+}
+
+.magicfeedback-upload-dropzone:focus-within {
+    border-color: var(--mf-primary);
+    box-shadow: var(--mf-shadow-focus);
+}
+
+.magicfeedback-upload-dropzone.is-dragover {
+    border-color: var(--mf-primary);
+    border-style: solid;
+    background-color: var(--mf-primary-light);
+    box-shadow: var(--mf-shadow-focus);
+}
+
+.magicfeedback-upload-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    color: var(--mf-primary);
+    background-color: var(--mf-surface);
+    border-radius: var(--mf-radius-full);
+    box-shadow: var(--mf-shadow-sm);
+    pointer-events: none;
+}
+
+.magicfeedback-upload-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.magicfeedback-upload-cta {
+    font-family: inherit;
+    font-weight: var(--mf-font-weight-semibold);
+    font-size: var(--mf-font-size-base);
+    color: var(--mf-text-primary);
+    pointer-events: none;
+}
+
+.magicfeedback-upload-hint {
+    font-family: inherit;
+    font-size: var(--mf-font-size-sm);
+    color: var(--mf-text-muted);
+    pointer-events: none;
+}
+
+.magicfeedback-upload-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mf-space-sm);
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.magicfeedback-upload-list:empty {
+    display: none;
+}
+
+.magicfeedback-upload-file-item {
+    display: flex;
+    align-items: center;
+    gap: var(--mf-space-md);
+    padding: var(--mf-space-sm) var(--mf-space-md);
+    background-color: var(--mf-surface);
+    border: 1px solid var(--mf-border);
+    border-radius: var(--mf-radius-sm);
+    box-shadow: var(--mf-shadow-sm);
+    animation: mf-scale-in 0.2s ease-out;
+}
+
+.magicfeedback-upload-thumb {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    color: var(--mf-text-secondary);
+    background-color: var(--mf-surface-alt);
+    border-radius: var(--mf-radius-sm);
+}
+
+.magicfeedback-upload-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.magicfeedback-upload-thumb svg {
+    width: 20px;
+    height: 20px;
+}
+
+.magicfeedback-upload-file-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: start;
+}
+
+.magicfeedback-upload-file-name {
+    font-family: inherit;
+    font-size: var(--mf-font-size-sm);
+    font-weight: var(--mf-font-weight-semibold);
+    color: var(--mf-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.magicfeedback-upload-file-size {
+    font-family: inherit;
+    font-size: 0.75rem;
+    color: var(--mf-text-muted);
+}
+
+.magicfeedback-upload-remove {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    color: var(--mf-text-muted);
+    background-color: transparent;
+    border: none;
+    border-radius: var(--mf-radius-full);
+    cursor: pointer;
+    transition: var(--mf-transition-fast);
+}
+
+.magicfeedback-upload-remove:hover,
+.magicfeedback-upload-remove:focus-visible {
+    color: var(--mf-error);
+    background-color: var(--mf-primary-light);
+    outline: none;
+}
+
+.magicfeedback-upload-remove svg {
+    width: 16px;
+    height: 16px;
+}
+
+.magicfeedback-upload-error {
+    display: none;
+    font-family: inherit;
+    font-size: var(--mf-font-size-sm);
+    color: var(--mf-error);
+}
+
+.magicfeedback-upload-error.is-visible {
+    display: block;
+}
