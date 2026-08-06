@@ -382,12 +382,20 @@ function createPriorityListElement(params: {
         modal.style.maxWidth = "520px";
         modal.style.width = "90%";
         modal.style.maxHeight = "80vh";
-        modal.style.overflow = "auto";
+        // Flex column: the options list scrolls, while the title and the
+        // actions footer (counter + confirm button) stay pinned and always
+        // visible. Previously the whole modal scrolled with overflow:auto,
+        // which pushed the confirm button off-screen with long option lists.
+        modal.style.display = "flex";
+        modal.style.flexDirection = "column";
+        modal.style.overflow = "hidden";
         modal.style.padding = "16px";
         modal.style.position = "relative";
 
         const modalTitle = document.createElement("h5");
         modalTitle.classList.add("magicfeedback-modal-title");
+        modalTitle.style.flexShrink = "0";
+        modalTitle.style.marginTop = "0";
         const getNextIndex = () => Math.min(selected.length + 1, maxPriority);
         const setTitleForSelection = () => {
             modalTitle.textContent = `${t('selectOptionNumber')}${getNextIndex()}`;
@@ -396,6 +404,10 @@ function createPriorityListElement(params: {
 
         const listWrapper = document.createElement("div");
         listWrapper.classList.add("magicfeedback-modal-list");
+        // Only the options list scrolls; the footer stays visible.
+        listWrapper.style.flex = "1 1 auto";
+        listWrapper.style.overflowY = "auto";
+        listWrapper.style.minHeight = "0";
 
         const optionsSource = randomPosition ? [...value].sort(() => Math.random() - 0.5) : [...value];
 
@@ -438,6 +450,7 @@ function createPriorityListElement(params: {
 
         const actions = document.createElement("div");
         actions.classList.add("magicfeedback-modal-actions");
+        actions.style.flexShrink = "0";
 
         const modalCounter = document.createElement("div");
         modalCounter.classList.add("magicfeedback-modal-counter");
@@ -461,8 +474,29 @@ function createPriorityListElement(params: {
         closeBtn.style.background = "transparent";
         closeBtn.style.fontSize = "24px";
         closeBtn.style.cursor = "pointer";
-        closeBtn.addEventListener("click", () => {
+        // The backdrop uses position:fixed to overlay the viewport. When the
+        // host page applies a `transform` (or filter/perspective) to any
+        // ancestor of the survey container, that ancestor becomes the
+        // containing block for fixed descendants, so the backdrop is anchored
+        // to the container instead of the viewport and gets clipped by any
+        // `overflow:hidden` ancestor (the modal and its confirm button then
+        // become unreachable). To stay robust regardless of the host's CSS we
+        // portal the backdrop to <body> while it is open, and move it back
+        // into the container when it closes so the SDK's re-render cleanup
+        // (container.innerHTML = "") still disposes of it on navigation.
+        const openModal = () => {
+            document.body.appendChild(backdrop);
+            backdrop.style.display = "flex";
+            setTitleForSelection();
+            updateCounter();
+        };
+        const closeModal = () => {
             backdrop.style.display = "none";
+            container.appendChild(backdrop);
+        };
+
+        closeBtn.addEventListener("click", () => {
+            closeModal();
         });
 
         const confirmBtn = document.createElement("button");
@@ -471,7 +505,7 @@ function createPriorityListElement(params: {
         confirmBtn.classList.add("magicfeedback-button");
         confirmBtn.classList.add("magicfeedback-button-primary");
         confirmBtn.addEventListener("click", () => {
-            backdrop.style.display = "none";
+            closeModal();
             renderReorder();
         });
 
@@ -485,12 +519,10 @@ function createPriorityListElement(params: {
         backdrop.appendChild(modal);
 
         openSelectorBtn.addEventListener("click", () => {
-            backdrop.style.display = "flex";
-            setTitleForSelection();
-            updateCounter();
+            openModal();
         });
         backdrop.addEventListener("click", (ev) => {
-            if (ev.target === backdrop) backdrop.style.display = "none";
+            if (ev.target === backdrop) closeModal();
         });
 
         container.appendChild(header);

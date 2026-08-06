@@ -925,8 +925,13 @@ textarea.error {
     max-width: 520px;
     width: 90%;
     max-height: 80vh;
-    overflow: auto;
+    /* Flex column so the options list scrolls while the actions footer
+       (counter + confirm button) stays pinned and always visible. */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     padding: 16px;
+    position: relative;
 }
 
 /* Modal actions */
@@ -935,6 +940,7 @@ textarea.error {
     justify-content: flex-end;
     gap: 8px;
     margin-top: 12px;
+    flex-shrink: 0;
 }
 
 .magicfeedback-modal-counter {
@@ -950,6 +956,10 @@ textarea.error {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    /* Scrollable area; footer stays fixed below it. */
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .magicfeedback-modal-row {
