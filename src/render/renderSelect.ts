@@ -5,8 +5,7 @@ export const renderSelect: QuestionRenderer = ({
     question,
     format,
     language,
-    urlParamValue,
-    send
+    urlParamValue
 }) => {
     const {title, value, defaultValue} = question;
     const element = document.createElement("select");
@@ -28,12 +27,6 @@ export const renderSelect: QuestionRenderer = ({
 
     if (urlParamValue && value.includes(urlParamValue)) {
         (element as HTMLSelectElement).value = urlParamValue;
-    }
-
-    if (send) {
-        element.addEventListener("change", () => {
-            send();
-        });
     }
 
     return {element, elementTypeClass};
