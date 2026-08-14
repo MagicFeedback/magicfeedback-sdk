@@ -5,7 +5,7 @@ import {endpoints} from "./paths";
 import {NativeQuestion} from "../models/types";
 import {FormData} from "../models/formData";
 
-const header = {
+export const header = {
     Accept: "application/json",
     "Magicfeedback-Sdk-Version": modulePackage.version,
     "x-magicfeedback-parameters": window.location.search || "",

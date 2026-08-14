@@ -1,5 +1,5 @@
-import {FEEDBACKAPPANSWERTYPE, generateFormOptions, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
-import {applyPrimaryColor, generateContainer} from "../render/containerHelpers";
+import {agentFormOptions, FEEDBACKAPPANSWERTYPE, generateFormOptions, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
+import {AgentForm} from "./agentForm";
 
 import {Config} from "./config";
 import {Log} from "../utils/log";
@@ -7,6 +7,8 @@ import {getFollowUpQuestion, getForm, getSessionForm, sendFeedback, validateEmai
 import {FormData} from "./formData";
 import {renderActions, renderQuestions, renderStartMessage, renderSuccess} from "../services/questions.service";
 import {awaitUploadReady, getUploadValues} from "../render/uploadHelpers";
+import {applyPrimaryColor, generateContainer} from "../render/containerHelpers";
+import {scrapeInputs} from "../services/answerScrape";
 import {PageGraph} from "./pageGraphs";
 import {Page} from "./page";
 import {OperatorType, PageRoute, TransitionType} from "./pageRoute";
@@ -34,6 +36,10 @@ export class Form {
     private formData: FormData | null;
     private id: string;
     private readonly feedback: NativeFeedback;
+
+    // Set when the integration turns out to be in AGENT mode and this Form is
+    // acting as a thin delegator (see generate()).
+    private agentForm: AgentForm | null;
 
     // Graph
     private graph: PageGraph
@@ -92,6 +98,8 @@ export class Form {
         };
 
         this.history = new History<PageNode>();
+
+        this.agentForm = null;
 
         this.graph = new PageGraph([]);
 
@@ -156,6 +164,18 @@ export class Form {
             if (resData === undefined || !resData) throw new Error(`No data for app ${this.appId}`);
 
             if (resData.error?.message) throw new Error(resData.error.message);
+
+            // AGENT integrations have no upfront question list and must never
+            // POST to /sdk/feedback, so hand the flow over BEFORE the static
+            // spine runs — the ACTIVE filtering, formatPages(), and above all
+            // the localStorage write below, which would poison a later static
+            // load of the same id.
+            if (resData.mode === 'AGENT') {
+                this.agentForm = new AgentForm(this.config, this.appId, this.publicKey);
+                this.agentForm.applyIntegrationContext(resData);
+                await this.agentForm.generate(selector, options as agentFormOptions);
+                return;
+            }
 
             // Clear questions without status ACTIVE
             resData.questions = resData.questions?.filter((q: NativeQuestion) => q.status === 'ACTIVE') || [];
@@ -564,6 +584,9 @@ export class Form {
         profile?: NativeAnswer[],
         answers?: NativeAnswer[]
     ) {
+        // Delegated AGENT survey: the agent form owns the turn loop.
+        if (this.agentForm) return this.agentForm.next();
+
         const questionContainer = document.getElementById("magicfeedback-questions-" + this.appId) as HTMLElement;
 
         try {
@@ -733,42 +756,8 @@ export class Form {
         const page = this.history.back();
         // Modo genérico: si no hay página en el historial, recolectamos respuestas directamente de los inputs
         if (!page) {
-            const inputs = form.querySelectorAll(".magicfeedback-input");
-            const surveyAnswers: NativeAnswer[] = [];
-            const priorityMap: Record<string, string[]> = {};
-            inputs.forEach((input) => {
-                const htmlInput = input as HTMLInputElement;
-                const key = htmlInput.name;
-                if (!key) return;
-                const type = htmlInput.type;
-                // Para radio/checkbox sólo recogemos si están checkeados
-                if ((type === 'radio' || type === 'checkbox') && !htmlInput.checked) return;
-                const value = htmlInput.value;
-                const elementTypeClass = htmlInput.classList[0];
-                // Manejo especial para priority-list (inputs hidden)
-                if (elementTypeClass?.includes('magicfeedback-priority-list') || htmlInput.id?.startsWith('priority-list-')) {
-                    if (!priorityMap[key]) priorityMap[key] = [];
-                    priorityMap[key].push(value);
-                    return;
-                }
-                // Manejo especial para uploads (valores base64 ya codificados)
-                if (elementTypeClass?.includes('magicfeedback-upload')) {
-                    const uploadValues = getUploadValues(htmlInput);
-                    if (uploadValues.length) surveyAnswers.push({key, value: uploadValues});
-                    return;
-                }
-                const val = elementTypeClass === 'magicfeedback-consent' ? htmlInput.checked.toString() : value;
-                if (val === undefined || val === null) return;
-                const ans: NativeAnswer = {key, value: [val]};
-                surveyAnswers.push(ans);
-            });
-            // Agregar PRIORITY_LIST agregados, ordenando por índice inicial
-            Object.entries(priorityMap).forEach(([k, arr]) => {
-                const sorted = arr.slice().sort((a, b) => Number(a.split('.')[0]) - Number(b.split('.')[0]));
-                surveyAnswers.push({key: k, value: sorted});
-            });
-            this.feedback.answers = surveyAnswers;
-            return surveyAnswers;
+            this.feedback.answers = scrapeInputs(form);
+            return this.feedback.answers;
         }
 
         const surveyAnswers: NativeAnswer[] = [];

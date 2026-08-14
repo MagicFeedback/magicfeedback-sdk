@@ -178,6 +178,100 @@ export type NativeFeedback = {
     metadata: NativeAnswer[],
 }
 
+//===============================================
+// Agent survey (dynamic, AI-driven surveys)
+//===============================================
+
+export type ConversationRole = "agent" | "user";
+
+/**
+ * One entry of the running transcript. The agent endpoints are stateless, so the
+ * FULL conversation is resent on every /next call.
+ */
+export type ConversationTurn = {
+    role: ConversationRole;
+    content: string;
+    questionType?: string;
+    questionRef?: string;
+};
+
+/**
+ * Question fields the agent endpoints return. `nextQuestion` is documented as a
+ * plain string, but the backend may also ship a full NativeQuestion (here or
+ * under `question`). The adapter normalizes both shapes.
+ */
+export type AgentQuestionPayload = {
+    nextQuestion?: string | NativeQuestion | null;
+    question?: NativeQuestion | null;
+    questionType?: string;
+    questionRef?: string;
+    questionValues?: string[] | null;
+    isFromBase?: boolean;
+};
+
+export type AgentStartRequest = {
+    publicKey: string;
+    privateKey?: string;
+    integrationId: string;
+};
+
+export type AgentStartResponse = AgentQuestionPayload & {
+    sessionId: string;
+    coverageGaps?: string;
+    maxTurns: number;
+    currentTurn: number;
+};
+
+export type AgentNextRequest = AgentStartRequest & {
+    sessionId: string;
+    conversation: ConversationTurn[];
+    currentTurn: number;
+    lastAnswer: string;
+    lastQuestionRef?: string;
+    askedRefs?: string[];
+};
+
+export type AgentNextResponse = AgentStartResponse & {
+    shouldEnd: boolean;
+    answerType?: string;
+    topic?: string;
+    coverageSummary?: string;
+};
+
+/** `answerType` value that means the answer was blocked by content moderation. */
+export const AGENT_ANSWER_TYPE_BLOCKED = "ABUSIVE_OR_OFFENSIVE";
+
+export type AgentEndReason =
+    | "SHOULD_END"   // shouldEnd === true
+    | "NO_QUESTION"  // question text null/empty (moderation scrubbed it, or AI outage)
+    | "TYPE_NONE"    // questionType === "NONE"
+    | "BLOCKED"      // answerType === ABUSIVE_OR_OFFENSIVE
+    | "MAX_TURNS";   // client-side hard stop
+
+/**
+ * The normalized result of one server response. Being a discriminated union is
+ * the point: consumers must switch on `kind`, so there is no code path that can
+ * read `nextQuestion` without going through the OR'd end detection.
+ */
+export type AgentStep =
+    | {
+        kind: "QUESTION";
+        question: NativeQuestion;
+        isFromBase: boolean;
+        currentTurn: number;
+        maxTurns: number;
+        topic?: string;
+        coverageGaps?: string;
+        coverageSummary?: string;
+    }
+    | {
+        kind: "END";
+        reason: AgentEndReason;
+        currentTurn: number;
+        maxTurns: number;
+        coverageSummary?: string;
+    };
+
 export type generateFormOptions = {
     addButton?: boolean;
     sendButtonText?: string;
@@ -201,6 +295,45 @@ enum generateFormOptionsTag {
     FORM = "form",
     DIV = "div",
 }
+
+/**
+ * Options for an agent (dynamic) survey. Superset of `generateFormOptions`, so
+ * every existing lifecycle hook and button label keeps working.
+ */
+export type agentFormOptions = generateFormOptions & {
+    /**
+     * Language used for placeholders, Yes/No labels and localized titles.
+     * Agent mode does not fetch the integration, so it cannot infer it.
+     * Default "en".
+     */
+    lang?: string;
+    /**
+     * Brand color scoped to the survey container. Agent mode does not fetch the
+     * integration, so `style.primaryColor` has to be supplied here (the
+     * auto-detected path via `form()` picks it up from the payload instead).
+     */
+    primaryColor?: string;
+    /** Delimiter used to join MULTIPLECHOICE selections into `lastAnswer`. Default ", ". */
+    answerDelimiter?: string;
+    /** Shown when the agent blocks the conversation (abusive/off-limits answer). */
+    blockedMessage?: string;
+    /** Error shown when a required question is submitted empty. */
+    requiredMessage?: string;
+    /** Message shown while backing off from a 429. `{seconds}` is interpolated. */
+    rateLimitMessage?: string;
+    /** Restore an in-flight session from localStorage on generate(). Default true. */
+    resume?: boolean;
+    /**
+     * Enables a client-only back button. Off by default: answers persist server
+     * side BEFORE the AI call and there is no endpoint to retract them, so going
+     * back leaves a duplicate stored answer for the same ref.
+     */
+    allowBack?: boolean;
+    /** Value sent as `lastAnswer` when an optional question is left empty. Default "". */
+    emptyAnswerText?: string;
+    /** Fired once per rendered agent turn, with the agent-specific metadata. */
+    onAgentTurnEvent?: Function;
+};
 
 /**
  * Input for previewing a single page in the survey creator without persisting feedback.

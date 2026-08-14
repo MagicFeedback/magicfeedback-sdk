@@ -5,5 +5,7 @@ export const endpoints = {
         session: (sessionId: string) => `sdk/app/session/${sessionId}/info`,
         feedback: 'sdk/feedback',
         followUpQuestion: 'sdk/followUpQuestion',
+        agentSurveyStart: 'sdk/agentSurvey/start',
+        agentSurveyNext: 'sdk/agentSurvey/next',
     }
 }

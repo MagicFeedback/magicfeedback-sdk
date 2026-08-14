@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="../../dist/styles/magicfeedback-default.css" rel="stylesheet">
+    <title>Agent survey — mock harness</title>
+    <style>
+      body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #fafafa; }
+      .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: 1fr 420px; gap: 24px; }
+      @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+      h1 { font-size: 18px; margin: 0 0 4px; }
+      .sub { color: #666; font-size: 13px; margin: 0 0 20px; }
+      .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; padding: 20px; }
+      .scenarios { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+      .scenarios button { font-size: 13px; padding: 6px 12px; border: 1px solid #d0d0d0; background: #fff; border-radius: 6px; cursor: pointer; }
+      .scenarios button.active { background: #111; color: #fff; border-color: #111; }
+      #progress { font-size: 13px; color: #666; margin-bottom: 12px; min-height: 18px; }
+      .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #888; margin: 0 0 8px; }
+      pre { font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+            background: #111; color: #d8d8d8; padding: 12px; border-radius: 8px; max-height: 340px; overflow: auto; margin: 0 0 16px; }
+      .ok { color: #16a34a; } .bad { color: #dc2626; }
+      #checks { font-size: 12px; line-height: 1.8; font-family: ui-monospace, monospace; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div>
+        <h1>Agent survey — mock harness</h1>
+        <p class="sub">No backend needed: <code>fetch</code> is stubbed with a scripted agent. Exercises the real SDK turn loop, render pipeline and end detection.</p>
+
+        <div class="scenarios" id="scenarios"></div>
+
+        <div class="card">
+          <div id="progress"></div>
+          <div id="demo"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Assertions</h2>
+        <div id="checks" class="card" style="margin-bottom:16px"></div>
+
+        <h2>Network (what the SDK sent)</h2>
+        <pre id="net"></pre>
+
+        <h2>Lifecycle events</h2>
+        <pre id="events"></pre>
+      </div>
+    </div>
+
+    <script>
+      //=========================================================
+      // Scripted agent backends
+      //=========================================================
+      const q = (n, over) => Object.assign({
+        sessionId: "sess-mock-1",
+        nextQuestion: null, questionType: "LONGTEXT", questionRef: "ref-" + n,
+        questionValues: null, isFromBase: false, coverageGaps: "", coverageSummary: "",
+        maxTurns: 6, currentTurn: n, shouldEnd: false, answerType: "COMPLETE", topic: "OTHER",
+      }, over);
+
+      const SCENARIOS = {
+        "Happy path (5 types)": [
+          q(1, {nextQuestion: "How was your onboarding experience?", questionType: "LONGTEXT", isFromBase: true}),
+          q(2, {nextQuestion: "How often do you use the product?", questionType: "RADIO",
+                questionValues: ["Daily", "Weekly", "Monthly", "Rarely"]}),
+          q(3, {nextQuestion: "How would you rate it overall?", questionType: "RATING",
+                questionValues: ["1","2","3","4","5"]}),
+          q(4, {nextQuestion: "Which features do you use? (pick several)", questionType: "MULTIPLECHOICE",
+                questionValues: ["Surveys", "Dashboards", "Exports", "API"]}),
+          q(5, {nextQuestion: "Would you recommend us?", questionType: "BOOLEAN", isFromBase: true}),
+          q(6, {shouldEnd: true, nextQuestion: null, coverageSummary: "Covered onboarding, usage and satisfaction."}),
+        ],
+        "Moderation nulls the question": [
+          q(1, {nextQuestion: "What do you think of the product?", questionType: "LONGTEXT"}),
+          // shouldEnd stays FALSE — only a null question. Checking shouldEnd alone would hang here.
+          q(2, {shouldEnd: false, nextQuestion: null, questionType: "LONGTEXT"}),
+        ],
+        "Blocked / abusive": [
+          q(1, {nextQuestion: "What do you think of the product?", questionType: "LONGTEXT"}),
+          q(2, {shouldEnd: false, nextQuestion: null, answerType: "ABUSIVE_OR_OFFENSIVE", topic: "POLITICS"}),
+        ],
+        "AI outage mid-survey (200 + shouldEnd)": [
+          q(1, {nextQuestion: "How was your onboarding experience?", questionType: "LONGTEXT"}),
+          q(2, {shouldEnd: true, nextQuestion: null, answerType: "COMPLETE"}),
+        ],
+        "Unrenderable types (CONTACT / RADIO w/o options)": [
+          q(1, {nextQuestion: "How can we reach you?", questionType: "CONTACT"}),
+          q(2, {nextQuestion: "Pick one", questionType: "RADIO", questionValues: []}),
+          q(3, {nextQuestion: "Anything else?", questionType: "TOTALLY_UNKNOWN_TYPE"}),
+          q(4, {shouldEnd: true, nextQuestion: null}),
+        ],
+        "Rate limit (429 on first answer)": [
+          q(1, {nextQuestion: "How was your onboarding experience?", questionType: "LONGTEXT"}),
+          {__status: 429, __headers: {"Retry-After": "5"}},
+          q(2, {nextQuestion: "Thanks — what could we improve?", questionType: "LONGTEXT"}),
+          q(3, {shouldEnd: true, nextQuestion: null}),
+        ],
+      };
+
+      //=========================================================
+      // XMLHttpRequest stub — installed BEFORE the SDK bundle loads
+      //
+      // NOT window.fetch: the SDK imports `cross-fetch`, whose browser build is
+      // a ponyfill implemented on top of XMLHttpRequest (it only assigns
+      // self.fetch when the global is missing). Patching window.fetch silently
+      // does nothing and the request goes to the real API instead — which is
+      // also why host-side tracing/mocking of SDK traffic has to hook XHR.
+      //=========================================================
+      const state = { script: [], cursor: 0, sent: [], feedbackCalls: 0 };
+      const netEl = document.getElementById("net");
+      const eventsEl = document.getElementById("events");
+
+      const RealXHR = window.XMLHttpRequest;
+
+      function scriptedReply(url, bodyText) {
+        const body = bodyText ? JSON.parse(bodyText) : null;
+
+        if (url.includes("/sdk/feedback")) {
+          state.feedbackCalls += 1;    // must never happen in agent mode
+          runChecks();
+          return {status: 200, headers: "", body: "{}", delay: 0};
+        }
+
+        if (url.includes("/sdk/agentSurvey/")) {
+          state.sent.push({phase: url.endsWith("/start") ? "start" : "next", body});
+          renderNet();
+
+          const step = state.script[state.cursor++];
+          if (!step) return {status: 500, headers: "", body: "{}", delay: 0};
+
+          if (step.__status) {
+            const headers = Object.entries(step.__headers || {})
+              .map(([k, v]) => `${k}: ${v}`).join("\r\n");
+            return {status: step.__status, headers, body: JSON.stringify({error: {message: "Rate limited"}}), delay: 0};
+          }
+
+          // A little fake AI latency so the busy-lock is observable.
+          return {status: 200, headers: "content-type: application/json", body: JSON.stringify(step), delay: 120};
+        }
+
+        return null;   // anything else falls through to the real XHR
+      }
+
+      window.XMLHttpRequest = function MockXHR() {
+        const real = new RealXHR();
+        let url = "", method = "";
+        let intercepted = null;
+
+        const self = {
+          open(m, u, async) { method = m; url = String(u); real.open(m, u, async); },
+          setRequestHeader(k, v) { if (!intercepted) real.setRequestHeader(k, v); },
+          send(body) {
+            intercepted = scriptedReply(url, body);
+            if (!intercepted) return real.send(body);
+
+            setTimeout(() => {
+              self.status = intercepted.status;
+              self.statusText = `HTTP ${intercepted.status}`;
+              self.responseText = intercepted.body;
+              self.response = intercepted.body;
+              self.responseURL = url;
+              self.readyState = 4;
+              if (self.onreadystatechange) self.onreadystatechange();
+              if (self.onload) self.onload();
+            }, intercepted.delay);
+          },
+          getAllResponseHeaders() { return intercepted ? intercepted.headers : real.getAllResponseHeaders(); },
+          abort() { real.abort(); },
+          readyState: 0, status: 0, statusText: "", response: "", responseText: "", responseURL: "",
+          withCredentials: false, responseType: "",
+          onload: null, onerror: null, ontimeout: null, onabort: null, onreadystatechange: null,
+        };
+
+        // Forward the real XHR's events for non-intercepted (pass-through) calls.
+        real.onload = () => { if (intercepted) return; Object.assign(self, {
+          status: real.status, statusText: real.statusText, response: real.response,
+          responseText: real.responseText, responseURL: real.responseURL, readyState: 4,
+        }); if (self.onload) self.onload(); };
+        real.onerror = () => { if (!intercepted && self.onerror) self.onerror(); };
+
+        void method;
+        return self;
+      };
+
+      function renderNet() {
+        netEl.textContent = state.sent.map((s, i) => {
+          if (s.phase === "start") return `#${i+1} POST /start\n  ${JSON.stringify({integrationId: s.body.integrationId})}`;
+          return `#${i+1} POST /next\n` +
+            `  currentTurn:     ${s.body.currentTurn}\n` +
+            `  lastAnswer:      ${JSON.stringify(s.body.lastAnswer)}\n` +
+            `  lastQuestionRef: ${s.body.lastQuestionRef}\n` +
+            `  askedRefs:       ${JSON.stringify(s.body.askedRefs)}\n` +
+            `  conversation:    ${s.body.conversation.length} turns, ends on "${(s.body.conversation[s.body.conversation.length-1]||{}).role}"`;
+        }).join("\n\n");
+        runChecks();
+      }
+
+      //=========================================================
+      // Live assertions over what the SDK actually sent
+      //=========================================================
+      function runChecks() {
+        const nexts = state.sent.filter(s => s.phase === "next");
+        const checks = [];
+        const add = (ok, label) => checks.push({ok, label});
+
+        add(state.feedbackCalls === 0, "never calls POST /sdk/feedback");
+
+        add(nexts.every((s, i) => s.body.currentTurn === i + 2),
+            "currentTurn increments 2,3,4… (frontend owns it)");
+
+        add(nexts.every(s => s.body.conversation.length > 0 &&
+              s.body.conversation[s.body.conversation.length - 1].role === "agent"),
+            "transcript always ends on an agent turn");
+
+        add(nexts.every((s, i) => i === 0 ||
+              s.body.conversation.length > nexts[i-1].body.conversation.length),
+            "full transcript resent and growing");
+
+        add(nexts.every((s, i) => i === 0 ||
+              nexts[i-1].body.askedRefs.every(r => s.body.askedRefs.includes(r))),
+            "askedRefs never shrinks");
+
+        add(nexts.every(s => typeof s.body.lastAnswer === "string"),
+            "lastAnswer is always a single string");
+
+        document.getElementById("checks").innerHTML = checks.map(c =>
+          `<div class="${c.ok ? 'ok' : 'bad'}">${c.ok ? '✔' : '✘'} ${c.label}</div>`).join("");
+      }
+
+      //=========================================================
+      // Harness
+      //=========================================================
+      const trace = (label, payload) => {
+        eventsEl.textContent += `${label}  ${JSON.stringify(payload ?? {}, (k, v) =>
+          k === "conversation" || k === "question" || k === "formOptionsConfig" ? undefined : v)}\n`;
+        eventsEl.scrollTop = eventsEl.scrollHeight;
+      };
+
+      let agent = null;
+
+      function run(name) {
+        if (agent) agent.reset();
+        state.script = SCENARIOS[name];
+        state.cursor = 0;
+        state.sent = [];
+        state.feedbackCalls = 0;
+        netEl.textContent = "";
+        eventsEl.textContent = "";
+        document.getElementById("progress").textContent = "";
+        document.getElementById("checks").innerHTML = "";
+
+        // generateContainer() renames the host element's id to
+        // `magicfeedback-container-<integrationId>`, so #demo is gone after the
+        // first render. Restore it before re-running a scenario.
+        const host = document.getElementById("demo")
+          || document.getElementById("magicfeedback-container-mock-integration");
+        host.id = "demo";
+        host.innerHTML = "";
+
+        [...document.querySelectorAll("#scenarios button")].forEach(b =>
+          b.classList.toggle("active", b.textContent === name));
+
+        window.magicfeedback.init({env: "dev", debug: true});
+        agent = window.magicfeedback.agentForm("mock-integration", "pk_mock");
+        window.agent = agent;
+
+        agent.generate("demo", {
+          addButton: true,
+          resume: false,
+          lang: "en",
+          primaryColor: "#6d28d9",
+          rateLimitMessage: "Too many requests. Retrying in {seconds}s…",
+          onLoadedEvent: e => trace("onLoaded    ", {progress: e.progress, total: e.total, error: e.error && String(e.error)}),
+          beforeSubmitEvent: e => trace("beforeSubmit", {progress: e.progress}),
+          afterSubmitEvent: e => trace("afterSubmit ", {progress: e.progress, completed: e.completed, error: e.error && String(e.error)}),
+          onAgentTurnEvent: e => {
+            trace("agentTurn   ", {turn: e.turn, isFromBase: e.isFromBase, topic: e.topic});
+            document.getElementById("progress").textContent = `Question ${e.turn} of ~${e.maxTurns - 1}`;
+          },
+          onFinishEvent: e => {
+            trace("onFinish    ", {reason: e.reason, turns: e.turns});
+            document.getElementById("progress").textContent =
+              e.reason === "BLOCKED" ? "Conversation ended." : "Completed.";
+          },
+        });
+      }
+
+      document.getElementById("scenarios").innerHTML =
+        Object.keys(SCENARIOS).map(n => `<button>${n}</button>`).join("");
+      document.querySelectorAll("#scenarios button").forEach(b =>
+        b.addEventListener("click", () => run(b.textContent)));
+    </script>
+    <script src="../../dist/magicfeedback-sdk.browser.js"></script>
+    <script>run(Object.keys(SCENARIOS)[0]);</script>
+  </body>
+</html>
