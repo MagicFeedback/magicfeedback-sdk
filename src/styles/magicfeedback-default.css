@@ -512,14 +512,80 @@ textarea.error {
     cursor: pointer;
 }
 
-/* Rating Numbers */
+/* Rating Numbers — a segmented capsule: every option lives inside one
+   bordered pill, divided by hairlines, not a row of separate buttons.
+   Row and column are the same capsule, just rotated; column additionally
+   has room to show each option's own text plainly. */
+
+/* Every size here is width:100%/flex:1 combined with padding or a border
+   (dividers, the pill's own border). Without border-box, the browser's
+   default content-box adds that padding/border on TOP of the declared
+   size, so the box quietly overflows past its flex slot and gets clipped
+   by the capsule's overflow:hidden — reading as "not quite full width". */
+.magicfeedback-rating-number-container,
+.magicfeedback-rating-number-option,
+.magicfeedback-rating-number-option-label-container,
+.magicfeedback-rating-number-value,
+.magicfeedback-rating-number-scale-label-row {
+    box-sizing: border-box;
+}
+
+/* The shared rating-container rule (above, reused by star rating) sets
+   align-items:center for its row-of-chips layout — in a column capsule,
+   that still nudges a 100%-wide row inward instead of a true 0 offset.
+   Force stretch so every row (options and the bookend labels alike)
+   fills the exact same width, flush with the box on both sides. */
+.magicfeedback-rating-number-container-column,
+.magicfeedback-rating-number-container-column-reverse {
+    align-items: stretch;
+}
+
+/* Caption line above the scale — the single place min/max labels live,
+   shared by mobile and desktop and by both orientations. */
+.magicfeedback-rating-number-scale-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--mf-space-md);
+    margin-bottom: var(--mf-space-sm);
+    font-size: var(--mf-font-size-sm);
+    font-weight: var(--mf-font-weight-semibold);
+    color: var(--mf-text-secondary);
+}
+
+.magicfeedback-rating-number-scale-label {
+    overflow-wrap: anywhere;
+}
+
+.magicfeedback-rating-number-scale-label:last-child {
+    text-align: right;
+}
+
+/* Column, no per-option text: the min/max labels become the list's own
+   first and last rows — inside the same bordered box, same dividers —
+   instead of a sideways caption sitting above a top-to-bottom list. */
+.magicfeedback-rating-number-scale-label-row {
+    width: 100%;
+    padding: var(--mf-space-sm) var(--mf-space-md);
+    font-size: var(--mf-font-size-sm);
+    font-weight: var(--mf-font-weight-semibold);
+    color: var(--mf-text-secondary);
+    text-align: center;
+    background: var(--mf-surface-alt);
+}
+
+.magicfeedback-rating-number-scale-label-row:first-child {
+    border-bottom: 1px solid var(--mf-border);
+}
+
 .magicfeedback-rating-number-option {
-    flex: 1;
-    min-width: 60px;
+    display: flex;
 }
 
 .magicfeedback-rating-number-option-label-container {
     position: relative;
+    width: 100%;
+    display: flex;
+    cursor: pointer;
 }
 
 .magicfeedback-rating-number-option-label-container input[type="radio"] {
@@ -529,35 +595,146 @@ textarea.error {
     height: 0;
 }
 
-.magicfeedback-rating-number-option-label-container label {
+.magicfeedback-rating-number-value {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 48px;
-    padding: var(--mf-space-sm);
-    font-size: var(--mf-font-size-base);
-    font-weight: 500;
-    color: var(--mf-text-secondary);
-    background-color: var(--mf-bg-primary);
-    border: 1.5px solid var(--mf-border);
-    border-radius: var(--mf-radius-md);
-    cursor: pointer;
+    width: 100%;
     transition: var(--mf-transition-fast);
-    margin: 0;
+    color: var(--mf-text-secondary);
+    font-weight: var(--mf-font-weight-semibold);
 }
 
-.magicfeedback-rating-number-option-label-container label:hover {
-    background-color: var(--mf-bg-hover);
-    border-color: var(--mf-primary);
-    transform: translateY(-2px);
-    box-shadow: var(--mf-shadow-sm);
+/* Row: one bordered pill, options divided by hairlines. */
+.magicfeedback-rating-number-container-row,
+.magicfeedback-rating-number-container-row-reverse {
+    flex-wrap: nowrap;
+    border: 1.5px solid var(--mf-border);
+    border-radius: var(--mf-radius-full);
+    background: var(--mf-bg-secondary);
+    overflow: hidden;
+    padding: 0;
+    gap: 0;
 }
 
-.magicfeedback-rating-number-option-label-container input[type="radio"]:checked + label {
+.magicfeedback-rating-number-option-row,
+.magicfeedback-rating-number-option-row-reverse {
+    flex: 1 1 0;
+    min-width: 0;
+    border-right: 1px solid var(--mf-border);
+}
+
+.magicfeedback-rating-number-option-row:last-child,
+.magicfeedback-rating-number-option-row-reverse:last-child {
+    border-right: none;
+}
+
+.magicfeedback-rating-number-option-row .magicfeedback-rating-number-value,
+.magicfeedback-rating-number-option-row-reverse .magicfeedback-rating-number-value {
+    padding: var(--mf-space-sm) 0;
+    font-size: var(--mf-font-size-sm);
+}
+
+.magicfeedback-rating-number-option-row .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value,
+.magicfeedback-rating-number-option-row-reverse .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
+    color: #fff;
+    background-color: var(--mf-primary);
+    border-radius: var(--mf-radius-full);
+    box-shadow: var(--mf-shadow-md);
+}
+
+/* Extra option: always its own row below the scale, never squeezed into
+   the capsule — "doesn't apply" isn't a point on the 1..N continuum. */
+.magicfeedback-rating-number-extra-row {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--mf-space-sm);
+}
+
+.magicfeedback-rating-number-option--extra {
+    flex: 0 1 auto;
+}
+
+.magicfeedback-rating-number-option--extra .magicfeedback-rating-number-option-label-container {
+    width: auto;
+}
+
+.magicfeedback-rating-number-option--extra .magicfeedback-rating-number-value {
+    min-height: 36px;
+    padding: 0 var(--mf-space-md);
+    border: 1.5px dashed var(--mf-border);
+    border-radius: var(--mf-radius-full);
+    color: var(--mf-text-muted);
+    font-size: var(--mf-font-size-sm);
+}
+
+.magicfeedback-rating-number-option--extra .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
     color: var(--mf-primary);
-    background-color: var(--mf-primary-light);
     border-color: var(--mf-primary);
-    font-weight: 600;
+    border-style: solid;
+    background-color: var(--mf-primary-light);
+    font-weight: var(--mf-font-weight-semibold);
+}
+
+/* Column: the same capsule, rotated — dividers become horizontal, each
+   row has room for the option's own text next to its number. */
+.magicfeedback-rating-number-container-column,
+.magicfeedback-rating-number-container-column-reverse {
+    border: 1.5px solid var(--mf-border);
+    border-radius: var(--mf-radius-lg);
+    background: var(--mf-bg-secondary);
+    overflow: hidden;
+    padding: 0;
+    gap: 0;
+}
+
+.magicfeedback-rating-number-option-column,
+.magicfeedback-rating-number-option-column-reverse {
+    width: 100%;
+    border-bottom: 1px solid var(--mf-border);
+}
+
+.magicfeedback-rating-number-option-column:last-child,
+.magicfeedback-rating-number-option-column-reverse:last-child {
+    border-bottom: none;
+}
+
+.magicfeedback-rating-number-option-column .magicfeedback-rating-number-value,
+.magicfeedback-rating-number-option-column-reverse .magicfeedback-rating-number-value {
+    justify-content: flex-start;
+    gap: var(--mf-space-sm);
+    padding: var(--mf-space-sm) var(--mf-space-md);
+}
+
+.magicfeedback-rating-number-value-num {
+    font-weight: var(--mf-font-weight-bold);
+}
+
+/* Column with per-option text: a min-width so "1".."9" and "10" line up,
+   with the label text starting at the same x. Skipped entirely when the
+   column has no per-option text at all (--bare below) — with nothing to
+   align against, the same left-shift bug from row mode would resurface. */
+.magicfeedback-rating-number-container-column:not(.magicfeedback-rating-number-container-column--bare) .magicfeedback-rating-number-value-num,
+.magicfeedback-rating-number-container-column-reverse:not(.magicfeedback-rating-number-container-column--bare) .magicfeedback-rating-number-value-num {
+    flex: none;
+    min-width: 1.4em;
+}
+
+/* Column, no per-option text at all (only min/max, or nothing): a bare
+   numbered list has nothing to left-align against, so center each
+   number instead of stranding it on the left with blank space beside it. */
+.magicfeedback-rating-number-container-column--bare .magicfeedback-rating-number-value {
+    justify-content: center;
+}
+
+.magicfeedback-rating-number-value-label {
+    font-weight: var(--mf-font-weight-medium);
+}
+
+.magicfeedback-rating-number-option-column .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value,
+.magicfeedback-rating-number-option-column-reverse .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
+    color: #fff;
+    background-color: var(--mf-primary);
 }
 
 /* Star Rating */
@@ -1134,12 +1311,18 @@ textarea.error {
         gap: 10px;
     }
 
-    .magicfeedback-rating-number-container {
-        justify-content: flex-start;
+    .magicfeedback-rating-number-container-row,
+    .magicfeedback-rating-number-container-row-reverse,
+    .magicfeedback-rating-number-container-column,
+    .magicfeedback-rating-number-container-column-reverse {
+        /* the capsule is one bordered piece — no gap between segments,
+           overriding the generic rating gap set just above for mobile. */
+        gap: 0;
     }
 
-    .magicfeedback-rating-number-option {
-        min-width: calc(20% - var(--mf-space-sm));
+    .magicfeedback-rating-number-option-row .magicfeedback-rating-number-value,
+    .magicfeedback-rating-number-option-row-reverse .magicfeedback-rating-number-value {
+        font-size: 0.8rem;
     }
 
     .magicfeedback-action-container {

@@ -5,7 +5,6 @@ export const renderRatingNumber: QuestionRenderer = ({
     question,
     order,
     direction,
-    isPhone,
     send,
     urlParamValue
 }) => {
@@ -15,7 +14,6 @@ export const renderRatingNumber: QuestionRenderer = ({
         question.assets,
         order,
         direction,
-        isPhone,
         elementTypeClass,
         send,
         urlParamValue
