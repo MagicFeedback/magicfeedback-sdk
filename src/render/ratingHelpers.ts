@@ -190,14 +190,22 @@ export function createRatingNumberElement(
     const maxRatingNumber = assets?.max ? Number(assets?.max) : 10;
     const minRatingNumber = assets?.min ? Number(assets?.min) : 0;
 
+    // A short scale's chips stay roomy; a long one (0-10 NPS, say) would
+    // otherwise be forced into the same width and shrink past comfortable —
+    // this scales them down on purpose instead of stretching thin.
+    if (!isColumn && (maxRatingNumber - minRatingNumber + 1) > 6) {
+        ratingNumberContainer.classList.add('magicfeedback-rating-number-container-row--dense');
+    }
+
     const numberPlaceholders = assets?.numberPlaceholders || null;
     const hasNumberPlaceholders = !!(numberPlaceholders && Object.keys(numberPlaceholders).length);
 
-    // Row: min/max as one caption line above, left/right — the row itself
+    // Row: min/max as one caption line below, left/right — the row itself
     // reads left-to-right, so the caption bookends it the same way.
+    let rowScaleLabels: HTMLElement | null = null;
     if (!isColumn && (assets?.minPlaceholder || assets?.maxPlaceholder)) {
-        const scaleLabels = document.createElement('div');
-        scaleLabels.classList.add('magicfeedback-rating-number-scale-labels');
+        rowScaleLabels = document.createElement('div');
+        rowScaleLabels.classList.add('magicfeedback-rating-number-scale-labels');
 
         const minLabel = document.createElement('span');
         minLabel.classList.add('magicfeedback-rating-number-scale-label');
@@ -208,21 +216,18 @@ export function createRatingNumberElement(
         maxLabel.textContent = assets?.maxPlaceholder ?? '';
 
         if (order === 'ltr') {
-            scaleLabels.appendChild(minLabel);
-            scaleLabels.appendChild(maxLabel);
+            rowScaleLabels.appendChild(minLabel);
+            rowScaleLabels.appendChild(maxLabel);
         } else {
-            scaleLabels.appendChild(maxLabel);
-            scaleLabels.appendChild(minLabel);
+            rowScaleLabels.appendChild(maxLabel);
+            rowScaleLabels.appendChild(minLabel);
         }
-
-        element.appendChild(scaleLabels);
     }
 
-    // Column with no per-option text: a caption sitting sideways above a
-    // top-to-bottom list reads as disconnected from it. Bookend the list
-    // itself instead — as the list's own first and last rows, inside the
-    // same bordered box, dividers and all — so each label sits right
-    // next to the end it actually describes.
+    // Column with no per-option text: each row is now its own separated
+    // chip, not one shared box — so the caption bookends the whole stack
+    // from outside it (above the first chip, below the last) rather than
+    // living inside a box that no longer exists.
     let columnAfterLabel: HTMLElement | null = null;
     if (isColumn && !hasNumberPlaceholders) {
         ratingNumberContainer.classList.add('magicfeedback-rating-number-container-column--bare');
@@ -235,14 +240,14 @@ export function createRatingNumberElement(
 
             if (topText) {
                 const beforeLabel = document.createElement('div');
-                beforeLabel.classList.add('magicfeedback-rating-number-scale-label-row');
+                beforeLabel.classList.add('magicfeedback-rating-number-scale-label-block');
                 beforeLabel.textContent = topText;
-                ratingNumberContainer.appendChild(beforeLabel);
+                element.appendChild(beforeLabel);
             }
 
             if (bottomText) {
                 columnAfterLabel = document.createElement('div');
-                columnAfterLabel.classList.add('magicfeedback-rating-number-scale-label-row');
+                columnAfterLabel.classList.add('magicfeedback-rating-number-scale-label-block');
                 columnAfterLabel.textContent = bottomText;
             }
         }
@@ -311,9 +316,10 @@ export function createRatingNumberElement(
         ratingNumberContainer.appendChild(ratingOption);
     }
 
-    if (columnAfterLabel) ratingNumberContainer.appendChild(columnAfterLabel);
-
     element.appendChild(ratingNumberContainer);
+
+    if (rowScaleLabels) element.appendChild(rowScaleLabels);
+    if (columnAfterLabel) element.appendChild(columnAfterLabel);
 
     if (assets?.extraOption && assets?.extraOptionText) {
         // Always its own row below the scale — the extra option means

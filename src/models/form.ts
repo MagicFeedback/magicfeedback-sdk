@@ -1,4 +1,5 @@
 import {FEEDBACKAPPANSWERTYPE, generateFormOptions, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
+import {applyPrimaryColor, generateContainer} from "../render/containerHelpers";
 
 import {Config} from "./config";
 import {Log} from "../utils/log";
@@ -338,15 +339,21 @@ export class Form {
      * @returns
      */
     private generateContainer(): HTMLElement {
-        // Select and prepare the container
-        let container: HTMLElement | null = document.getElementById(this.selector);
-        if (!container) {
-            container = document.getElementById("magicfeedback-container-" + this.appId);
-            if (!container) throw new Error(`Element with ID '${this.selector}' not found.`);
-        }
-        container.classList.add("magicfeedback-container");
-        container.id = "magicfeedback-container-" + this.appId;
-        container.innerHTML = "";
+        const container = generateContainer(this.selector, this.appId);
+
+        // Per-integration brand color: formData.style.primaryColor, same
+        // config bucket as style.startMessage above. Setting it as a CSS
+        // custom property on the container lets every child element that
+        // already reads var(--mf-primary) pick it up with no per-component
+        // changes. --mf-primary-hover/--mf-primary-light/--mf-primary-border
+        // all reference var(--mf-primary) in the stylesheet, but a custom
+        // property's var() references resolve once, where it's declared —
+        // :root's copies stay locked to the default color and simply
+        // inherit down as already-resolved values, ignoring this override,
+        // unless they're redeclared here too using the same color-mix
+        // formulas so they resolve fresh against the new color.
+        const primaryColor = this.formData?.style?.primaryColor;
+        if (primaryColor) applyPrimaryColor(container, primaryColor);
 
         return container;
     }
@@ -1375,6 +1382,7 @@ export class Form {
             format?: "standard" | "slim";
             language?: string;
             product?: any;
+            style?: Record<string, any>;
             clearContainer?: boolean; // default true
             wrap?: boolean; // whether to create a wrapper div with a class
         }
@@ -1389,11 +1397,16 @@ export class Form {
             format = this.formOptionsConfig.questionFormat || "standard",
             language = (this.formData?.lang && this.formData.lang[0]) || "en",
             product = this.formData?.product || {customIcons: false},
+            style = this.formData?.style || {},
             clearContainer = true,
             wrap = true,
         } = options || {};
 
         if (clearContainer) container.innerHTML = "";
+
+        // Same per-integration primary color as the full form flow — see
+        // applyPrimaryColor() for why hover/light/border are recomputed too.
+        if (style?.primaryColor) applyPrimaryColor(container, style.primaryColor);
 
         // Reuse existing renderQuestions logic passing the question array
         let elements: HTMLElement[] = [];

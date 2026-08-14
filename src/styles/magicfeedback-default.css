@@ -10,9 +10,21 @@
    ======================================== */
 :root {
     /* Colors - Minimal Pastel */
-    --mf-primary: #1E293B;
-    --mf-primary-hover: #0F172A;
-    --mf-primary-light: #E2E8F0;
+    /* --mf-primary is the one source of truth for brand/accent color —
+       every token below derives from it via color-mix() (or references
+       it directly) so changing this single value, here or via a
+       per-integration override, keeps hover/light/border states in
+       sync automatically instead of going stale independently. Scoped
+       to genuinely interactive/accent surfaces (buttons, selected
+       chips, focus rings) — general body text stays on its own neutral
+       scale below, not tied to the brand color. */
+    --mf-primary: #5d7bad;
+    --mf-primary-hover: color-mix(in srgb, var(--mf-primary) 85%, black);
+    --mf-primary-light: color-mix(in srgb, var(--mf-primary) 15%, white);
+    /* a translucent tint — mixed with transparent (opacity), not white,
+       so it reads as a soft shadow of the brand color rather than a
+       pastel of it. */
+    --mf-primary-border: color-mix(in srgb, var(--mf-primary) 35%, transparent);
 
     --mf-text-primary: #1E293B;
     --mf-text-secondary: #475569;
@@ -23,7 +35,7 @@
     --mf-bg-hover: #EEF2F6;
 
     --mf-border: #E2E8F0;
-    --mf-border-focus: #1E293B;
+    --mf-border-focus: var(--mf-primary);
 
     --mf-success: #16A34A;
     --mf-error: #EF4444;
@@ -512,41 +524,40 @@ textarea.error {
     cursor: pointer;
 }
 
-/* Rating Numbers — a segmented capsule: every option lives inside one
-   bordered pill, divided by hairlines, not a row of separate buttons.
-   Row and column are the same capsule, just rotated; column additionally
-   has room to show each option's own text plainly. */
+/* Rating Numbers — each option is its own outlined chip in the survey's
+   primary color, with a gap between them. Row and column use the same
+   chip; column additionally has room to show each option's own text
+   plainly next to its number. */
 
-/* Every size here is width:100%/flex:1 combined with padding or a border
-   (dividers, the pill's own border). Without border-box, the browser's
-   default content-box adds that padding/border on TOP of the declared
-   size, so the box quietly overflows past its flex slot and gets clipped
-   by the capsule's overflow:hidden — reading as "not quite full width". */
+/* Every size here is width:100%/flex:1 combined with the chip's own
+   padding and border. Without border-box, the browser's default
+   content-box adds that padding/border on TOP of the declared size, so
+   the chip quietly overflows past its flex slot — reading as "not quite
+   full width" or, worse, pushing into the next chip. */
 .magicfeedback-rating-number-container,
 .magicfeedback-rating-number-option,
 .magicfeedback-rating-number-option-label-container,
-.magicfeedback-rating-number-value,
-.magicfeedback-rating-number-scale-label-row {
+.magicfeedback-rating-number-value {
     box-sizing: border-box;
 }
 
 /* The shared rating-container rule (above, reused by star rating) sets
-   align-items:center for its row-of-chips layout — in a column capsule,
-   that still nudges a 100%-wide row inward instead of a true 0 offset.
-   Force stretch so every row (options and the bookend labels alike)
-   fills the exact same width, flush with the box on both sides. */
+   align-items:center for its row-of-chips layout — in a stacked column
+   that still nudges a 100%-wide chip inward instead of a true 0 offset.
+   Force stretch so every chip fills the exact same width, flush on
+   both sides. */
 .magicfeedback-rating-number-container-column,
 .magicfeedback-rating-number-container-column-reverse {
     align-items: stretch;
 }
 
-/* Caption line above the scale — the single place min/max labels live,
-   shared by mobile and desktop and by both orientations. */
+/* Caption line below the row — the single place min/max labels live
+   for row mode, shared by mobile and desktop. */
 .magicfeedback-rating-number-scale-labels {
     display: flex;
     justify-content: space-between;
     gap: var(--mf-space-md);
-    margin-bottom: var(--mf-space-sm);
+    margin-top: var(--mf-space-sm);
     font-size: var(--mf-font-size-sm);
     font-weight: var(--mf-font-weight-semibold);
     color: var(--mf-text-secondary);
@@ -560,21 +571,26 @@ textarea.error {
     text-align: right;
 }
 
-/* Column, no per-option text: the min/max labels become the list's own
-   first and last rows — inside the same bordered box, same dividers —
-   instead of a sideways caption sitting above a top-to-bottom list. */
-.magicfeedback-rating-number-scale-label-row {
-    width: 100%;
-    padding: var(--mf-space-sm) var(--mf-space-md);
+/* Column, no per-option text: each row is its own separated chip, so
+   the min/max labels bookend the stack from outside it — one line
+   above the first chip, one below the last. Margin goes on whichever
+   side actually faces the list — the "before" label (always the first
+   child) gets space below it, the "after" one (always right after the
+   container, extra option row or not) gets space above it — so both
+   sit the same distance from the chips regardless of which one it is. */
+.magicfeedback-rating-number-scale-label-block {
     font-size: var(--mf-font-size-sm);
     font-weight: var(--mf-font-weight-semibold);
     color: var(--mf-text-secondary);
     text-align: center;
-    background: var(--mf-surface-alt);
 }
 
-.magicfeedback-rating-number-scale-label-row:first-child {
-    border-bottom: 1px solid var(--mf-border);
+.magicfeedback-rating-number-scale-label-block:first-child {
+    margin-bottom: var(--mf-space-sm);
+}
+
+.magicfeedback-rating-number-container + .magicfeedback-rating-number-scale-label-block {
+    margin-top: var(--mf-space-sm);
 }
 
 .magicfeedback-rating-number-option {
@@ -605,46 +621,59 @@ textarea.error {
     font-weight: var(--mf-font-weight-semibold);
 }
 
-/* Row: one bordered pill, options divided by hairlines. */
+/* Row: individual outlined chips in the survey's own primary color —
+   var(--mf-primary) so whatever brand color a given survey sets carries
+   through automatically, no color hardcoded here. */
 .magicfeedback-rating-number-container-row,
 .magicfeedback-rating-number-container-row-reverse {
     flex-wrap: nowrap;
-    border: 1.5px solid var(--mf-border);
-    border-radius: var(--mf-radius-full);
-    background: var(--mf-bg-secondary);
-    overflow: hidden;
-    padding: 0;
-    gap: 0;
+    gap: var(--mf-space-sm);
 }
 
 .magicfeedback-rating-number-option-row,
 .magicfeedback-rating-number-option-row-reverse {
     flex: 1 1 0;
     min-width: 0;
-    border-right: 1px solid var(--mf-border);
-}
-
-.magicfeedback-rating-number-option-row:last-child,
-.magicfeedback-rating-number-option-row-reverse:last-child {
-    border-right: none;
 }
 
 .magicfeedback-rating-number-option-row .magicfeedback-rating-number-value,
 .magicfeedback-rating-number-option-row-reverse .magicfeedback-rating-number-value {
-    padding: var(--mf-space-sm) 0;
-    font-size: var(--mf-font-size-sm);
+    min-height: 56px;
+    padding: var(--mf-space-sm);
+    border: 2px solid var(--mf-primary-border);
+    border-radius: var(--mf-radius-md);
+    background: var(--mf-bg-secondary);
+    color: var(--mf-primary);
+    font-size: var(--mf-font-size-lg);
+    font-weight: var(--mf-font-weight-bold);
+}
+
+/* More than 6 options (e.g. a 0-10 NPS scale): still one row, never
+   wraps — but scaled down on purpose, so it reads as a compact chip
+   rather than the same 56px button stretched thin. */
+.magicfeedback-rating-number-container-row--dense .magicfeedback-rating-number-option-row .magicfeedback-rating-number-value,
+.magicfeedback-rating-number-container-row--dense .magicfeedback-rating-number-option-row-reverse .magicfeedback-rating-number-value {
+    min-height: 36px;
+    padding: var(--mf-space-xs);
+    border-radius: var(--mf-radius-sm);
+    font-size: 0.8rem;
+}
+
+.magicfeedback-rating-number-option-row .magicfeedback-rating-number-option-label-container:hover .magicfeedback-rating-number-value,
+.magicfeedback-rating-number-option-row-reverse .magicfeedback-rating-number-option-label-container:hover .magicfeedback-rating-number-value {
+    background: var(--mf-primary-light);
 }
 
 .magicfeedback-rating-number-option-row .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value,
 .magicfeedback-rating-number-option-row-reverse .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
     color: #fff;
     background-color: var(--mf-primary);
-    border-radius: var(--mf-radius-full);
     box-shadow: var(--mf-shadow-md);
 }
 
-/* Extra option: always its own row below the scale, never squeezed into
-   the capsule — "doesn't apply" isn't a point on the 1..N continuum. */
+/* Extra option: always its own row below the scale, and styled like every
+   other chip now — "doesn't apply" is still not a point on the 1..N
+   continuum, but it no longer needs a different border style to say so. */
 .magicfeedback-rating-number-extra-row {
     display: flex;
     justify-content: center;
@@ -662,48 +691,57 @@ textarea.error {
 .magicfeedback-rating-number-option--extra .magicfeedback-rating-number-value {
     min-height: 36px;
     padding: 0 var(--mf-space-md);
-    border: 1.5px dashed var(--mf-border);
-    border-radius: var(--mf-radius-full);
-    color: var(--mf-text-muted);
+    border: 2px solid var(--mf-primary-border);
+    border-radius: var(--mf-radius-md);
+    background: var(--mf-bg-secondary);
+    color: var(--mf-primary);
     font-size: var(--mf-font-size-sm);
 }
 
-.magicfeedback-rating-number-option--extra .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
-    color: var(--mf-primary);
-    border-color: var(--mf-primary);
-    border-style: solid;
-    background-color: var(--mf-primary-light);
-    font-weight: var(--mf-font-weight-semibold);
+.magicfeedback-rating-number-option--extra .magicfeedback-rating-number-option-label-container:hover .magicfeedback-rating-number-value {
+    background: var(--mf-primary-light);
 }
 
-/* Column: the same capsule, rotated — dividers become horizontal, each
-   row has room for the option's own text next to its number. */
+.magicfeedback-rating-number-option--extra .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
+    color: #fff;
+    background-color: var(--mf-primary);
+    box-shadow: var(--mf-shadow-md);
+}
+
+/* Column: the same separated chips as row, just stacked — each option is
+   its own outlined chip with a gap between them, not one shared box. */
 .magicfeedback-rating-number-container-column,
 .magicfeedback-rating-number-container-column-reverse {
-    border: 1.5px solid var(--mf-border);
-    border-radius: var(--mf-radius-lg);
-    background: var(--mf-bg-secondary);
-    overflow: hidden;
-    padding: 0;
-    gap: 0;
+    gap: var(--mf-space-sm);
 }
 
 .magicfeedback-rating-number-option-column,
 .magicfeedback-rating-number-option-column-reverse {
     width: 100%;
-    border-bottom: 1px solid var(--mf-border);
-}
-
-.magicfeedback-rating-number-option-column:last-child,
-.magicfeedback-rating-number-option-column-reverse:last-child {
-    border-bottom: none;
 }
 
 .magicfeedback-rating-number-option-column .magicfeedback-rating-number-value,
 .magicfeedback-rating-number-option-column-reverse .magicfeedback-rating-number-value {
     justify-content: flex-start;
     gap: var(--mf-space-sm);
+    min-height: 48px;
     padding: var(--mf-space-sm) var(--mf-space-md);
+    border: 2px solid var(--mf-primary-border);
+    border-radius: var(--mf-radius-md);
+    background: var(--mf-bg-secondary);
+    color: var(--mf-primary);
+}
+
+.magicfeedback-rating-number-option-column .magicfeedback-rating-number-option-label-container:hover .magicfeedback-rating-number-value,
+.magicfeedback-rating-number-option-column-reverse .magicfeedback-rating-number-option-label-container:hover .magicfeedback-rating-number-value {
+    background: var(--mf-primary-light);
+}
+
+.magicfeedback-rating-number-option-column .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value,
+.magicfeedback-rating-number-option-column-reverse .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
+    color: #fff;
+    background-color: var(--mf-primary);
+    box-shadow: var(--mf-shadow-md);
 }
 
 .magicfeedback-rating-number-value-num {
@@ -1312,17 +1350,15 @@ textarea.error {
     }
 
     .magicfeedback-rating-number-container-row,
-    .magicfeedback-rating-number-container-row-reverse,
-    .magicfeedback-rating-number-container-column,
-    .magicfeedback-rating-number-container-column-reverse {
-        /* the capsule is one bordered piece — no gap between segments,
-           overriding the generic rating gap set just above for mobile. */
-        gap: 0;
+    .magicfeedback-rating-number-container-row-reverse {
+        gap: 6px;
     }
 
     .magicfeedback-rating-number-option-row .magicfeedback-rating-number-value,
     .magicfeedback-rating-number-option-row-reverse .magicfeedback-rating-number-value {
-        font-size: 0.8rem;
+        min-height: 44px;
+        padding: var(--mf-space-xs);
+        font-size: 0.9rem;
     }
 
     .magicfeedback-action-container {
