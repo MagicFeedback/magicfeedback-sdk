@@ -151,10 +151,29 @@
     padding: var(--mf-space-lg);
     margin: var(--mf-space-lg) 0;
     border-radius: var(--mf-radius-lg);
-    background: var(--mf-surface-alt);
+    background: color-mix(in srgb, var(--mf-surface-alt) 60%, transparent);
     border: 1px solid var(--mf-border);
     box-shadow: var(--mf-shadow-sm);
     animation: mf-scale-in 0.3s ease-out;
+}
+
+/* .magicfeedback-info-message/-start-message are set via innerHTML (see
+   renderInfoPage.ts / questions.service.ts's renderStartMessage) — whatever
+   rich text a survey author writes lands here as real HTML, not just the
+   <p>/<img> pair this used to style. Covering the rest of what a rich-text
+   editor commonly outputs (headings, lists, links, emphasis, quotes, code,
+   rules) keeps that content on the same type scale and palette as the rest
+   of the widget instead of falling back to unstyled browser defaults. */
+.magicfeedback-success-message > :first-child,
+.magicfeedback-info-message > :first-child,
+.magicfeedback-start-message > :first-child {
+    margin-top: 0;
+}
+
+.magicfeedback-success-message > :last-child,
+.magicfeedback-info-message > :last-child,
+.magicfeedback-start-message > :last-child {
+    margin-bottom: 0;
 }
 
 .magicfeedback-success-message p,
@@ -162,8 +181,113 @@
 .magicfeedback-start-message p {
     font-size: var(--mf-font-size-base);
     color: var(--mf-text-secondary);
-    margin: 0;
+    margin: 0 0 var(--mf-space-md);
     line-height: var(--mf-line-height);
+}
+
+.magicfeedback-info-message h1,
+.magicfeedback-info-message h2,
+.magicfeedback-info-message h3,
+.magicfeedback-info-message h4,
+.magicfeedback-info-message h5,
+.magicfeedback-info-message h6,
+.magicfeedback-start-message h1,
+.magicfeedback-start-message h2,
+.magicfeedback-start-message h3,
+.magicfeedback-start-message h4,
+.magicfeedback-start-message h5,
+.magicfeedback-start-message h6 {
+    color: var(--mf-text-primary);
+    font-weight: var(--mf-font-weight-bold);
+    line-height: 1.3;
+    margin: var(--mf-space-lg) 0 var(--mf-space-sm);
+    text-align: left;
+}
+
+.magicfeedback-info-message h1, .magicfeedback-start-message h1 { font-size: var(--mf-font-size-xl); }
+.magicfeedback-info-message h2, .magicfeedback-start-message h2 { font-size: var(--mf-font-size-lg); }
+.magicfeedback-info-message h3,
+.magicfeedback-info-message h4,
+.magicfeedback-info-message h5,
+.magicfeedback-info-message h6,
+.magicfeedback-start-message h3,
+.magicfeedback-start-message h4,
+.magicfeedback-start-message h5,
+.magicfeedback-start-message h6 { font-size: var(--mf-font-size-base); }
+
+.magicfeedback-info-message strong,
+.magicfeedback-info-message b,
+.magicfeedback-start-message strong,
+.magicfeedback-start-message b {
+    font-weight: var(--mf-font-weight-bold);
+    color: var(--mf-text-primary);
+}
+
+.magicfeedback-info-message a,
+.magicfeedback-start-message a {
+    color: var(--mf-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.magicfeedback-info-message a:hover,
+.magicfeedback-start-message a:hover {
+    color: var(--mf-primary-hover);
+}
+
+.magicfeedback-info-message ul,
+.magicfeedback-info-message ol,
+.magicfeedback-start-message ul,
+.magicfeedback-start-message ol {
+    margin: 0 0 var(--mf-space-md);
+    padding-left: var(--mf-space-xl);
+    color: var(--mf-text-secondary);
+    line-height: var(--mf-line-height);
+}
+
+.magicfeedback-info-message li + li,
+.magicfeedback-start-message li + li {
+    margin-top: var(--mf-space-xs);
+}
+
+.magicfeedback-info-message blockquote,
+.magicfeedback-start-message blockquote {
+    margin: 0 0 var(--mf-space-md);
+    padding: var(--mf-space-sm) var(--mf-space-md);
+    border-left: 3px solid var(--mf-primary-border);
+    color: var(--mf-text-secondary);
+    font-style: italic;
+}
+
+.magicfeedback-info-message code,
+.magicfeedback-start-message code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    background: var(--mf-bg-hover);
+    padding: 0.15em 0.4em;
+    border-radius: var(--mf-radius-sm);
+}
+
+.magicfeedback-info-message pre,
+.magicfeedback-start-message pre {
+    margin: 0 0 var(--mf-space-md);
+    padding: var(--mf-space-md);
+    background: var(--mf-bg-hover);
+    border-radius: var(--mf-radius-md);
+    overflow-x: auto;
+}
+
+.magicfeedback-info-message pre code,
+.magicfeedback-start-message pre code {
+    background: none;
+    padding: 0;
+}
+
+.magicfeedback-info-message hr,
+.magicfeedback-start-message hr {
+    border: none;
+    border-top: 1px solid var(--mf-border);
+    margin: var(--mf-space-lg) 0;
 }
 
 .magicfeedback-success-message img,
@@ -331,7 +455,6 @@ textarea.error {
     align-items: center;
     gap: var(--mf-space-sm);
     padding: var(--mf-space-md);
-    background-color: var(--mf-bg-primary);
     border: 1.5px solid var(--mf-border);
     border-radius: var(--mf-radius-md);
     cursor: pointer;
@@ -399,7 +522,6 @@ textarea.error {
     font-size: var(--mf-font-size-base);
     font-weight: 500;
     color: var(--mf-text-secondary);
-    background-color: var(--mf-bg-primary);
     border: 1.5px solid var(--mf-border);
     border-radius: var(--mf-radius-md);
     cursor: pointer;
@@ -443,49 +565,26 @@ textarea.error {
     margin: 0;
 }
 
-.magicfeedback-rating-placeholder,
-.magicfeedback-rating-placeholder-value,
-.magicfeedback-rating-number-top-placeholder,
-.magicfeedback-rating-number-bottom-placeholder {
+/* Caption line below the row — min on one side, max on the other (swapped
+   for order: "rtl") — same simple, non-responsive pattern as the
+   rating-number row caption. Used by rating-star and rating-emoji. */
+.magicfeedback-rating-placeholder {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--mf-space-md);
     width: 100%;
-    text-align: center;
+    margin-top: var(--mf-space-sm);
     font-size: var(--mf-font-size-sm);
+    font-weight: var(--mf-font-weight-semibold);
     color: var(--mf-text-secondary);
-    margin: var(--mf-space-sm) 0;
 }
 
-@media (min-width: 600px) {
-    .magicfeedback-rating-container,
-    .magicfeedback-rating-number-container,
-    .magicfeedback-rating-star-container {
-        position: relative;
-    }
+.magicfeedback-rating-placeholder-value {
+    overflow-wrap: anywhere;
+}
 
-    .magicfeedback-rating-container--with-placeholder,
-    .magicfeedback-rating-number-container--with-placeholder {
-        padding-top: calc(var(--mf-space-md) + var(--mf-space-sm) - 4px);
-        padding-bottom: calc(var(--mf-space-md) - var(--mf-space-sm));
-    }
-
-    .magicfeedback-rating-placeholder {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        margin: 0;
-        padding: 0 4px;
-        box-sizing: border-box;
-        pointer-events: none;
-        z-index: 1;
-    }
-
-    .magicfeedback-rating-placeholder-value {
-        margin: 0;
-        max-width: 50%;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-        white-space: normal;
-    }
+.magicfeedback-rating-placeholder-value:last-child {
+    text-align: right;
 }
 
 /* Rating with Images */
@@ -885,7 +984,7 @@ textarea.error {
     text-align: center;
 }
 
-.magicfeedback-multi-question-matrix-row-label {
+.magicfeedback-multi-question-matrix-label {
     text-align: left;
     font-size: var(--mf-font-size-base);
     color: var(--mf-text-primary);
@@ -1147,6 +1246,12 @@ textarea.error {
     overflow: hidden;
     padding: 16px;
     position: relative;
+    /* Portalled to document.body (see renderPriorityList.ts) to escape the
+       host page's overflow/z-index — so it never inherits
+       .magicfeedback-container's neutral text color and instead inherits
+       whatever color the host page's own <body> happens to set. Needs its
+       own explicit baseline rather than relying on that inheritance. */
+    color: var(--mf-text-primary);
 }
 
 /* Modal actions */
@@ -1163,7 +1268,7 @@ textarea.error {
     display: flex;
     align-items: center;
     font-size: 14px;
-    color: #444;
+    color: var(--mf-text-secondary);
 }
 
 /* Modal list */
@@ -1333,7 +1438,6 @@ textarea.error {
     .magicfeedback-checkbox-container {
         padding: 10px 12px;
         border-radius: var(--mf-radius-md);
-        background: var(--mf-surface-alt);
         border: 1px solid var(--mf-border);
         gap: 10px;
     }

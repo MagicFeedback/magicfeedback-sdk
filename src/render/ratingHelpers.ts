@@ -1,61 +1,26 @@
+/**
+ * A caption line for min/max labels — one line, min on one side and max on
+ * the other (swapped for order: "rtl"), same simple pattern rating-number
+ * uses for its own row caption. No viewport-width branching: the caller
+ * decides where this sits (rating-star and rating-emoji place it below
+ * their options), and it always reads the same way regardless of screen
+ * size.
+ */
 export function createRatingPlaceholder(
-    min: number,
-    max: number,
     minPlaceholder?: string,
     maxPlaceholder?: string,
-    extraOption: boolean = false,
-    mobile: boolean = true,
     order = 'ltr',
-    direction = 'row'
 ) {
     const ratingPlaceholder = document.createElement('div');
     ratingPlaceholder.classList.add('magicfeedback-rating-placeholder');
-    ratingPlaceholder.style.display = "flex";
-    ratingPlaceholder.style.flexDirection = direction;
-    ratingPlaceholder.style.alignItems = "center";
-    ratingPlaceholder.style.justifyContent = "space-between";
-    ratingPlaceholder.style.width = extraOption ? `calc(100% - (100% / ${max + 1}))` : "100%";
-
-    ratingPlaceholder.style.marginRight = "auto";
-
-    if (mobile && window.innerWidth < 600) ratingPlaceholder.style.flexDirection = "column";
 
     const ratingPlaceholderMin = document.createElement('span');
-    ratingPlaceholderMin.textContent = minPlaceholder ?? null;
+    ratingPlaceholderMin.textContent = minPlaceholder ?? '';
     ratingPlaceholderMin.classList.add('magicfeedback-rating-placeholder-value');
-    ratingPlaceholderMin.style.fontSize = "15px";
-    ratingPlaceholderMin.style.display = "block";
-    ratingPlaceholderMin.style.minWidth = "0";
-    ratingPlaceholderMin.style.overflowWrap = "anywhere";
-    ratingPlaceholderMin.style.wordBreak = "break-word";
-    ratingPlaceholderMin.style.textAlign = order === 'ltr' ? "left" : "right";
-    ratingPlaceholderMin.style.width = `50%`;
-
-    if (mobile && window.innerWidth < 600 || direction === 'column') {
-        ratingPlaceholderMin.textContent = `${min} = ${minPlaceholder}`;
-        ratingPlaceholderMin.style.width = '100%';
-        ratingPlaceholderMin.style.textAlign = "left";
-        ratingPlaceholderMin.style.marginBottom = "5px";
-    }
-
 
     const ratingPlaceholderMax = document.createElement('span');
-    ratingPlaceholderMax.textContent = maxPlaceholder ?? null;
+    ratingPlaceholderMax.textContent = maxPlaceholder ?? '';
     ratingPlaceholderMax.classList.add('magicfeedback-rating-placeholder-value');
-    ratingPlaceholderMax.style.fontSize = "15px";
-    ratingPlaceholderMax.style.display = "block";
-    ratingPlaceholderMax.style.minWidth = "0";
-    ratingPlaceholderMax.style.overflowWrap = "anywhere";
-    ratingPlaceholderMax.style.wordBreak = "break-word";
-    ratingPlaceholderMax.style.textAlign = order === 'ltr' ? "right" : "left";
-    ratingPlaceholderMax.style.width = `50%`;
-
-    if (mobile && window.innerWidth < 600 || direction === 'column') {
-        ratingPlaceholderMax.textContent = `${max} = ${maxPlaceholder}`;
-        ratingPlaceholderMax.style.width = '100%';
-        ratingPlaceholderMax.style.textAlign = "left";
-        ratingPlaceholderMax.style.marginBottom = "5px";
-    }
 
     if (order === 'ltr') {
         if (minPlaceholder) ratingPlaceholder.appendChild(ratingPlaceholderMin);
@@ -155,11 +120,8 @@ export function createStarRating(
         ratingContainer.appendChild(ratingOption);
     }
 
-    const ratingPlaceholder = createRatingPlaceholder(1, 5, minPlaceholder, maxPlaceholder, false, false);
-    if (ratingPlaceholder.childElementCount > 0) {
-        ratingContainer.classList.add('magicfeedback-rating-container--with-placeholder');
-        ratingContainer.insertBefore(ratingPlaceholder, ratingContainer.firstChild);
-    }
+    const ratingPlaceholder = createRatingPlaceholder(minPlaceholder, maxPlaceholder);
+    if (ratingPlaceholder.childElementCount > 0) ratingContainer.appendChild(ratingPlaceholder);
 
     return ratingContainer;
 }
