@@ -688,14 +688,6 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
-"@magicfeedback/native@file:":
-  version "2.2.2"
-  resolved "file:"
-  dependencies:
-    "@magicfeedback/native" "file:"
-    cross-fetch "^3.1.5"
-    is-bundling-for-browser-or-node "^1.1.1"
-
 "@nicolo-ribaudo/semver-v6@^6.3.3":
   version "6.3.3"
   resolved "https://registry.npmjs.org/@nicolo-ribaudo/semver-v6/-/semver-v6-6.3.3.tgz"
