@@ -6,6 +6,21 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.2.22] - 2026-09-14
+- **New feature (i18n):** All SDK-rendered copy is now translated into the 11 product languages: `en`, `da`, `fi`, `no`, `sv`, `es`, `pt`, `fr`, `de`, `ar` and `bn`. German, Portuguese and French were previously missing from the input placeholders, the point-system error and the upload copy, and fell back to English.
+- **New module (`services/i18n.ts`):** Single translation table behind `t(language, key, params)`. The copy used to live in three disconnected places (`services/placeholder.ts`, `render/helpers.ts` and a dict inlined in `render/renderPriorityList.ts`), each supporting a different language list, so the same survey could show a translated priority list next to an English placeholder.
+- **New:** Regional tags now resolve instead of falling back to English — `es-ES`, `pt_BR`, `nb-NO`, `zh-Hans` map to `es`, `pt`, `no`, `zh`.
+- **New:** Default button labels (`Send` / `Back` / `Next` / `Go!`) and the success, blocked, required and rate-limit messages are translated per integration language, in both standard and AGENT mode. Values set explicitly via `generate()` options still win.
+- **Fix (`bn`):** Bengali input placeholders were a truncated fragment ("এখানে আপনার") for answer, number, email, date and password; they are now complete sentences.
+- **Improvement:** The `RATING_NUMBER` radiogroup `aria-label` is translated instead of the hardcoded "Rating".
+- **Partial locales:** `it`, `nl`, `pl`, `ru`, `ja`, `zh`, `ko` keep the yes/no labels and priority-list copy they already had; every other key falls back to English, exactly as before.
+- **New feature (RTL):** Arabic surveys now render right to left. The SDK stamps `dir` (and `.magicfeedback-rtl`) on its container via `applyDirection()` in standard, AGENT and preview flows, and on the priority-list modal, which is portaled to `<body>` and therefore outside the container's subtree. Non-RTL languages are explicitly marked `ltr` so a container reused by a second survey is never left flipped.
+- **Styles:** `magicfeedback-default.css` (and the legacy `index.css`) now use logical properties — `text-align: start/end`, `padding-inline-*`, `border-inline-start`, `inset-inline-end`, `margin-inline-*` — which are identical under LTR and mirror on their own under RTL. A new RTL section covers the few rules that have no logical form: the select caret (`background-position`), the slide-in keyframe, and LTR text direction for `email` / `url` / `number` / `tel` / `date` / `time` inputs.
+- **Fix (`SELECT`):** the empty option's label was the hardcoded English "Select an option"; it is now translated.
+- **Fix (`POINT_SYSTEM`):** the running total ("0 / 100 %") is digits and neutral characters only, so the bidi algorithm reordered it to "% 100 / 0" in an RTL survey. It is now isolated in a `<bdi dir="ltr">`.
+- **Note:** `RATING_NUMBER` scales mirror with the survey — a 0-10 scale starts from the right in Arabic. The per-question `order: "rtl"` asset composes with this, so it flips the scale relative to the survey direction rather than to the page.
+- **Tests:** Added `test/i18n.test.ts` — key coverage per language, tag normalization, param interpolation, the `placeholder` / `getBooleanOptions` facades, and render-level checks (German copy, `pt-BR` normalization, Arabic `dir="rtl"`, and a container going back to `ltr`).
+
 ## 🚀 [2.2.4] - 2026-05-15
 - **New feature (`Form.send`):** Added an optional fourth parameter `answers: NativeAnswer[]`. When provided, the SDK skips the DOM scrape and the required-question validation loop, pushes the supplied answers directly into `feedback.answers`, and submits via `pushAnswers`. Lets host apps drive a survey from custom UI components without rendering the SDK widgets.
 - **Lifecycle hooks preserved:** `beforeSubmitEvent` and `afterSubmitEvent` still fire when answers are passed programmatically, so consumers keep the same submission lifecycle.

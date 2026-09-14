@@ -1,4 +1,5 @@
 import {parseTitle} from "./helpers";
+import {t} from "../services/i18n";
 import {QuestionRenderer} from "./types";
 
 export const renderSelect: QuestionRenderer = ({
@@ -13,7 +14,7 @@ export const renderSelect: QuestionRenderer = ({
 
     const option = document.createElement("option");
     option.value = "";
-    option.text = format === 'slim' ? parseTitle(title, language) : (defaultValue || "Select an option");
+    option.text = format === 'slim' ? parseTitle(title, language) : (defaultValue || t(language, "select.placeholder"));
     option.disabled = true;
     option.selected = true;
     (element as HTMLSelectElement).appendChild(option);

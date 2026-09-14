@@ -16,9 +16,10 @@ import {
     toAgentStep,
 } from "../services/agentQuestion.adapter";
 import {scrapeInputs} from "../services/answerScrape";
-import {applyPrimaryColor, generateContainer} from "../render/containerHelpers";
+import {applyDirection, applyPrimaryColor, generateContainer} from "../render/containerHelpers";
 import {awaitUploadReady} from "../render/uploadHelpers";
 import {renderActions, renderError, renderQuestions, renderSuccess} from "../services/questions.service";
+import {t} from "../services/i18n";
 
 /** How long a persisted session stays resumable. */
 const RESUME_TTL_MS = 30 * 60 * 1000;
@@ -95,11 +96,11 @@ export class AgentForm {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
 
+        // Button texts and flow messages stay unset on purpose: unless the
+        // integrator overrides them they are translated per render from
+        // `this.language` (see t()).
         this.formOptionsConfig = {
             addButton: true,
-            sendButtonText: "Send",
-            backButtonText: "Back",
-            nextButtonText: "Next",
             addSuccessScreen: true,
             questionFormat: "standard",
             answerDelimiter: DEFAULT_ANSWER_DELIMITER,
@@ -280,7 +281,7 @@ export class AgentForm {
 
             if (lastAnswer === "") {
                 if (question.require) {
-                    this.showError(this.formOptionsConfig.requiredMessage || "Please answer before continuing.");
+                    this.showError(this.formOptionsConfig.requiredMessage || t(this.language, "message.required"));
                     return;
                 }
                 lastAnswer = this.formOptionsConfig.emptyAnswerText || "";
@@ -439,6 +440,7 @@ export class AgentForm {
     private mountForm(): void {
         const container = generateContainer(this.selector, this.integrationId);
         if (this.primaryColor) applyPrimaryColor(container, this.primaryColor);
+        applyDirection(container, this.language);
 
         const form = document.createElement("form");
         form.classList.add("magicfeedback-form");
@@ -460,9 +462,9 @@ export class AgentForm {
             form.appendChild(renderActions(
                 this.formOptionsConfig.allowBack ? 'MAGICSURVEY' : 'MAGICFORM',
                 () => this.back(),
-                this.formOptionsConfig.sendButtonText,
-                this.formOptionsConfig.backButtonText,
-                this.formOptionsConfig.nextButtonText,
+                this.formOptionsConfig.sendButtonText || t(this.language, "action.send"),
+                this.formOptionsConfig.backButtonText || t(this.language, "action.back"),
+                this.formOptionsConfig.nextButtonText || t(this.language, "action.next"),
             ));
         }
 
@@ -504,9 +506,9 @@ export class AgentForm {
 
             const message = step.reason === "BLOCKED"
                 ? (this.formOptionsConfig.blockedMessage
-                    || "Thanks for your time — we'll end the conversation here.")
+                    || t(this.language, "message.blocked"))
                 : (this.formOptionsConfig.successMessage
-                    || "Thank you for your feedback!");
+                    || t(this.language, "message.success"));
 
             const node = renderSuccess(message);
             // renderSuccess only sets `magicfeedback-success`, which no stylesheet
@@ -653,7 +655,7 @@ export class AgentForm {
 
         let remaining = Math.ceil(waitMs / 1000);
         const template = this.formOptionsConfig.rateLimitMessage
-            || "Too many requests. Retrying in {seconds}s…";
+            || t(this.language, "message.rateLimit");
 
         const tick = () => {
             if (remaining <= 0) {

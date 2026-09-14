@@ -221,7 +221,7 @@ function renderContainer(
             const counter = document.createElement("div");
             counter.classList.add("magicfeedback-counter");
             counter.textContent = `${(element as HTMLTextAreaElement).value.length}/${maxCharacters}`
-            counter.style.textAlign = "right";
+            counter.style.textAlign = "end";
             counter.style.fontSize = "15px";
             counter.style.marginTop = "5px";
             element.addEventListener("input", () => {

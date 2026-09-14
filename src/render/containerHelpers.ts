@@ -1,3 +1,5 @@
+import {isRtlLanguage} from "../services/i18n";
+
 /**
  * Resolves the host container for a survey and prepares it for rendering.
  *
@@ -49,4 +51,25 @@ export function applyPrimaryColor(container: HTMLElement, primaryColor: string):
     container.style.setProperty('--mf-primary-light', `color-mix(in srgb, ${primaryColor} 15%, white)`);
     container.style.setProperty('--mf-primary-border', `color-mix(in srgb, ${primaryColor} 35%, transparent)`);
     container.style.setProperty('--mf-border-focus', primaryColor);
+}
+
+/**
+ * Sets the writing direction of a survey from its language.
+ *
+ * Only the container is marked: the stylesheet uses logical properties
+ * (text-align: start, padding-inline-start, ...) so every descendant mirrors
+ * from this one attribute, and a host page in the opposite direction is not
+ * affected because the attribute is scoped to our subtree.
+ *
+ * `dir` is always written, never only added for RTL — a container reused for a
+ * second survey in another language has to be able to go back to ltr.
+ *
+ * @param container element the survey renders into
+ * @param language integration language (any BCP-47-ish tag)
+ */
+export function applyDirection(container: HTMLElement, language?: string): void {
+    const rtl = isRtlLanguage(language);
+
+    container.setAttribute("dir", rtl ? "rtl" : "ltr");
+    container.classList.toggle("magicfeedback-rtl", rtl);
 }

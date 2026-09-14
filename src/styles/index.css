@@ -85,7 +85,7 @@
     justify-content: flex-start;
     flex-wrap: wrap;
     width: 100%;
-    margin-right: 5px;
+    margin-inline-end: 5px;
     padding: 5px;
 }
 
@@ -109,8 +109,8 @@ input::-webkit-inner-spin-button {
 }
 
 .magicfeedback-checkbox input[type="checkbox"] {
-    margin-right: 5px;
-    margin-left: 5px;
+    margin-inline-end: 5px;
+    margin-inline-start: 5px;
     width: 20px;
     height: 20px;
     cursor: pointer;
@@ -119,7 +119,7 @@ input::-webkit-inner-spin-button {
 
 .magicfeedback-checkbox label,
 .magicfeedback-radio-container label {
-    margin-left: 5px;
+    margin-inline-start: 5px;
     font-weight: 400;
     font-family: inherit;
     font-size: 16px;
@@ -194,7 +194,7 @@ select {
 }
 
 .magicfeedback-boolean-container label {
-    margin-left: 10px;
+    margin-inline-start: 10px;
     font-weight: 400;
     font-size: 16px;
     width: 100%;
@@ -202,8 +202,8 @@ select {
 }
 
 .magicfeedback-boolean-option {
-    margin-right: 10px;
-    margin-left: 10px;
+    margin-inline-end: 10px;
+    margin-inline-start: 10px;
     width: 100%;
     height: 38px;
     border-radius: 8px;
@@ -451,13 +451,13 @@ input.error, select.error {
 @media (min-width: 650px) {
     .magicfeedback-rating-number-option-row +.magicfeedback-rating-number-container-ltr:first-child,
     .magicfeedback-rating-number-option-row + +.magicfeedback-rating-number-container-rtl:last-child {
-        margin-left: 0;
+        margin-inline-start: 0;
         width: calc(100% - 10px);
     }
 
     .magicfeedback-rating-number-option-row +.magicfeedback-rating-number-container-rtl:first-child,
     .magicfeedback-rating-number-option-row + +.magicfeedback-rating-number-container-ltr:last-child {
-        margin-right: 0;
+        margin-inline-end: 0;
         width: calc(100% - 10px);
     }
 }
@@ -620,7 +620,7 @@ input.error, select.error {
 }
 
 .magicfeedback-consent-container label {
-    margin-left: 10px;
+    margin-inline-start: 10px;
 }
 
 .magicfeedback-start-message-container {
@@ -716,7 +716,7 @@ input.error, select.error {
 }
 
 .magicfeedback-multi-question-matrix-label{
-    text-align: left !important;
+    text-align: start !important;
 }
 .magicfeedback-priority-list-item {
     display: flex;
@@ -798,7 +798,7 @@ input.error, select.error {
 }
 
 .magicfeedback-multi-question-matrix-row-label {
-    text-align: left !important;
+    text-align: start !important;
 }
 
 .magicfeedback-point-system-item span {

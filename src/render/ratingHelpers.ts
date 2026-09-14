@@ -1,3 +1,5 @@
+import {t} from "../services/i18n";
+
 /**
  * A caption line for min/max labels — one line, min on one side and max on
  * the other (swapped for order: "rtl"), same simple pattern rating-number
@@ -134,6 +136,7 @@ export function createRatingNumberElement(
     elementTypeClass: string,
     send?: () => void,
     urlParamValue?: string | null,
+    language?: string,
 ): HTMLElement {
     const element = document.createElement("div");
     element.classList.add('magicfeedback-rating-number');
@@ -147,7 +150,7 @@ export function createRatingNumberElement(
     ratingNumberContainer.style.display = "flex";
     ratingNumberContainer.style.flexDirection = numberContainerDirection;
     ratingNumberContainer.setAttribute('role', 'radiogroup');
-    ratingNumberContainer.setAttribute('aria-label', assets?.ariaLabel || 'Rating');
+    ratingNumberContainer.setAttribute('aria-label', assets?.ariaLabel || t(language, 'rating.ariaLabel'));
 
     const maxRatingNumber = assets?.max ? Number(assets?.max) : 10;
     const minRatingNumber = assets?.min ? Number(assets?.min) : 0;

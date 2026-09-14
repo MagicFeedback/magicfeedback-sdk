@@ -7,13 +7,14 @@ import {getFollowUpQuestion, getForm, getSessionForm, sendFeedback, validateEmai
 import {FormData} from "./formData";
 import {renderActions, renderQuestions, renderStartMessage, renderSuccess} from "../services/questions.service";
 import {awaitUploadReady, getUploadValues} from "../render/uploadHelpers";
-import {applyPrimaryColor, generateContainer} from "../render/containerHelpers";
+import {applyDirection, applyPrimaryColor, generateContainer} from "../render/containerHelpers";
 import {scrapeInputs} from "../services/answerScrape";
 import {PageGraph} from "./pageGraphs";
 import {Page} from "./page";
 import {OperatorType, PageRoute, TransitionType} from "./pageRoute";
 import {History} from "./History";
 import {PageNode} from "./pageNode";
+import {t} from "../services/i18n";
 
 export class Form {
     /**
@@ -67,11 +68,11 @@ export class Form {
         this.log = new Log(config);
 
         // Form options
+        // Button texts and flow messages are deliberately left unset: when the
+        // integrator does not override them they are resolved per render from
+        // the integration language (see `lang()` / t()).
         this.formOptionsConfig = {
             addButton: true,
-            sendButtonText: "Send",
-            backButtonText: "Back",
-            nextButtonText: "Next",
             addSuccessScreen: true,
             getMetaData: true,
             customMetaData: [],
@@ -375,6 +376,11 @@ export class Form {
         const primaryColor = this.formData?.style?.primaryColor;
         if (primaryColor) applyPrimaryColor(container, primaryColor);
 
+        // Arabic (and any future RTL language) renders mirrored; everything
+        // else is explicitly marked ltr so a container is never left rtl from
+        // a previous survey.
+        applyDirection(container, this.lang());
+
         return container;
     }
 
@@ -440,9 +446,9 @@ export class Form {
                 const actionContainer = renderActions(
                     this.formData?.identity,
                     () => this.back(),
-                    this.formOptionsConfig.sendButtonText,
-                    this.formOptionsConfig.backButtonText,
-                    this.formOptionsConfig.nextButtonText,
+                    this.formOptionsConfig.sendButtonText || t(this.lang(), "action.send"),
+                    this.formOptionsConfig.backButtonText || t(this.lang(), "action.back"),
+                    this.formOptionsConfig.nextButtonText || t(this.lang(), "action.next"),
                 );
 
                 form.appendChild(actionContainer);
@@ -490,6 +496,11 @@ export class Form {
         this.generateForm()
     }
 
+    /** Language of the integration, used to translate the SDK's own copy. */
+    private lang(): string {
+        return (this.formData?.lang && this.formData.lang[0]) || "en";
+    }
+
     /**
      * Generate welcome message page if the form has a start message,with a button to start the form
      * @private
@@ -499,7 +510,12 @@ export class Form {
             // Select and prepare the container
             const container: HTMLElement | null = this.generateContainer()
 
-            const initialMessage = renderStartMessage(startMessage, this.formOptionsConfig.addButton, this.formOptionsConfig.startButtonText, () => this.startForm());
+            const initialMessage = renderStartMessage(
+                startMessage,
+                this.formOptionsConfig.addButton,
+                this.formOptionsConfig.startButtonText || t(this.lang(), "action.start"),
+                () => this.startForm()
+            );
 
             container.appendChild(initialMessage)
 
@@ -973,7 +989,7 @@ export class Form {
             // Show the success message
             const successMessage = renderSuccess(
                 this.formOptionsConfig.successMessage ||
-                "Thank you for your feedback!"
+                t(this.lang(), "message.success")
             );
 
             container.appendChild(successMessage);
@@ -1396,6 +1412,8 @@ export class Form {
         // Same per-integration primary color as the full form flow — see
         // applyPrimaryColor() for why hover/light/border are recomputed too.
         if (style?.primaryColor) applyPrimaryColor(container, style.primaryColor);
+
+        applyDirection(container, language);
 
         // Reuse existing renderQuestions logic passing the question array
         let elements: HTMLElement[] = [];
