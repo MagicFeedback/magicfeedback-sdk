@@ -147,12 +147,12 @@ await form.generate("survey-root", {
 | Option | Default | Description |
 | --- | --- | --- |
 | `addButton` | `true` | Renders the built-in action buttons. |
-| `sendButtonText` | `"Send"` | Label for the final submit button. |
-| `backButtonText` | `"Back"` | Label for the back button. |
-| `nextButtonText` | `"Next"` | Label for the next button in multi-step flows. |
-| `startButtonText` | `"Go!"` | Label for the start button when the form has a backend start message. |
+| `sendButtonText` | translated (`"Send"`) | Label for the final submit button. |
+| `backButtonText` | translated (`"Back"`) | Label for the back button. |
+| `nextButtonText` | translated (`"Next"`) | Label for the next button in multi-step flows. |
+| `startButtonText` | translated (`"Go!"`) | Label for the start button when the form has a backend start message. |
 | `addSuccessScreen` | `true` | Shows the built-in success view when the flow finishes. |
-| `successMessage` | `"Thank you for your feedback!"` | Custom success text. |
+| `successMessage` | translated (`"Thank you for your feedback!"`) | Custom success text. |
 | `questionFormat` | `"standard"` | `"standard"` or `"slim"`. |
 | `getMetaData` | `true` | Appends browser and page metadata automatically. |
 | `customMetaData` | `[]` | Extra metadata merged into `feedback.metadata` when `getMetaData` is enabled. |
@@ -161,7 +161,7 @@ await form.generate("survey-root", {
 | `afterSubmitEvent` | `undefined` | Called after a page submit, follow-up render, or final completion. |
 | `onBackEvent` | `undefined` | Called after navigating back. |
 
-When `getMetaData` is enabled, the SDK includes the current URL, origin, pathname, query string, user agent, browser language, platform, app metadata, screen size, and the session id when rendering from `session()`.
+When `getMetaData` is enabled, the SDK includes the current URL, origin, pathname, query string, user agent, browser language, platform, app metadata, screen size, and the session id when rendering from `session()`. Query params are also expanded into metadata entries as `query-<param>` with all values for that param.
 
 ## Resume an existing session
 
@@ -289,6 +289,43 @@ previewForm.previewQuestion("preview-root", {
 ```
 
 This is useful for QA, local demos, and visual regression checks.
+
+## Languages
+
+Every string the SDK renders itself — input placeholders, yes/no labels, upload
+copy, the priority-list modal, the action buttons and the success, required and
+rate-limit messages — is translated into:
+
+`en` · `da` · `fi` · `no` · `sv` · `es` · `pt` · `fr` · `de` · `ar` · `bn`
+
+The language comes from the integration (`formData.lang[0]`, or `lang` in agent
+mode), and regional tags are accepted: `es-ES`, `pt_BR` and `nb-NO` resolve to
+`es`, `pt` and `no`. Anything unknown falls back to English.
+
+`it`, `nl`, `pl`, `ru`, `ja`, `zh` and `ko` are partially translated (yes/no
+labels and the priority-list modal); their remaining strings fall back to
+English.
+
+Anything you set explicitly — `sendButtonText`, `successMessage`, etc. — always
+wins over the translation.
+
+### Right-to-left
+
+Arabic renders mirrored. The SDK writes `dir="rtl"` and a `.magicfeedback-rtl`
+class on its own container (and on the priority-list modal, which is portaled to
+`<body>`); every other language is explicitly marked `ltr`, so a container reused
+for a second survey never stays flipped. `magicfeedback-default.css` uses logical
+properties throughout, so labels, radios, checkboxes, the select caret, matrix
+tables, rating scales and the modal all mirror from that one attribute — nothing
+is required from the host page, and an RTL survey embedded in an LTR page (or the
+reverse) renders correctly because the attribute is scoped to our subtree.
+
+Latin/numeric fields (`email`, `url`, `number`, `tel`, `date`, `time`) keep an
+LTR text direction inside an RTL survey so punctuation stays where the user
+expects, while still aligning to the start of the line.
+
+If you override our styles, prefer logical properties (`text-align: start`,
+`padding-inline-start`, `inset-inline-end`) so your overrides mirror too.
 
 ## Supported rendered question types
 

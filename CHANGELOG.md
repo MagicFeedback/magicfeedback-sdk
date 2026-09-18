@@ -6,6 +6,46 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.2.23] - 2026-09-18
+- **Fix (`Form.generate`):** the `localStorage.setItem` that caches the fetched form data is now wrapped in `try/catch`, matching the guards `AgentForm` already had. Any environment where storage access throws — Safari private mode, "block all cookies", a partitioned third-party iframe — made the whole `generate()` call reject, so the survey never rendered. The cache write is now best-effort and logged; the survey renders and submits normally without it.
+
+## 🚀 [2.2.22] - 2026-09-14
+- **New feature (i18n):** All SDK-rendered copy is now translated into the 11 product languages: `en`, `da`, `fi`, `no`, `sv`, `es`, `pt`, `fr`, `de`, `ar` and `bn`. German, Portuguese and French were previously missing from the input placeholders, the point-system error and the upload copy, and fell back to English.
+- **New module (`services/i18n.ts`):** Single translation table behind `t(language, key, params)`. The copy used to live in three disconnected places (`services/placeholder.ts`, `render/helpers.ts` and a dict inlined in `render/renderPriorityList.ts`), each supporting a different language list, so the same survey could show a translated priority list next to an English placeholder.
+- **New:** Regional tags now resolve instead of falling back to English — `es-ES`, `pt_BR`, `nb-NO`, `zh-Hans` map to `es`, `pt`, `no`, `zh`.
+- **New:** Default button labels (`Send` / `Back` / `Next` / `Go!`) and the success, blocked, required and rate-limit messages are translated per integration language, in both standard and AGENT mode. Values set explicitly via `generate()` options still win.
+- **Fix (`bn`):** Bengali input placeholders were a truncated fragment ("এখানে আপনার") for answer, number, email, date and password; they are now complete sentences.
+- **Improvement:** The `RATING_NUMBER` radiogroup `aria-label` is translated instead of the hardcoded "Rating".
+- **Partial locales:** `it`, `nl`, `pl`, `ru`, `ja`, `zh`, `ko` keep the yes/no labels and priority-list copy they already had; every other key falls back to English, exactly as before.
+- **New feature (RTL):** Arabic surveys now render right to left. The SDK stamps `dir` (and `.magicfeedback-rtl`) on its container via `applyDirection()` in standard, AGENT and preview flows, and on the priority-list modal, which is portaled to `<body>` and therefore outside the container's subtree. Non-RTL languages are explicitly marked `ltr` so a container reused by a second survey is never left flipped.
+- **Styles:** `magicfeedback-default.css` (and the legacy `index.css`) now use logical properties — `text-align: start/end`, `padding-inline-*`, `border-inline-start`, `inset-inline-end`, `margin-inline-*` — which are identical under LTR and mirror on their own under RTL. A new RTL section covers the few rules that have no logical form: the select caret (`background-position`), the slide-in keyframe, and LTR text direction for `email` / `url` / `number` / `tel` / `date` / `time` inputs.
+- **Fix (`SELECT`):** the empty option's label was the hardcoded English "Select an option"; it is now translated.
+- **Fix (`POINT_SYSTEM`):** the running total ("0 / 100 %") is digits and neutral characters only, so the bidi algorithm reordered it to "% 100 / 0" in an RTL survey. It is now isolated in a `<bdi dir="ltr">`.
+- **Note:** `RATING_NUMBER` scales mirror with the survey — a 0-10 scale starts from the right in Arabic. The per-question `order: "rtl"` asset composes with this, so it flips the scale relative to the survey direction rather than to the page.
+- **Tests:** Added `test/i18n.test.ts` — key coverage per language, tag normalization, param interpolation, the `placeholder` / `getBooleanOptions` facades, and render-level checks (German copy, `pt-BR` normalization, Arabic `dir="rtl"`, and a container going back to `ltr`).
+
+## 🚀 [2.2.4] - 2026-05-15
+- **New feature (`Form.send`):** Added an optional fourth parameter `answers: NativeAnswer[]`. When provided, the SDK skips the DOM scrape and the required-question validation loop, pushes the supplied answers directly into `feedback.answers`, and submits via `pushAnswers`. Lets host apps drive a survey from custom UI components without rendering the SDK widgets.
+- **Lifecycle hooks preserved:** `beforeSubmitEvent` and `afterSubmitEvent` still fire when answers are passed programmatically, so consumers keep the same submission lifecycle.
+- **Backwards compatible:** Existing call sites of `Form.send` are unaffected — the new parameter is optional.
+
+## 🚀 [2.2.2] - 2026-05-07
+- **New feature:** Added `sdk.previewPage(selector, input, options?)` and `Form.previewPage(...)` to render a single page from the survey creator without fetching the form from the API and without persisting answers to `/feedback`. The render reuses the production pipeline so behavior (validation, buttons, followups, styling) is identical.
+- **New type:** Exported `PreviewPageInput` (`page`, `identity`, `lang`, `product`, `style`, `appId`) for typed preview payloads.
+- **Improvement (`form()` constructor):** Accepts optional `profile` and `metadata` parameters to pre-seed the feedback payload at construction time.
+- **Fix (`dryRun`):** Followup questions now keep their production behavior under `dryRun`. Previously `Form.callFollowUpQuestion` short-circuited and returned `null` in dry-run, which made followup branches disappear in test/preview flows. POST `/feedback` is still skipped under `dryRun`; only the followup API call was restored.
+- **Tests:** Added `test/preview-page.test.ts` covering single-page render, no API fetch, and no `/feedback` POST on submit. Updated `test/dry-run.test.ts` to assert the followup API is called under `dryRun`.
+- **Docs:** Added `docs/preview-page-implementation.md` as a self-contained implementation guide for the preview API and the followup fix.
+
+## 🚀 [2.1.12] - 2026-03-20
+- **Fix:** Preconditional ALLOW routes now use AND logic — all conditions must be satisfied for a page to be shown. Previously, a single matching condition was enough (OR logic), causing pages to appear when they shouldn't (e.g. Matas survey: page 29 was incorrectly shown for users on "Club Matas appen").
+- **Fix:** Each preconditional route now looks up the answer specific to its own `questionRef` instead of reusing a single shared answer across all routes. This prevents incorrect evaluation when multiple preconditions reference different questions.
+- **Improvement:** URL query parameters are now captured individually as metadata entries (`query-<key>`), enabling better attribution and segmentation of feedback responses.
+- **Improvement:** Removed stray `console.log` statements from `form.ts` and `pageGraphs.ts` that leaked debug output into production builds.
+- **Tests:** Added comprehensive test suite for `PageGraph` methods: `getFirstPage`, `getNodeById`, `getNextEdgeByDefault`, `getNextPage` (all operators, DIRECT/LOGICAL/PRECONDITIONAL routes, branching, FINISH transitions, multiplechoice answers, edge cases).
+- **Tests:** Added `findDepth` tests and preconditional-aware depth calculation tests (Matas-like surveys).
+- **Tests:** Added dedicated `preconditional.test.ts` that reproduces the multi-ALLOW bug and validates the AND-logic fix against the old OR-logic behavior.
+
 ## 🚀 [2.1.11] - 2026-03-09
 - New feature: Added `dryRun` mode to validate and navigate feedback flows without sending submissions or follow-up requests.
 - New feature: Expanded answer processing for `MULTI_QUESTION_MATRIX`, `POINT_SYSTEM`, and multiple choice questions, including stricter validation for required matrix rows.

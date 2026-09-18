@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="../../public/style.css" rel="stylesheet">
+    <title>MagicFeedbackAI — Agent survey</title>
+    <style>
+      .agent-progress { font-size: 14px; color: #666; margin: 12px 0; }
+      .agent-debug { font-family: monospace; font-size: 12px; white-space: pre-wrap; background: #f6f6f6; padding: 12px; margin-top: 24px; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="container py-4" style="max-width: 640px;">
+      <div id="progress" class="agent-progress"></div>
+      <div id="demo"></div>
+      <div id="debug" class="agent-debug"></div>
+    </div>
+
+    <!-- Build first: `npm run build:watch` (the examples load from dist/, not src/). -->
+    <script src="../../dist/magicfeedback-sdk.browser.js"></script>
+    <script>
+      // Credentials come from the query string so they never live in the repo:
+      //   agent.html?integrationId=<uuid>&publicKey=<key>&env=dev
+      const params = new URLSearchParams(location.search);
+      const INTEGRATION_ID = params.get("integrationId") || "/* Integration ID (must be in AGENT mode) */";
+      const PUBLIC_KEY = params.get("publicKey") || "/* PublicKey */";
+      const ENV = params.get("env") || "dev";
+
+      const progressEl = document.getElementById("progress");
+      const debugEl = document.getElementById("debug");
+      const trace = (label, payload) => {
+        console.log(label, payload);
+        debugEl.textContent += `${label} ${JSON.stringify(payload ?? {}, null, 2)}\n\n`;
+      };
+
+      window.magicfeedback.init({ env: ENV, debug: true });
+
+      // Explicit factory: no preliminary fetch. `form()` also auto-detects an
+      // AGENT integration, at the cost of one extra round trip.
+      const agent = window.magicfeedback.agentForm(INTEGRATION_ID, PUBLIC_KEY);
+
+      agent.generate("demo", {
+        addButton: true,
+        nextButtonText: "Next",
+        lang: "en",
+
+        onLoadedEvent: (e) => {
+          trace("onLoadedEvent", e);
+          if (e.error) progressEl.textContent = "Could not start the survey.";
+        },
+
+        beforeSubmitEvent: (e) => trace("beforeSubmitEvent", e),
+        afterSubmitEvent: (e) => trace("afterSubmitEvent", e),
+
+        onAgentTurnEvent: (e) => {
+          trace("onAgentTurnEvent", {
+            turn: e.turn,
+            maxTurns: e.maxTurns,
+            isFromBase: e.isFromBase,
+            topic: e.topic,
+            coverageGaps: e.coverageGaps,
+          });
+          progressEl.textContent = `Question ${e.turn} of ~${e.maxTurns - 1}`;
+        },
+
+        onFinishEvent: (e) => {
+          trace("onFinishEvent", e);
+          progressEl.textContent = e.reason === "BLOCKED" ? "Conversation ended." : "Done — thanks!";
+        },
+      });
+
+      // Handy for poking at the session from the console.
+      window.agent = agent;
+    </script>
+  </body>
+</html>

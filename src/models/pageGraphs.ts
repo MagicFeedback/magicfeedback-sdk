@@ -115,9 +115,6 @@ export class PageGraph {
             // Normalizar edge.value a array
             const edgeVals = Array.isArray(edge.value) ? edge.value : [edge.value];
 
-            console.log('Evaluating edge:', edgeVals);
-            console.log('Evaluating value:', answerValue);
-
             switch (edge.typeOperator) {
                 case OperatorType.EQUAL:
                     return answerValue.some(ans => {

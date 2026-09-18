@@ -5,9 +5,9 @@ export const renderRatingNumber: QuestionRenderer = ({
     question,
     order,
     direction,
-    isPhone,
     send,
-    urlParamValue
+    urlParamValue,
+    language
 }) => {
     const elementTypeClass = 'magicfeedback-rating-number';
     const element = createRatingNumberElement(
@@ -15,10 +15,10 @@ export const renderRatingNumber: QuestionRenderer = ({
         question.assets,
         order,
         direction,
-        isPhone,
         elementTypeClass,
         send,
-        urlParamValue
+        urlParamValue,
+        language
     );
 
     return {element, elementTypeClass};

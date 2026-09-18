@@ -162,7 +162,10 @@ function renderContainer(
         (element as HTMLInputElement).value = urlParamValue || defaultValue;
     }
 
-    if (!["RADIO", "MULTIPLECHOICE"].includes(type)) {
+    // RADIO/MULTIPLECHOICE and the UPLOAD types return a container element that
+    // holds the real inputs internally, so the wrapper itself must not become a
+    // ".magicfeedback-input" (that class + `required` are set on the inner input).
+    if (!["RADIO", "MULTIPLECHOICE", "UPLOAD_IMAGE", "UPLOAD_FILE"].includes(type)) {
         element.classList.add("magicfeedback-input");
         (element as HTMLInputElement).required = require;
     }
@@ -218,7 +221,7 @@ function renderContainer(
             const counter = document.createElement("div");
             counter.classList.add("magicfeedback-counter");
             counter.textContent = `${(element as HTMLTextAreaElement).value.length}/${maxCharacters}`
-            counter.style.textAlign = "right";
+            counter.style.textAlign = "end";
             counter.style.fontSize = "15px";
             counter.style.marginTop = "5px";
             element.addEventListener("input", () => {

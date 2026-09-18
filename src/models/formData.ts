@@ -42,6 +42,15 @@ export class FormData {
 
     pages: Page[];
 
+    // --- Agent (dynamic) survey config. Optional and intentionally NOT in the
+    // constructor: FormData is only ever used as a cast target for the JSON the
+    // API returns, and its constructor already takes 19 positional args.
+    mode?: "STATIC" | "AGENT";
+
+    agentBrief?: string;
+
+    agentMaxTurns?: number;
+
     constructor(
         id: string,
         name: string,

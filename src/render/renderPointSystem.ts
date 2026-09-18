@@ -25,16 +25,23 @@ export const renderPointSystem: QuestionRenderer = ({
     errorMessage.textContent = placeholder.pointsystemerror(language || 'en');
     errorMessage.style.color = "#C70039";
     errorMessage.style.fontSize = "14px";
-    errorMessage.style.textAlign = "right";
+    errorMessage.style.textAlign = "end";
     errorMessage.style.width = "100%";
     errorMessage.style.display = "none";
 
     const totalPointsContainer = document.createElement("div");
     totalPointsContainer.classList.add("magicfeedback-point-system-total");
-    totalPointsContainer.textContent = `0 / 100 %`;
-    totalPointsContainer.style.textAlign = "right";
+    totalPointsContainer.style.textAlign = "end";
     totalPointsContainer.style.fontSize = "15px";
     totalPointsContainer.style.marginTop = "5px";
+
+    // "0 / 100 %" is all digits and neutrals, so in an RTL survey the bidi
+    // algorithm would reorder it to "% 100 / 0". <bdi> isolates the run and
+    // resolves it LTR, while the box keeps following the survey direction.
+    const totalPointsValue = document.createElement("bdi");
+    totalPointsValue.setAttribute("dir", "ltr");
+    totalPointsValue.textContent = `0 / 100 %`;
+    totalPointsContainer.appendChild(totalPointsValue);
 
     value.forEach((option, index) => {
         const item = document.createElement("li");
@@ -94,7 +101,7 @@ export const renderPointSystem: QuestionRenderer = ({
                 }
             }
 
-            totalPointsContainer.textContent = `${total} / 100 %`;
+            totalPointsValue.textContent = `${total} / 100 %`;
         });
 
         itemInput.addEventListener("focus", () => {

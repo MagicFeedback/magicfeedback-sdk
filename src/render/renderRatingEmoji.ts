@@ -21,11 +21,8 @@ export const renderRatingEmoji: QuestionRenderer = ({
     const minRating = assets?.min ? Number(assets?.min) : 1;
 
     const ratingPlaceholder = createRatingPlaceholder(
-        minRating,
-        maxRating,
         assets?.minPlaceholder,
         assets?.maxPlaceholder,
-        assets?.extraOption ?? false,
     );
 
     for (let i = minRating; i <= maxRating; i++) {
@@ -140,10 +137,7 @@ export const renderRatingEmoji: QuestionRenderer = ({
         extraOption.appendChild(containerLabel);
         ratingContainer.appendChild(extraOption);
     }
-    if (ratingPlaceholder.childElementCount > 0) {
-        ratingContainer.classList.add('magicfeedback-rating-container--with-placeholder');
-        ratingContainer.insertBefore(ratingPlaceholder, ratingContainer.firstChild);
-    }
+    if (ratingPlaceholder.childElementCount > 0) ratingContainer.appendChild(ratingPlaceholder);
     element.appendChild(ratingContainer);
 
     return {element, elementTypeClass};

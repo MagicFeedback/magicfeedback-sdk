@@ -1,61 +1,28 @@
+import {t} from "../services/i18n";
+
+/**
+ * A caption line for min/max labels — one line, min on one side and max on
+ * the other (swapped for order: "rtl"), same simple pattern rating-number
+ * uses for its own row caption. No viewport-width branching: the caller
+ * decides where this sits (rating-star and rating-emoji place it below
+ * their options), and it always reads the same way regardless of screen
+ * size.
+ */
 export function createRatingPlaceholder(
-    min: number,
-    max: number,
     minPlaceholder?: string,
     maxPlaceholder?: string,
-    extraOption: boolean = false,
-    mobile: boolean = true,
     order = 'ltr',
-    direction = 'row'
 ) {
     const ratingPlaceholder = document.createElement('div');
     ratingPlaceholder.classList.add('magicfeedback-rating-placeholder');
-    ratingPlaceholder.style.display = "flex";
-    ratingPlaceholder.style.flexDirection = direction;
-    ratingPlaceholder.style.alignItems = "center";
-    ratingPlaceholder.style.justifyContent = "space-between";
-    ratingPlaceholder.style.width = extraOption ? `calc(100% - (100% / ${max + 1}))` : "100%";
-
-    ratingPlaceholder.style.marginRight = "auto";
-
-    if (mobile && window.innerWidth < 600) ratingPlaceholder.style.flexDirection = "column";
 
     const ratingPlaceholderMin = document.createElement('span');
-    ratingPlaceholderMin.textContent = minPlaceholder ?? null;
+    ratingPlaceholderMin.textContent = minPlaceholder ?? '';
     ratingPlaceholderMin.classList.add('magicfeedback-rating-placeholder-value');
-    ratingPlaceholderMin.style.fontSize = "15px";
-    ratingPlaceholderMin.style.display = "block";
-    ratingPlaceholderMin.style.minWidth = "0";
-    ratingPlaceholderMin.style.overflowWrap = "anywhere";
-    ratingPlaceholderMin.style.wordBreak = "break-word";
-    ratingPlaceholderMin.style.textAlign = order === 'ltr' ? "left" : "right";
-    ratingPlaceholderMin.style.width = `50%`;
-
-    if (mobile && window.innerWidth < 600 || direction === 'column') {
-        ratingPlaceholderMin.textContent = `${min} = ${minPlaceholder}`;
-        ratingPlaceholderMin.style.width = '100%';
-        ratingPlaceholderMin.style.textAlign = "left";
-        ratingPlaceholderMin.style.marginBottom = "5px";
-    }
-
 
     const ratingPlaceholderMax = document.createElement('span');
-    ratingPlaceholderMax.textContent = maxPlaceholder ?? null;
+    ratingPlaceholderMax.textContent = maxPlaceholder ?? '';
     ratingPlaceholderMax.classList.add('magicfeedback-rating-placeholder-value');
-    ratingPlaceholderMax.style.fontSize = "15px";
-    ratingPlaceholderMax.style.display = "block";
-    ratingPlaceholderMax.style.minWidth = "0";
-    ratingPlaceholderMax.style.overflowWrap = "anywhere";
-    ratingPlaceholderMax.style.wordBreak = "break-word";
-    ratingPlaceholderMax.style.textAlign = order === 'ltr' ? "right" : "left";
-    ratingPlaceholderMax.style.width = `50%`;
-
-    if (mobile && window.innerWidth < 600 || direction === 'column') {
-        ratingPlaceholderMax.textContent = `${max} = ${maxPlaceholder}`;
-        ratingPlaceholderMax.style.width = '100%';
-        ratingPlaceholderMax.style.textAlign = "left";
-        ratingPlaceholderMax.style.marginBottom = "5px";
-    }
 
     if (order === 'ltr') {
         if (minPlaceholder) ratingPlaceholder.appendChild(ratingPlaceholderMin);
@@ -155,11 +122,8 @@ export function createStarRating(
         ratingContainer.appendChild(ratingOption);
     }
 
-    const ratingPlaceholder = createRatingPlaceholder(1, 5, minPlaceholder, maxPlaceholder, false, false);
-    if (ratingPlaceholder.childElementCount > 0) {
-        ratingContainer.classList.add('magicfeedback-rating-container--with-placeholder');
-        ratingContainer.insertBefore(ratingPlaceholder, ratingContainer.firstChild);
-    }
+    const ratingPlaceholder = createRatingPlaceholder(minPlaceholder, maxPlaceholder);
+    if (ratingPlaceholder.childElementCount > 0) ratingContainer.appendChild(ratingPlaceholder);
 
     return ratingContainer;
 }
@@ -169,14 +133,15 @@ export function createRatingNumberElement(
     assets: any,
     order: string,
     direction: string,
-    isPhone: boolean,
     elementTypeClass: string,
     send?: () => void,
     urlParamValue?: string | null,
+    language?: string,
 ): HTMLElement {
     const element = document.createElement("div");
     element.classList.add('magicfeedback-rating-number');
 
+    const isColumn = direction === 'column';
     const numberContainerDirection = order === 'ltr' ? direction : `${direction}-reverse`;
     const ratingNumberContainer = document.createElement('div');
     ratingNumberContainer.classList.add('magicfeedback-rating-number-container');
@@ -185,30 +150,71 @@ export function createRatingNumberElement(
     ratingNumberContainer.style.display = "flex";
     ratingNumberContainer.style.flexDirection = numberContainerDirection;
     ratingNumberContainer.setAttribute('role', 'radiogroup');
-    ratingNumberContainer.setAttribute('aria-label', assets?.ariaLabel || 'Rating');
+    ratingNumberContainer.setAttribute('aria-label', assets?.ariaLabel || t(language, 'rating.ariaLabel'));
 
     const maxRatingNumber = assets?.max ? Number(assets?.max) : 10;
     const minRatingNumber = assets?.min ? Number(assets?.min) : 0;
 
+    // A short scale's chips stay roomy; a long one (0-10 NPS, say) would
+    // otherwise be forced into the same width and shrink past comfortable —
+    // this scales them down on purpose instead of stretching thin.
+    if (!isColumn && (maxRatingNumber - minRatingNumber + 1) > 6) {
+        ratingNumberContainer.classList.add('magicfeedback-rating-number-container-row--dense');
+    }
+
     const numberPlaceholders = assets?.numberPlaceholders || null;
+    const hasNumberPlaceholders = !!(numberPlaceholders && Object.keys(numberPlaceholders).length);
 
-    const useOverlayPlaceholders = !(isPhone || direction === 'column') && (assets?.minPlaceholder || assets?.maxPlaceholder);
+    // Row: min/max as one caption line below, left/right — the row itself
+    // reads left-to-right, so the caption bookends it the same way.
+    let rowScaleLabels: HTMLElement | null = null;
+    if (!isColumn && (assets?.minPlaceholder || assets?.maxPlaceholder)) {
+        rowScaleLabels = document.createElement('div');
+        rowScaleLabels.classList.add('magicfeedback-rating-number-scale-labels');
 
-    if (useOverlayPlaceholders) {
-        const ratingPlaceholder = createRatingPlaceholder(
-            minRatingNumber,
-            maxRatingNumber,
-            assets?.minPlaceholder,
-            assets?.maxPlaceholder,
-            assets?.extraOption ?? false,
-            false,
-            order,
-            'row',
-        );
+        const minLabel = document.createElement('span');
+        minLabel.classList.add('magicfeedback-rating-number-scale-label');
+        minLabel.textContent = assets?.minPlaceholder ?? '';
 
-        if (ratingPlaceholder.childElementCount > 0) {
-            ratingNumberContainer.classList.add('magicfeedback-rating-number-container--with-placeholder');
-            ratingNumberContainer.insertBefore(ratingPlaceholder, ratingNumberContainer.firstChild);
+        const maxLabel = document.createElement('span');
+        maxLabel.classList.add('magicfeedback-rating-number-scale-label');
+        maxLabel.textContent = assets?.maxPlaceholder ?? '';
+
+        if (order === 'ltr') {
+            rowScaleLabels.appendChild(minLabel);
+            rowScaleLabels.appendChild(maxLabel);
+        } else {
+            rowScaleLabels.appendChild(maxLabel);
+            rowScaleLabels.appendChild(minLabel);
+        }
+    }
+
+    // Column with no per-option text: each row is now its own separated
+    // chip, not one shared box — so the caption bookends the whole stack
+    // from outside it (above the first chip, below the last) rather than
+    // living inside a box that no longer exists.
+    let columnAfterLabel: HTMLElement | null = null;
+    if (isColumn && !hasNumberPlaceholders) {
+        ratingNumberContainer.classList.add('magicfeedback-rating-number-container-column--bare');
+
+        if (assets?.minPlaceholder || assets?.maxPlaceholder) {
+            // order="rtl" flips the list itself (rendered column-reverse),
+            // so the end each label sits next to flips with it.
+            const topText = order === 'ltr' ? assets?.minPlaceholder : assets?.maxPlaceholder;
+            const bottomText = order === 'ltr' ? assets?.maxPlaceholder : assets?.minPlaceholder;
+
+            if (topText) {
+                const beforeLabel = document.createElement('div');
+                beforeLabel.classList.add('magicfeedback-rating-number-scale-label-block');
+                beforeLabel.textContent = topText;
+                element.appendChild(beforeLabel);
+            }
+
+            if (bottomText) {
+                columnAfterLabel = document.createElement('div');
+                columnAfterLabel.classList.add('magicfeedback-rating-number-scale-label-block');
+                columnAfterLabel.textContent = bottomText;
+            }
         }
     }
 
@@ -221,15 +227,11 @@ export function createRatingNumberElement(
         containerLabel.htmlFor = `rating-${ref}-${i}`;
         containerLabel.classList.add('magicfeedback-rating-number-option-label-container');
 
-        let inputText = i.toString();
-
-        if (!useOverlayPlaceholders) {
-            if (numberPlaceholders && numberPlaceholders[i]) inputText += ` = ${numberPlaceholders[i]}`;
-            else if (i === minRatingNumber && assets?.minPlaceholder) inputText += ` = ${assets?.minPlaceholder}`;
-            else if (i === maxRatingNumber && assets?.maxPlaceholder) inputText += ` = ${assets?.maxPlaceholder}`;
-        } else {
-            if (numberPlaceholders && numberPlaceholders[i] && !isPhone) containerLabel.title = numberPlaceholders[i];
-        }
+        const ownPlaceholder = hasNumberPlaceholders && (
+            numberPlaceholders[i]
+            || (i === minRatingNumber ? assets?.minPlaceholder : undefined)
+            || (i === maxRatingNumber ? assets?.maxPlaceholder : undefined)
+        );
 
         const input = document.createElement("input");
         input.id = `rating-${ref}-${i}`;
@@ -238,7 +240,7 @@ export function createRatingNumberElement(
         input.value = i.toString();
         input.classList.add(elementTypeClass);
         input.classList.add("magicfeedback-input");
-        input.setAttribute('aria-label', `${i}`);
+        input.setAttribute('aria-label', ownPlaceholder ? `${i} — ${ownPlaceholder}` : `${i}`);
 
         if (send) input.addEventListener("change", () => send());
 
@@ -246,20 +248,53 @@ export function createRatingNumberElement(
             input.checked = true;
         }
 
-        const ratingLabel = document.createElement('label');
-        ratingLabel.htmlFor = `rating-${ref}-${i}`;
-        ratingLabel.textContent = inputText;
-        ratingLabel.classList.add('magicfeedback-rating-number-value');
-
         containerLabel.appendChild(input);
-        containerLabel.appendChild(ratingLabel);
+
+        // Everything after the input lives in one wrapping span, so the
+        // ":checked + .value" sibling rule can flip the whole segment's
+        // look (fill, radius, color) in one place — children inherit color.
+        const ratingValue = document.createElement('span');
+        ratingValue.classList.add('magicfeedback-rating-number-value');
+
+        const ratingNumber = document.createElement('span');
+        ratingNumber.textContent = i.toString();
+        ratingNumber.classList.add('magicfeedback-rating-number-value-num');
+        ratingValue.appendChild(ratingNumber);
+
+        if (isColumn) {
+            // Column rows have room to show the option's own text plainly —
+            // capsule row, not squeezed into a bead the way row mode is.
+            if (ownPlaceholder) {
+                const ratingText = document.createElement('span');
+                ratingText.textContent = ownPlaceholder;
+                ratingText.classList.add('magicfeedback-rating-number-value-label');
+                ratingValue.appendChild(ratingText);
+            }
+        } else if (numberPlaceholders && numberPlaceholders[i]) {
+            // Row mode has no room for text per option — surface it as a
+            // hoverable tooltip instead.
+            containerLabel.title = numberPlaceholders[i];
+        }
+
+        containerLabel.appendChild(ratingValue);
         ratingOption.appendChild(containerLabel);
         ratingNumberContainer.appendChild(ratingOption);
     }
 
+    element.appendChild(ratingNumberContainer);
+
+    if (rowScaleLabels) element.appendChild(rowScaleLabels);
+    if (columnAfterLabel) element.appendChild(columnAfterLabel);
+
     if (assets?.extraOption && assets?.extraOptionText) {
+        // Always its own row below the scale — the extra option means
+        // "doesn't apply", it isn't a point on the 1..N continuum.
+        const extraRow = document.createElement('div');
+        extraRow.classList.add('magicfeedback-rating-number-extra-row');
+
         const extraOption = document.createElement('div');
         extraOption.classList.add('magicfeedback-rating-number-option');
+        extraOption.classList.add('magicfeedback-rating-number-option--extra');
 
         const containerLabel = document.createElement('label');
         containerLabel.htmlFor = `rating-${ref}-extra`;
@@ -275,20 +310,20 @@ export function createRatingNumberElement(
         input.setAttribute('aria-label', assets?.extraOptionText);
         if (send) input.addEventListener("change", () => send());
 
-        const ratingLabel = document.createElement('label');
-        ratingLabel.htmlFor = `rating-${ref}-extra`;
+        const ratingValue = document.createElement('span');
+        ratingValue.classList.add('magicfeedback-rating-number-value');
+
+        const ratingLabel = document.createElement('span');
         ratingLabel.textContent = assets?.extraOptionText;
-        ratingLabel.classList.add('magicfeedback-rating-number-value');
+        ratingLabel.classList.add('magicfeedback-rating-number-value-label');
+        ratingValue.appendChild(ratingLabel);
 
         containerLabel.appendChild(input);
-        containerLabel.appendChild(ratingLabel);
+        containerLabel.appendChild(ratingValue);
         extraOption.appendChild(containerLabel);
-
-        if (order === 'ltr') ratingNumberContainer.appendChild(extraOption);
-        else ratingNumberContainer.insertBefore(extraOption, ratingNumberContainer.firstChild);
+        extraRow.appendChild(extraOption);
+        element.appendChild(extraRow);
     }
-
-    element.appendChild(ratingNumberContainer);
 
     return element;
 }
