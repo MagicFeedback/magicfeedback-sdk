@@ -6,6 +6,9 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.2.23] - 2026-09-18
+- **Fix (`Form.generate`):** the `localStorage.setItem` that caches the fetched form data is now wrapped in `try/catch`, matching the guards `AgentForm` already had. Any environment where storage access throws — Safari private mode, "block all cookies", a partitioned third-party iframe — made the whole `generate()` call reject, so the survey never rendered. The cache write is now best-effort and logged; the survey renders and submits normally without it.
+
 ## 🚀 [2.2.22] - 2026-09-14
 - **New feature (i18n):** All SDK-rendered copy is now translated into the 11 product languages: `en`, `da`, `fi`, `no`, `sv`, `es`, `pt`, `fr`, `de`, `ar` and `bn`. German, Portuguese and French were previously missing from the input placeholders, the point-system error and the upload copy, and fell back to English.
 - **New module (`services/i18n.ts`):** Single translation table behind `t(language, key, params)`. The copy used to live in three disconnected places (`services/placeholder.ts`, `render/helpers.ts` and a dict inlined in `render/renderPriorityList.ts`), each supporting a different language list, so the same survey could show a translated priority list next to an English placeholder.

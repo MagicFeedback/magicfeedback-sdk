@@ -187,9 +187,16 @@ export class Form {
             this.formData = resData as FormData;
 
             if (!this.formData.savedAt) {
-                // Save formData in the localstorage to use it in the future
+                // Save formData in the localstorage to use it in the future.
+                // Guarded: Safari private mode and partitioned third-party
+                // iframes throw on access, and a survey must not die because
+                // the cache could not be written.
                 this.formData.savedAt = new Date();
-                localStorage.setItem(`magicfeedback-${this.appId}`, JSON.stringify(this.formData));
+                try {
+                    localStorage.setItem(`magicfeedback-${this.appId}`, JSON.stringify(this.formData));
+                } catch (e) {
+                    this.log.log("Could not cache the form data", e);
+                }
             }
 
             if (this.formData.questions === undefined || !this.formData.questions) throw new Error(`No questions for app ${this.appId}`);
