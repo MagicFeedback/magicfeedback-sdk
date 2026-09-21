@@ -1101,14 +1101,25 @@ export class Form {
 
     private async callFollowUpQuestion(question: NativeQuestion | null): Promise<NativeQuestion | null> {
         if (!question?.followup) return null;
-        try {
-            if (this.feedback.answers.length === 0) throw new Error("No answers provided");
 
+        // There is nothing to follow up on when the question was left blank
+        // (only possible when it is not required), so skip it instead of
+        // blocking the survey: the user must always be able to move on.
+        const answer = this.feedback.answers.find((a) => a.key === question.ref)
+            ?? this.feedback.answers.find((a) => a.key.includes(question.ref) && !a.key.includes('extra-option'));
+        const answerValue = answer?.value?.find((v) => v !== undefined && v !== null && v !== "");
+
+        if (answerValue === undefined) {
+            this.log.log(`The question ${question.ref} has no answer, skipping its follow up`);
+            return null;
+        }
+
+        try {
             // Define the URL and request payload
             const url = this.config.get("url");
 
             const body = {
-                answer: this.feedback.answers.find((a) => a.key === question.ref)?.value[0],
+                answer: answerValue,
                 ...(this.publicKey !== '' && {publicKey: this.publicKey}),
                 ...(this.publicKey === '' && {campaignSessionId: this.appId}),
                 sessionId: this.id,
@@ -1121,13 +1132,13 @@ export class Form {
                 this.log,
             );
         } catch (error) {
-            // Handle network or request error
+            // A follow up is an enrichment, never a gate: log the failure and
+            // let the survey continue with the next page.
             this.log.err(
-                `An error occurred while submitting the form ${this.appId}:`,
+                `An error occurred while requesting the follow up of ${question.ref} in the form ${this.appId}:`,
                 error
             );
-            // You can perform error handling logic here if needed
-            throw error;
+            return null;
         }
     }
 
@@ -1142,7 +1153,10 @@ export class Form {
 
         if (!page) throw new Error("No page found");
 
-        const followUpList = page.getFollowupQuestions()
+        // A follow up page never chains another follow up: its questions come
+        // back from the API flagged as `followup`, which would otherwise ask
+        // for a follow up of the follow up on every submit.
+        const followUpList = page.isFollowup ? [] : page.getFollowupQuestions();
 
         if (followUpList?.length === 0) {
             await this.renderNextQuestion(form, page);
@@ -1180,6 +1194,10 @@ export class Form {
             followUpQuestions,
             true
         );
+
+        // Routing out of the follow up has to be resolved against the page that
+        // produced it, not against the follow up itself.
+        n.origin = page.isFollowup && page.origin ? page.origin : page;
 
         n.elements = renderQuestions(
             followUpQuestions,
@@ -1220,9 +1238,19 @@ export class Form {
      * @private
      */
     private async renderNextQuestion(form: HTMLElement, page: PageNode) {
+        // A follow up page is not part of the graph: it only carries a copy of
+        // the edges of the page that originated it, and `this.feedback.answers`
+        // at this point holds the follow up answer alone. Routing with those
+        // would never match a condition written against the original questions,
+        // silently falling through to the next page by position. Resolve the
+        // route with the origin node and with its answers instead.
+        const routingNode = (page.isFollowup && page.origin) ? page.origin : page;
+        const routingAnswers = routingNode === page
+            ? this.feedback.answers
+            : [...(routingNode.answers ?? []), ...this.feedback.answers];
+
         // Get next page from the graph
-        //console.log(page, this.feedback.answers);
-        let nextPage = this.graph.getNextPage(page, this.feedback.answers);
+        let nextPage = this.graph.getNextPage(routingNode, routingAnswers);
 
         if (!nextPage) {
             this.finish();
