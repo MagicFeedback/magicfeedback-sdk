@@ -15,6 +15,7 @@ import {OperatorType, PageRoute, TransitionType} from "./pageRoute";
 import {History} from "./History";
 import {PageNode} from "./pageNode";
 import {t} from "../services/i18n";
+import {detectSurveyLang, toBaseAnswers} from "../services/surveyLang";
 
 export class Form {
     /**
@@ -36,6 +37,10 @@ export class Form {
     // Form completed data
     private formData: FormData | null;
     private id: string;
+
+    // Language the survey is shown in (multi-language surveys). Unset until
+    // the form data is loaded; lang() then falls back to the survey default.
+    private activeLang: string | null;
     private readonly feedback: NativeFeedback;
 
     // Set when the integration turns out to be in AGENT mode and this Form is
@@ -89,6 +94,7 @@ export class Form {
         // Form completed data
         this.id = "";
         this.formData = null;
+        this.activeLang = null;
         // if (this.publicKey !== '') this.getDataFromStorage();
         this.feedback = {
             text: "",
@@ -157,10 +163,13 @@ export class Form {
             this.selector = selector;
             let resData: any = this.formData;
 
+            // Explicit option, then init({lang}), then the browser/device language.
+            const requestedLang = detectSurveyLang(options?.lang || this.config.get<string>("lang"));
+
             if (this.formData === undefined || !this.formData)
                 resData = this.publicKey !== '' ?
-                    await getForm(this.url, this.appId, this.publicKey, this.log) :
-                    await getSessionForm(this.url, this.appId, this.log);
+                    await getForm(this.url, this.appId, this.publicKey, this.log, requestedLang) :
+                    await getSessionForm(this.url, this.appId, this.log, requestedLang);
 
             if (resData === undefined || !resData) throw new Error(`No data for app ${this.appId}`);
 
@@ -185,6 +194,7 @@ export class Form {
 
 
             this.formData = resData as FormData;
+            this.activeLang = this.resolveActiveLang(requestedLang);
 
             if (!this.formData.savedAt) {
                 // Save formData in the localstorage to use it in the future.
@@ -193,7 +203,7 @@ export class Form {
                 // the cache could not be written.
                 this.formData.savedAt = new Date();
                 try {
-                    localStorage.setItem(`magicfeedback-${this.appId}`, JSON.stringify(this.formData));
+                    localStorage.setItem(`magicfeedback-${this.appId}-${this.lang()}`, JSON.stringify(this.formData));
                 } catch (e) {
                     this.log.log("Could not cache the form data", e);
                 }
@@ -431,7 +441,7 @@ export class Form {
             page.elements = renderQuestions(
                 page.questions,
                 this.formOptionsConfig.questionFormat,
-                this.formData?.lang[0],
+                this.lang(),
                 this.formData?.product,
                 () => this.send()
             );
@@ -479,6 +489,7 @@ export class Form {
                     progress: this.progress,
                     total: this.total,
                     formData: this.formData,
+                    lang: this.lang(),
                     formOptionsConfig: this.formOptionsConfig
                 });
             }
@@ -503,9 +514,30 @@ export class Form {
         this.generateForm()
     }
 
-    /** Language of the integration, used to translate the SDK's own copy. */
+    /**
+     * Language the survey is shown in: the SDK's own copy, RTL direction and
+     * the `lang` sent with every answer. For a multi-language survey `lang[0]`
+     * is only the default, so it is the fallback, not the answer.
+     */
     private lang(): string {
-        return (this.formData?.lang && this.formData.lang[0]) || "en";
+        return this.activeLang || (this.formData?.lang && this.formData.lang[0]) || "en";
+    }
+
+    /** Public read of the language the survey is shown in. */
+    public getLang(): string {
+        return this.lang();
+    }
+
+    /**
+     * Mirror of the API's resolveSurveyLang(): the served language when the API
+     * reports it, else the requested one if the survey supports it, else the
+     * survey's default.
+     */
+    private resolveActiveLang(requested: string | null): string | null {
+        const supported = this.formData?.lang || [];
+        if (this.formData?.servedLang) return this.formData.servedLang;
+        if (requested && supported.includes(requested)) return requested;
+        return supported[0] || null;
     }
 
     /**
@@ -531,6 +563,7 @@ export class Form {
                 await this.formOptionsConfig.onLoadedEvent({
                     loading: false,
                     formData: this.formData,
+                    lang: this.lang(),
                 });
             }
         } catch (e) {
@@ -974,9 +1007,13 @@ export class Form {
         }
 
 
-        this.feedback.answers = surveyAnswers;
-        page.setAnswer(surveyAnswers);
-        return surveyAnswers;
+        // Multi-language surveys: the inputs hold the shown labels, but routing,
+        // validation and storage all match on the default-language options.
+        const baseAnswers = toBaseAnswers(surveyAnswers, page.questions);
+
+        this.feedback.answers = baseAnswers;
+        page.setAnswer(baseAnswers);
+        return baseAnswers;
     }
 
     /**
@@ -1073,6 +1110,8 @@ export class Form {
                 publicKey: this.publicKey,
                 feedback: this.feedback,
                 completed,
+                // Sent on every call: the API stamps the `language` metric from the latest one.
+                lang: this.lang(),
             }
 
             // Make the AJAX POST request
@@ -1202,7 +1241,7 @@ export class Form {
         n.elements = renderQuestions(
             followUpQuestions,
             this.formOptionsConfig.questionFormat,
-            this.formData?.lang[0],
+            this.lang(),
             this.formData?.product,
             () => this.send()
         );
@@ -1346,7 +1385,7 @@ export class Form {
         nextPage.elements = renderQuestions(
             nextPage.questions,
             this.formOptionsConfig.questionFormat,
-            this.formData?.lang[0],
+            this.lang(),
             this.formData?.product,
             () => this.send()
         );
@@ -1435,7 +1474,7 @@ export class Form {
 
         const {
             format = this.formOptionsConfig.questionFormat || "standard",
-            language = (this.formData?.lang && this.formData.lang[0]) || "en",
+            language = this.lang(),
             product = this.formData?.product || {customIcons: false},
             style = this.formData?.style || {},
             clearContainer = true,

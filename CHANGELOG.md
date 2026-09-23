@@ -6,6 +6,14 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [Unreleased]
+- **New feature (multi-language surveys):** the SDK asks for one language with `?lang=` on `GET /sdk/app/{id}/{key}/info`, `GET /sdk/app/session/{id}/info` and `getQuestions()`. Order: `generate(selector, {lang})`, then `init({lang})`, then the browser / webview language (`navigator.languages`). Codes are normalized to two lowercase letters (`es-ES` → `es`, `nb` → `no`).
+- **New:** every `POST /sdk/feedback` (`Form.send()` and the top-level `send()`) carries `lang`, so the API records the `language` metric on each call.
+- **New:** answers are rewritten to the survey's default language before validation, routing and submit, using the `baseValue` the API sends by index (RADIO, MULTIPLECHOICE, MULTIPLECHOISE_IMAGE, SELECT, PRIORITY_LIST, POINT_SYSTEM and matrix columns). Free text and `extra-option-*` answers are untouched. URL prefills written in the default language select the translated option.
+- **Fix:** `formData.lang[0]` is the survey default, not the shown language. SDK copy, RTL direction and rendering now use the shown language (`servedLang` from the API when present, else the requested one if supported, else `lang[0]`). New `form.getLang()` returns it. `onLoadedEvent` also receives it as `lang`.
+- **Change:** the form cache key in localStorage is now `magicfeedback-{appId}-{lang}`.
+- **Tests:** added `test/surveyLang.test.ts` and `test/form-lang.test.ts`.
+
 ## 🚀 [2.2.23] - 2026-09-18
 - **Fix (`Form.generate`):** the `localStorage.setItem` that caches the fetched form data is now wrapped in `try/catch`, matching the guards `AgentForm` already had. Any environment where storage access throws — Safari private mode, "block all cookies", a partitioned third-party iframe — made the whole `generate()` call reject, so the survey never rendered. The cache write is now best-effort and logged; the survey renders and submits normally without it.
 

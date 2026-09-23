@@ -5,6 +5,7 @@ import {Config} from "./models/config";
 import {Log} from "./utils/log";
 import {sendFeedback} from "./services/request.service";
 import {HOST_API_URL, HOST_API_URL_DEV} from "./config-globals";
+import {detectSurveyLang, normalizeSurveyLang} from "./services/surveyLang";
 
 /**
  *
@@ -25,6 +26,7 @@ export default function main() {
     function init(options?: InitOptions) {
         if (typeof options?.debug === "boolean") config.set("debug", options.debug);
         if (typeof options?.dryRun === "boolean") config.set("dryRun", options.dryRun);
+        if (options?.lang) config.set("lang", normalizeSurveyLang(options.lang));
 
         config.set("url", options?.env && options?.env === "dev" ? HOST_API_URL_DEV : HOST_API_URL);
         config.set("env", options?.env);
@@ -68,6 +70,7 @@ export default function main() {
             completed: completed,
             id: id,
             feedback: feedback,
+            lang: detectSurveyLang(config.get<string>("lang")) ?? undefined,
         }
 
         try {
