@@ -59,9 +59,17 @@ export function withLangParam(url: string, lang?: string | null): string {
     return `${url}${url.includes("?") ? "&" : "?"}lang=${encodeURIComponent(lang)}`;
 }
 
-// MULTIPLECHOISE_IMAGE options are {position, url, value} objects.
+// MULTIPLECHOISE_IMAGE options are JSON strings of {position, url, value}
+// (renderMultipleChoiceImage parses them) and the input holds `value`.
 function optionLabel(option: any): string | null {
     if (option === null || option === undefined) return null;
+    if (typeof option === "string" && option.trim().startsWith("{")) {
+        try {
+            option = JSON.parse(option);
+        } catch {
+            return option;
+        }
+    }
     if (typeof option === "object") return option.value !== undefined ? String(option.value) : null;
     return String(option);
 }

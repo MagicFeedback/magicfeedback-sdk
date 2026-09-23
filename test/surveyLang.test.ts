@@ -85,6 +85,16 @@ describe("baseValueMap", () => {
         });
         expect(baseValueMap(q).get("Rojo")).toBe("Rød");
     });
+
+    test("image options arrive as JSON strings", () => {
+        const q = question({
+            type: FEEDBACKAPPANSWERTYPE.MULTIPLECHOISE_IMAGE,
+            value: [JSON.stringify({position: 1, url: "a", value: "Rojo"})],
+            baseValue: [JSON.stringify({position: 1, url: "a", value: "Rød"})],
+        });
+        expect(toBaseAnswers([{key: "q", value: ["Rojo"]}], [q])).toEqual([{key: "q", value: ["Rød"]}]);
+        expect(shownValueFor(q, "Rød")).toBe("Rojo");
+    });
 });
 
 describe("toBaseAnswers", () => {
