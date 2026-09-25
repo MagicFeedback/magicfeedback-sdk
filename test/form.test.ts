@@ -341,6 +341,23 @@ describe("Form.generate", () => {
         expect(submitButton).toBeNull();
     });
 
+    test("should hide the back button and ignore back() on the first page", async () => {
+        const form = setupForm([
+            buildQuestion({id: "11", title: "Name", ref: "name", position: 1}),
+        ], {addButton: true});
+        (form as any).formData.identity = "MAGICSURVEY";
+        await (form as any).generateForm();
+
+        const backButton = container.querySelector(".magicfeedback-back") as HTMLButtonElement;
+        expect(backButton).not.toBeNull();
+        expect(backButton.hidden).toBe(true);
+
+        await form.back();
+
+        expect(container.querySelector('input[name="name"]')).not.toBeNull();
+        expect((form as any).history.size()).toBe(1);
+    });
+
     test("should log an error message when the specified selector is not found", async () => {
         const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
         const form = setupForm([

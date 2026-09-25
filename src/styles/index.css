@@ -288,6 +288,10 @@ input.error, select.error {
     color: #212529;
 }
 
+.magicfeedback-action-container .magicfeedback-back[hidden] {
+    display: none;
+}
+
 
 
 /* Rating styles */

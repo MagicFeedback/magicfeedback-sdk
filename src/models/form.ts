@@ -469,6 +469,7 @@ export class Form {
                 );
 
                 form.appendChild(actionContainer);
+                this.syncBackButton();
             }
 
             if (this.formOptionsConfig.addButton) {
@@ -1249,6 +1250,7 @@ export class Form {
         // Update the progress +0.5, because the follow up questions are
         // not included in the graph and one page with follow up questions is considered as 2
         this.history.enqueue(n);
+        this.syncBackButton();
         this.progress += 0.5;
 
         form.innerHTML = "";
@@ -1395,6 +1397,7 @@ export class Form {
         nextPage.elements?.forEach((element) => form.appendChild(element));
 
         this.history.enqueue(nextPage);
+        this.syncBackButton();
         this.progress = this.total - this.graph.findMaxDepth(nextPage)
 
         // AFTER
@@ -1413,18 +1416,30 @@ export class Form {
 
 
     /**
+     * Hide the back button while there is no previous page to return to.
+     * @private
+     */
+    private syncBackButton() {
+        const form = document.getElementById("magicfeedback-" + this.appId);
+        const backButton = form?.querySelector(".magicfeedback-back") as HTMLButtonElement | null;
+        if (backButton) backButton.hidden = this.history.size() <= 1;
+    }
+
+    /**
      * Render back question
      * @private
      */
     public async back() {
-        if (this.history.size() === 0) return;
+        // On the first page there is nothing to go back to: rolling back would
+        // empty the history and leave a blank form behind.
+        if (this.history.size() <= 1) return;
 
         const form = document.getElementById("magicfeedback-questions-" + this.appId) as HTMLElement;
 
         if (form && form.childNodes.length > 0) form.innerHTML = "";
 
         this.history.rollback();
-
+        this.syncBackButton();
 
         const page = this.history.back();
 
