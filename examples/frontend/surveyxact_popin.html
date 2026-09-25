@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testside</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .content {
+            line-height: 1.6;
+        }
+    </style>
+
+    <!-- SurveyXact pop-in: shows the client's introduction / terms and the Ok / Afslut buttons -->
+    <link rel="stylesheet" type="text/css" href="https://popin.survey-xact.dk/popin/popin-material.css" />
+    <script type="text/javascript" src="https://popin.survey-xact.dk/popin/popin.js"></script>
+    <script type="text/javascript" src="https://popin.survey-xact.dk/dynjs/MWKTFW2SJN96/popin.js"></script>
+    <script type="text/javascript" src="https://popin.survey-xact.dk/cookies.js"></script>
+
+    <!-- MagicFeedback SDK -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@magicfeedback/native@2.2.23/dist/styles/magicfeedback-default.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@magicfeedback/native@2.2.23/dist/magicfeedback-sdk.browser.js"></script>
+
+    <style>
+        /* SurveyXact hides its own close icon and ships no styling for the title bar,
+           so we bring it back — its click handler already works */
+        #xact_popupTitleBar { display: flex; justify-content: flex-end; }
+        #popCloseBox        { display: block !important; cursor: pointer; width: 16px; height: 16px; }
+
+        /* once the visitor accepts, the intro iframe and the Ok / Afslut row give way
+           to the survey, whose own buttons take over */
+        #xact_popupInner.mf-accepted #xact_popupFrame,
+        #xact_popupInner.mf-accepted #xact_popinButtons { display: none !important; }
+
+        /* the pop-in keeps the size it had with the terms (height is frozen on Ok):
+           the questions scroll and the buttons stay pinned at the bottom */
+        #mf-popin {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+        }
+        /* stretch the survey to the pop-in so the buttons sit at the bottom, like Ok / Afslut */
+        #mf-popin > .magicfeedback-container,
+        #mf-popin .magicfeedback-form {
+            flex: 1 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* the survey's buttons take the place and look of SurveyXact's Afslut / Ok */
+        #mf-popin .magicfeedback-action-container {
+            position: sticky;
+            bottom: 0;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: auto 0 0;
+            padding: 16px 0 0;
+            border: 0;
+            background: white;
+        }
+        #mf-popin .magicfeedback-back,
+        #mf-popin .magicfeedback-submit,
+        #mf-popin .magicfeedback-start-message-button {
+            width: auto;
+            min-width: 64px;
+            height: 36px;
+            min-height: 0;
+            margin: 0;
+            border: none;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: normal;
+            line-height: 16px;
+            letter-spacing: 1.25px;
+            cursor: pointer;
+            transform: none;
+            transition: none;
+        }
+        #mf-popin .magicfeedback-back {   /* = #xact_popInNo */
+            padding: 0 8px;
+            background: white;
+            color: black;
+            box-shadow: none;
+        }
+        #mf-popin .magicfeedback-back:hover  { background: rgba(0, 0, 0, 0.04); }
+        #mf-popin .magicfeedback-back:focus,
+        #mf-popin .magicfeedback-back:active { background: rgba(0, 0, 0, 0.12); outline: none; }
+
+        #mf-popin .magicfeedback-submit,
+        #mf-popin .magicfeedback-start-message-button {   /* = #xact_popInYes */
+            margin-left: 0;
+            padding: 0 16px;
+            background: #384F5B;
+            color: white;
+            text-transform: uppercase;
+            box-shadow: 0 3px 1px -2px rgba(0, 0, 0, 0.20), 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12);
+        }
+        #mf-popin .magicfeedback-submit:hover  { opacity: 0.92; background: #384F5B; transform: none; }
+        #mf-popin .magicfeedback-submit:focus  { opacity: 0.76; outline: none; }
+        #mf-popin .magicfeedback-submit:active { opacity: 0.68; }
+        #mf-popin .magicfeedback-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* no page to go back to yet (see pageDepth below) */
+        #mf-popin.mf-first-page .magicfeedback-back,
+        #mf-popin .magicfeedback-back[hidden] { display: none; }
+
+        @media (max-width: 767px) {   /* the SDK stacks its buttons full-width on mobile */
+            #mf-popin .magicfeedback-action-container { flex-direction: row; }
+            #mf-popin .magicfeedback-back,
+            #mf-popin .magicfeedback-submit { width: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <div class="content">
+            <h2>Velkommen</h2>
+            <p>
+                Dette er en simpel testside til afprøvning af pop-ins,
+                spørgeskemaer og brugerundersøgelser.
+            </p>
+
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </p>
+        </div>
+    </main>
+
+<script>
+  window.xact_surveyKey    = 'MWKTFW2SJN96';   // keeps your existing frequency cookie
+  window.xact_probability  = 1;
+  window.xact_baseURL      = 'https://www.survey-xact.dk';
+  window.xact_language     = 'da';
+  window.xact_width        = 480;
+  window.xact_height       = 350;              // the pop-in keeps this size for the survey too
+  window.xact_handleCookie = false;            // no SurveyXact cookie checkbox
+
+  // Please do NOT also set xact_cookieOptOut = true: combined with the line
+  // above, popin.js throws while building the pop-in and it never opens.
+
+  var MF_APP_ID     = '09cf52e0-b596-11f1-9f7c-c5447fea7373';
+  var MF_PUBLIC_KEY = 'a00969fcdc20ba24bdd06058b1e2c1b2';
+
+  var ANSWERED_TTL_DAYS = 90;   // don't ask again after the survey is completed
+  var DECLINED_TTL_DAYS = 30;   // don't ask again after "Afslut" (0 = ask on every visit)
+
+  var DAY_MS = 24 * 60 * 60 * 1000;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (localStorage.getItem('selectedLanguage') === 'en') return;   // your existing rule
+
+    xact_startPopIn();
+
+    // the pop-in is built on window load; #xact_popinButtons is the last piece
+    var tries = 0;
+    var timer = setInterval(function () {
+      var buttons = document.getElementById('xact_popinButtons');
+      if (!buttons) { if (++tries > 600) clearInterval(timer); return; }
+      clearInterval(timer);
+      takeOverButtons(buttons);
+    }, 100);
+  });
+
+  // popin.js wires Ok / Afslut to xact_doHidePopIn, which would just close the
+  // pop-in (and open a SurveyXact survey on Ok). We replace both handlers so the
+  // MagicFeedback survey only starts once the visitor accepts the terms.
+  function takeOverButtons(buttons) {
+    var yes = document.getElementById('xact_popInYes');
+    var no  = document.getElementById('xact_popInNo');
+
+    yes.onclick = function () {
+      renderSurvey(buttons);
+    };
+
+    no.onclick = function () {
+      if (DECLINED_TTL_DAYS > 0) {
+        SurveyXactSetCookie(window.xact_surveyKey, 1,
+          new Date(Date.now() + DECLINED_TTL_DAYS * DAY_MS), '/');
+      }
+      xact_hidePopWin(false);
+    };
+  }
+
+  function renderSurvey(buttons) {
+    document.onkeypress = null;   // popin.js swallows Tab while the pop-in is open
+
+    // freeze the pop-in at the size it has now, with the terms, so it does not
+    // jump when the survey replaces them
+    var popup = document.getElementById('xact_popupContainer');
+    popup.style.height = popup.offsetHeight + 'px';
+
+    var inner = document.getElementById('xact_popupInner');
+    inner.classList.add('mf-accepted');
+
+    // the SDK renames the element it renders into, so it goes inside a wrapper
+    // we keep hold of: the wrapper is the scroll area the styles above target
+    var host = document.createElement('div');
+    host.id = 'mf-popin';
+    host.className = 'mf-first-page';
+    var target = document.createElement('div');
+    target.id = 'magicfeedback-popin';
+    host.appendChild(target);
+    buttons.parentNode.insertBefore(host, buttons);
+
+    // pages the visitor can go back through. SDK 2.2.23 still shows "Tilbage"
+    // on the first page and clicking it empties the survey, so we hide it there
+    // ourselves (later SDK versions hide it on their own).
+    var pageDepth = 1;
+    function setDepth(depth) {
+      pageDepth = Math.max(depth, 1);
+      host.classList.toggle('mf-first-page', pageDepth === 1);
+      host.scrollTop = 0;
+    }
+
+    window.magicfeedback.init({ env: 'prod' });
+    window.magicfeedback.form(MF_APP_ID, MF_PUBLIC_KEY).generate('magicfeedback-popin', {
+      addButton: true,
+      addSuccessScreen: true,
+      customMetaData: [{ key: 'source', value: ['popin'] }],
+
+      onLoadedEvent: function () { setDepth(1); },
+      onBackEvent:   function () { setDepth(pageDepth - 1); },
+
+      afterSubmitEvent: function (e) {
+        if (e.error) return;                   // validation or save failed: same page
+        if (!e.completed) { setDepth(pageDepth + 1); return; }
+
+        // the visitor answered — don't ask again
+        SurveyXactSetCookie(window.xact_surveyKey, 1,
+          new Date(Date.now() + ANSWERED_TTL_DAYS * DAY_MS), '/');
+
+        // let them read the thank-you screen, then close the pop-in
+        setTimeout(function () { xact_hidePopWin(false); }, 2500);
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
