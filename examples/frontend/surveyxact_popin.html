@@ -42,8 +42,8 @@
 
     <!-- MagicFeedback SDK -->
     <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@magicfeedback/native@2.2.23/dist/styles/magicfeedback-default.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@magicfeedback/native@2.2.23/dist/magicfeedback-sdk.browser.js"></script>
+          href="https://cdn.jsdelivr.net/npm/@magicfeedback/native@2.2.25/dist/styles/magicfeedback-default.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@magicfeedback/native@2.2.25/dist/magicfeedback-sdk.browser.js"></script>
 
     <style>
         /* SurveyXact hides its own close icon and ships no styling for the title bar,
@@ -130,8 +130,7 @@
         #mf-popin .magicfeedback-submit:active { opacity: 0.68; }
         #mf-popin .magicfeedback-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* no page to go back to yet (see pageDepth below) */
-        #mf-popin.mf-first-page .magicfeedback-back,
+        /* the SDK hides "Tilbage" on the first page */
         #mf-popin .magicfeedback-back[hidden] { display: none; }
 
         @media (max-width: 767px) {   /* the SDK stacks its buttons full-width on mobile */
@@ -228,21 +227,13 @@
     // we keep hold of: the wrapper is the scroll area the styles above target
     var host = document.createElement('div');
     host.id = 'mf-popin';
-    host.className = 'mf-first-page';
     var target = document.createElement('div');
     target.id = 'magicfeedback-popin';
     host.appendChild(target);
     buttons.parentNode.insertBefore(host, buttons);
 
-    // pages the visitor can go back through. SDK 2.2.23 still shows "Tilbage"
-    // on the first page and clicking it empties the survey, so we hide it there
-    // ourselves (later SDK versions hide it on their own).
-    var pageDepth = 1;
-    function setDepth(depth) {
-      pageDepth = Math.max(depth, 1);
-      host.classList.toggle('mf-first-page', pageDepth === 1);
-      host.scrollTop = 0;
-    }
+    // every page starts at the top of the pop-in
+    function toTop() { host.scrollTop = 0; }
 
     window.magicfeedback.init({ env: 'prod' });
     window.magicfeedback.form(MF_APP_ID, MF_PUBLIC_KEY).generate('magicfeedback-popin', {
@@ -250,12 +241,11 @@
       addSuccessScreen: true,
       customMetaData: [{ key: 'source', value: ['popin'] }],
 
-      onLoadedEvent: function () { setDepth(1); },
-      onBackEvent:   function () { setDepth(pageDepth - 1); },
+      onBackEvent: toTop,
 
       afterSubmitEvent: function (e) {
-        if (e.error) return;                   // validation or save failed: same page
-        if (!e.completed) { setDepth(pageDepth + 1); return; }
+        toTop();
+        if (!e.completed || e.error) return;   // not finished, or the answer failed to save
 
         // the visitor answered — don't ask again
         SurveyXactSetCookie(window.xact_surveyKey, 1,
