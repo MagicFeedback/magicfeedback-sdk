@@ -1172,6 +1172,15 @@ textarea.error {
     background-color: var(--mf-bg-hover);
 }
 
+/* hidden on the first page; keep the submit button on the right */
+.magicfeedback-back[hidden] {
+    display: none;
+}
+
+.magicfeedback-action-container .magicfeedback-submit {
+    margin-left: auto;
+}
+
 /* ========================================
    SKIP & COUNTER
    ======================================== */

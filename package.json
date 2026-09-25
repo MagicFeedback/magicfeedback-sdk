@@ -1,6 +1,6 @@
 {
   "name": "@magicfeedback/native",
-  "version": "2.2.23",
+  "version": "2.2.25",
   "main": "./dist/magicfeedback-sdk.node.js",
   "browser": "./dist/magicfeedback-sdk.browser.js",
   "types": "./dist/types/src/index.d.ts",
@@ -20,7 +20,7 @@
     "release:alpha": "npm publish --access public --tag alpha",
     "test": "jest",
     "test:watch": "jest --watchAll",
-    "coverage": "vitest run --coverage",
+    "coverage": "jest --coverage",
     "publish:sdk": "bash publish.sh",
     "publish:sdk:dry-run": "NPM_DRY_RUN=1 bash publish.sh"
   },
@@ -44,7 +44,6 @@
     "typescript": "^4.6.2",
     "vite": "^2.8.0",
     "vite-plugin-dts": "^0.9.9",
-    "vitest": "^0.5.9",
     "webpack": "^5.70.0",
     "webpack-cli": "^4.9.2",
     "webpack-node-externals": "^3.0.0"
