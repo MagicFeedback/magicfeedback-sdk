@@ -38,6 +38,10 @@ export class FormData {
 
     lang: string[];
 
+    // Language the API actually served (`resolveSurveyLang`). Optional: older
+    // API versions do not send it.
+    servedLang?: string;
+
     style: Record<string, any>;
 
     pages: Page[];
