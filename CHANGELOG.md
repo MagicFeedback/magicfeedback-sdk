@@ -6,6 +6,11 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [Unreleased]
+- **Fix (`MULTI_QUESTION_MATRIX`):** in a narrow container (a pop-in, a sidebar) the matrix was a table cut off at the side. The stacked layout was only chosen when the *window* was under 600px. The matrix now follows the width of its own container (CSS container query): under 600px every statement becomes its own question with its options stacked as cards underneath, and it goes back to a table when there is room. The answer and the radio names are unchanged.
+- **Accessibility:** every matrix radio now has its own label with the option text (visually hidden while the matrix is a table).
+- **Tests:** added `test/renderMatrix.test.ts`.
+
 ## 🚀 [2.2.25] - 2026-09-25
 - **Fix (`Form.back`):** on the first page, "Back" emptied the survey. The history only held that page, so `back()` rolled it out and left a blank form with no way forward. `back()` now does nothing until there is a previous page, and the back button is hidden (`hidden` attribute) while there is none. It shows again as soon as the visitor moves on. `magicfeedback-default.css` keeps the submit button on the right while the back button is hidden.
 - **New feature (multi-language surveys):** the SDK asks for one language with `?lang=` on `GET /sdk/app/{id}/{key}/info`, `GET /sdk/app/session/{id}/info` and `getQuestions()`. Order: `generate(selector, {lang})`, then `init({lang})`, then the browser / webview language (`navigator.languages`). Codes are normalized to two lowercase letters (`es-ES` → `es`, `nb` → `no`).
