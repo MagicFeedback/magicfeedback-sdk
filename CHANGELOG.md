@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## 🚀 [Unreleased]
+## 🚀 [2.2.26] - 2026-09-29
 - **Fix (`MULTI_QUESTION_MATRIX`):** in a narrow container (a pop-in, a sidebar) the matrix was a table cut off at the side. The stacked layout was only chosen when the *window* was under 600px. The matrix now follows the width of its own container (CSS container query): under 600px every statement becomes its own question with its options stacked as cards underneath, and it goes back to a table when there is room. The answer and the radio names are unchanged.
 - **Accessibility:** every matrix radio now has its own label with the option text (visually hidden while the matrix is a table).
 - **Tests:** added `test/renderMatrix.test.ts`.
