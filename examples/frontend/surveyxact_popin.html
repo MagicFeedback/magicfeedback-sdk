@@ -42,14 +42,37 @@
 
     <!-- MagicFeedback SDK -->
     <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@magicfeedback/native@2.2.25/dist/styles/magicfeedback-default.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@magicfeedback/native@2.2.25/dist/magicfeedback-sdk.browser.js"></script>
+          href="https://cdn.jsdelivr.net/npm/@magicfeedback/native@2.2.26/dist/styles/magicfeedback-default.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@magicfeedback/native@2.2.26/dist/magicfeedback-sdk.browser.js"></script>
 
     <style>
-        /* SurveyXact hides its own close icon and ships no styling for the title bar,
-           so we bring it back — its click handler already works */
-        #xact_popupTitleBar { display: flex; justify-content: flex-end; }
-        #popCloseBox        { display: block !important; cursor: pointer; width: 16px; height: 16px; }
+        /* SurveyXact's close icon is an old gif: we swap it for our own button
+           (added in takeOverButtons). The title bar stays, popin.js sizes the
+           intro iframe from its width */
+        #popCloseBox { display: none !important; }
+        #xact_popupTitleBar { display: flex; justify-content: flex-end; min-height: 20px; }
+
+        .mf-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 1;
+            display: grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: #5f6b72;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        .mf-close:hover  { background: rgba(0, 0, 0, 0.06); color: #384F5B; }
+        .mf-close:active { background: rgba(0, 0, 0, 0.12); }
+        .mf-close:focus-visible { outline: 2px solid #384F5B; outline-offset: 2px; }
+        .mf-close svg { width: 18px; height: 18px; }
 
         /* once the visitor accepts, the intro iframe and the Ok / Afslut row give way
            to the survey, whose own buttons take over */
@@ -198,6 +221,17 @@
   function takeOverButtons(buttons) {
     var yes = document.getElementById('xact_popInYes');
     var no  = document.getElementById('xact_popInNo');
+
+    // same as SurveyXact's own close icon: hide the pop-in, no cookie
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'mf-close';
+    close.title = 'Luk';
+    close.setAttribute('aria-label', 'Luk');
+    close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"'
+      + ' stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    close.onclick = function () { xact_hidePopWin(false); };
+    document.getElementById('xact_popupContainer').appendChild(close);
 
     yes.onclick = function () {
       renderSurvey(buttons);
