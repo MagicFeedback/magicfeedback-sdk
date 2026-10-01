@@ -193,29 +193,27 @@ export function createRatingNumberElement(
     // chip, not one shared box — so the caption bookends the whole stack
     // from outside it (above the first chip, below the last) rather than
     // living inside a box that no longer exists.
+    // A row also gets these, hidden, for when it is too narrow and stacks
+    // (see stackRowWhenNarrow) — then it reads exactly like a bare column.
     let columnAfterLabel: HTMLElement | null = null;
     if (isColumn && !hasNumberPlaceholders) {
         ratingNumberContainer.classList.add('magicfeedback-rating-number-container-column--bare');
+    }
+    if ((!isColumn || !hasNumberPlaceholders) && (assets?.minPlaceholder || assets?.maxPlaceholder)) {
+        // order="rtl" flips the list itself (rendered column-reverse),
+        // so the end each label sits next to flips with it.
+        const topText = order === 'ltr' ? assets?.minPlaceholder : assets?.maxPlaceholder;
+        const bottomText = order === 'ltr' ? assets?.maxPlaceholder : assets?.minPlaceholder;
+        const createBlockLabel = (text: string) => {
+            const label = document.createElement('div');
+            label.classList.add('magicfeedback-rating-number-scale-label-block');
+            if (!isColumn) label.classList.add('magicfeedback-rating-number-scale-label-block--stacked');
+            label.textContent = text;
+            return label;
+        };
 
-        if (assets?.minPlaceholder || assets?.maxPlaceholder) {
-            // order="rtl" flips the list itself (rendered column-reverse),
-            // so the end each label sits next to flips with it.
-            const topText = order === 'ltr' ? assets?.minPlaceholder : assets?.maxPlaceholder;
-            const bottomText = order === 'ltr' ? assets?.maxPlaceholder : assets?.minPlaceholder;
-
-            if (topText) {
-                const beforeLabel = document.createElement('div');
-                beforeLabel.classList.add('magicfeedback-rating-number-scale-label-block');
-                beforeLabel.textContent = topText;
-                element.appendChild(beforeLabel);
-            }
-
-            if (bottomText) {
-                columnAfterLabel = document.createElement('div');
-                columnAfterLabel.classList.add('magicfeedback-rating-number-scale-label-block');
-                columnAfterLabel.textContent = bottomText;
-            }
-        }
+        if (topText) element.appendChild(createBlockLabel(topText));
+        if (bottomText) columnAfterLabel = createBlockLabel(bottomText);
     }
 
     for (let i = minRatingNumber; i <= maxRatingNumber; i++) {
@@ -283,8 +281,14 @@ export function createRatingNumberElement(
 
     element.appendChild(ratingNumberContainer);
 
-    if (rowScaleLabels) element.appendChild(rowScaleLabels);
+    // The "after" label always sits right after the container, so the
+    // container + label-block spacing rule holds in a stacked row too.
     if (columnAfterLabel) element.appendChild(columnAfterLabel);
+    if (rowScaleLabels) element.appendChild(rowScaleLabels);
+
+    if (!isColumn) {
+        stackRowWhenNarrow(element, ratingNumberContainer, maxRatingNumber - minRatingNumber + 1, order);
+    }
 
     if (assets?.extraOption && assets?.extraOptionText) {
         // Always its own row below the scale — the extra option means
@@ -326,4 +330,51 @@ export function createRatingNumberElement(
     }
 
     return element;
+}
+
+/** Narrowest a row chip may get before the row stacks into a column. */
+export const RATING_NUMBER_MIN_CHIP_WIDTH = 44;
+
+/**
+ * A row that can't give every chip RATING_NUMBER_MIN_CHIP_WIDTH (an 11-point
+ * NPS on a phone, a narrow pop-in) turns into the bare column layout, and
+ * back when there is room again. It follows the width of the question
+ * itself, not the window. Only classes and the flex direction change, so
+ * the inputs, their order and a checked answer stay as they are.
+ */
+function stackRowWhenNarrow(element: HTMLElement, container: HTMLElement, optionCount: number, order: string) {
+    if (typeof ResizeObserver === 'undefined') return;
+
+    const isDense = container.classList.contains('magicfeedback-rating-number-container-row--dense');
+    let rowGap = 0;
+    let stacked = false;
+
+    const setStacked = (stack: boolean) => {
+        if (stack === stacked) return;
+        stacked = stack;
+
+        element.classList.toggle('magicfeedback-rating-number--stacked', stack);
+        container.classList.toggle('magicfeedback-rating-number-container-row', !stack);
+        container.classList.toggle('magicfeedback-rating-number-container-row--dense', !stack && isDense);
+        container.classList.toggle('magicfeedback-rating-number-container-column', stack);
+        container.classList.toggle('magicfeedback-rating-number-container-column--bare', stack);
+        container.style.flexDirection = stack
+            ? (order === 'ltr' ? 'column' : 'column-reverse')
+            : (order === 'ltr' ? 'row' : 'row-reverse');
+
+        container.querySelectorAll(':scope > .magicfeedback-rating-number-option').forEach((option) => {
+            option.classList.toggle('magicfeedback-rating-number-option-row', !stack);
+            option.classList.toggle('magicfeedback-rating-number-option-column', stack);
+        });
+    };
+
+    new ResizeObserver((entries) => {
+        const width = entries[0]?.contentRect.width;
+        if (!width) return;
+
+        // Read the gap while it is still a row: the column has its own.
+        if (!stacked) rowGap = parseFloat(getComputedStyle(container).columnGap) || 0;
+        const needed = optionCount * RATING_NUMBER_MIN_CHIP_WIDTH + (optionCount - 1) * rowGap;
+        setStacked(width < needed);
+    }).observe(element);
 }
