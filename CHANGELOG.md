@@ -6,6 +6,10 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [Unreleased]
+- **Fix (ghost taps):** a double tap on "Start" or "Next", or a second tap on an option that auto-advances, landed on the new page and answered whatever sat under the finger. On the Club Matas NPS that was the 0, since "Start" sits right on top of it. For 400ms after a page is shown (first page, next page, follow up, back, and each agent turn) pointer clicks inside the questions are ignored. Keyboard activation is never blocked. Nothing changes visually.
+- **Tests:** added `test/ghostTapGuard.test.ts` and a double-tap case in `test/form.test.ts`.
+
 ## 🚀 [2.2.26] - 2026-09-29
 - **Fix (`MULTI_QUESTION_MATRIX`):** in a narrow container (a pop-in, a sidebar) the matrix was a table cut off at the side. The stacked layout was only chosen when the *window* was under 600px. The matrix now follows the width of its own container (CSS container query): under 600px every statement becomes its own question with its options stacked as cards underneath, and it goes back to a table when there is room. The answer and the radio names are unchanged.
 - **Accessibility:** every matrix radio now has its own label with the option text (visually hidden while the matrix is a table).

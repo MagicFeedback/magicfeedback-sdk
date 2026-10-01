@@ -20,6 +20,7 @@ import {applyDirection, applyPrimaryColor, generateContainer} from "../render/co
 import {awaitUploadReady} from "../render/uploadHelpers";
 import {renderActions, renderError, renderQuestions, renderSuccess} from "../services/questions.service";
 import {t} from "../services/i18n";
+import {armGhostTapGuard} from "../utils/ghostTapGuard";
 
 /** How long a persisted session stays resumable. */
 const RESUME_TTL_MS = 30 * 60 * 1000;
@@ -489,6 +490,7 @@ export class AgentForm {
         );
 
         elements.forEach((element) => questionContainer.appendChild(element));
+        armGhostTapGuard(questionContainer);
     }
 
     private async renderEnd(step: Extract<AgentStep, {kind: "END"}>): Promise<void> {
