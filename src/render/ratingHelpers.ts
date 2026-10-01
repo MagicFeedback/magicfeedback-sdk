@@ -207,7 +207,12 @@ export function createRatingNumberElement(
         const createBlockLabel = (text: string) => {
             const label = document.createElement('div');
             label.classList.add('magicfeedback-rating-number-scale-label-block');
-            if (!isColumn) label.classList.add('magicfeedback-rating-number-scale-label-block--stacked');
+            if (!isColumn) {
+                label.classList.add('magicfeedback-rating-number-scale-label-block--stacked');
+                // Inline, not a stylesheet rule: integrations that ship their
+                // own copy of the CSS (MagicSurvey) never get one.
+                label.style.display = 'none';
+            }
             label.textContent = text;
             return label;
         };
@@ -354,6 +359,12 @@ function stackRowWhenNarrow(element: HTMLElement, container: HTMLElement, option
         stacked = stack;
 
         element.classList.toggle('magicfeedback-rating-number--stacked', stack);
+        // Only one set of min/max labels is ever visible: the one-line
+        // caption in a row, the above/below blocks in a stacked column.
+        element.querySelectorAll<HTMLElement>(':scope > .magicfeedback-rating-number-scale-labels')
+            .forEach((caption) => { caption.style.display = stack ? 'none' : ''; });
+        element.querySelectorAll<HTMLElement>(':scope > .magicfeedback-rating-number-scale-label-block--stacked')
+            .forEach((block) => { block.style.display = stack ? '' : 'none'; });
         container.classList.toggle('magicfeedback-rating-number-container-row', !stack);
         container.classList.toggle('magicfeedback-rating-number-container-row--dense', !stack && isDense);
         container.classList.toggle('magicfeedback-rating-number-container-column', stack);

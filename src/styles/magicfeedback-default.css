@@ -689,14 +689,6 @@ textarea.error {
     display: flex;
 }
 
-/* A row that is too narrow for its chips stacks into a column
-   (stackRowWhenNarrow): its one-line caption gives way to the
-   above/below labels a column uses, which a row keeps hidden. */
-.magicfeedback-rating-number:not(.magicfeedback-rating-number--stacked) > .magicfeedback-rating-number-scale-label-block--stacked,
-.magicfeedback-rating-number--stacked > .magicfeedback-rating-number-scale-labels {
-    display: none;
-}
-
 .magicfeedback-rating-number-option-label-container {
     position: relative;
     width: 100%;
