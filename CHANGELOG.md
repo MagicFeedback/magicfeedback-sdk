@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## 🚀 [Unreleased]
+## 🚀 [2.2.29] - 2026-10-01
 - **Fix (`RATING_NUMBER`):** stacking a row into a column (2.2.27) changed the question's height from inside its own `ResizeObserver` callback, so browsers fired a `ResizeObserver loop completed with undelivered notifications` error on every stacked render (the dev overlay in MagicSurvey, a console error in production, noise in any error tracker). The switch now runs on the next animation frame and only a width change triggers it. Layout and behaviour are unchanged.
 - **Tests:** frame scheduling cases in `test/ratingNumber.test.ts`.
 
