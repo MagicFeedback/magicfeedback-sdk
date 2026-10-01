@@ -16,6 +16,7 @@ import {History} from "./History";
 import {PageNode} from "./pageNode";
 import {t} from "../services/i18n";
 import {detectSurveyLang, toBaseAnswers} from "../services/surveyLang";
+import {armGhostTapGuard} from "../utils/ghostTapGuard";
 
 export class Form {
     /**
@@ -449,6 +450,7 @@ export class Form {
             page.elements?.forEach((element) =>
                 questionContainer.appendChild(element));
             form.appendChild(questionContainer);
+            armGhostTapGuard(questionContainer);
 
             // Add the new page to the history
             this.history.enqueue(page);
@@ -1256,6 +1258,7 @@ export class Form {
         form.innerHTML = "";
 
         n.elements?.forEach((element) => form.appendChild(element));
+        armGhostTapGuard(form);
 
         // AFTER
         if (this.formOptionsConfig.afterSubmitEvent) {
@@ -1395,6 +1398,7 @@ export class Form {
         form.innerHTML = "";
 
         nextPage.elements?.forEach((element) => form.appendChild(element));
+        armGhostTapGuard(form);
 
         this.history.enqueue(nextPage);
         this.syncBackButton();
@@ -1445,6 +1449,7 @@ export class Form {
 
         if (page) {
             page.elements?.forEach((element) => form.appendChild(element));
+            armGhostTapGuard(form);
             this.progress = this.total - this.graph.findMaxDepth(page)
         } else {
             this.progress = this.history.size();
