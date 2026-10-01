@@ -86,6 +86,26 @@ describe("rating number row that is too narrow for its chips", () => {
         expect((element.querySelector("input:checked") as HTMLInputElement).value).toBe("7");
     });
 
+    test("shows exactly one set of min/max labels without any stylesheet", () => {
+        const element = nps();
+        const caption = element.querySelector(".magicfeedback-rating-number-scale-labels") as HTMLElement;
+        const blocks = Array.from(element.querySelectorAll<HTMLElement>(".magicfeedback-rating-number-scale-label-block--stacked"));
+
+        // Row: the one-line caption only.
+        expect(caption.style.display).toBe("");
+        blocks.forEach((block) => expect(block.style.display).toBe("none"));
+
+        // Stacked: the above/below labels only.
+        resize(element, 375);
+        expect(caption.style.display).toBe("none");
+        blocks.forEach((block) => expect(block.style.display).toBe(""));
+
+        // Back to a row.
+        resize(element, 800);
+        expect(caption.style.display).toBe("");
+        blocks.forEach((block) => expect(block.style.display).toBe("none"));
+    });
+
     test("ignores a zero width (not attached yet)", () => {
         const element = nps();
         resize(element, 0);
