@@ -379,13 +379,29 @@ function stackRowWhenNarrow(element: HTMLElement, container: HTMLElement, option
         });
     };
 
+    // Stacking changes the element's height, which re-triggers the observer.
+    // Switching inside the callback made the browser report "ResizeObserver
+    // loop completed with undelivered notifications", so the switch waits for
+    // the next frame and only a width change counts.
+    const nextFrame = typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (callback: FrameRequestCallback) => { callback(0); return 0; };
+    let lastWidth = 0;
+    let pending = false;
+
     new ResizeObserver((entries) => {
         const width = entries[0]?.contentRect.width;
-        if (!width) return;
+        if (!width || width === lastWidth) return;
+        lastWidth = width;
 
-        // Read the gap while it is still a row: the column has its own.
-        if (!stacked) rowGap = parseFloat(getComputedStyle(container).columnGap) || 0;
-        const needed = optionCount * RATING_NUMBER_MIN_CHIP_WIDTH + (optionCount - 1) * rowGap;
-        setStacked(width < needed);
+        if (pending) return;
+        pending = true;
+        nextFrame(() => {
+            pending = false;
+            // Read the gap while it is still a row: the column has its own.
+            if (!stacked) rowGap = parseFloat(getComputedStyle(container).columnGap) || 0;
+            const needed = optionCount * RATING_NUMBER_MIN_CHIP_WIDTH + (optionCount - 1) * rowGap;
+            setStacked(lastWidth < needed);
+        });
     }).observe(element);
 }
