@@ -6,6 +6,10 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [Unreleased]
+- **Fix (`RATING_NUMBER`):** stacking a row into a column (2.2.27) changed the question's height from inside its own `ResizeObserver` callback, so browsers fired a `ResizeObserver loop completed with undelivered notifications` error on every stacked render (the dev overlay in MagicSurvey, a console error in production, noise in any error tracker). The switch now runs on the next animation frame and only a width change triggers it. Layout and behaviour are unchanged.
+- **Tests:** frame scheduling cases in `test/ratingNumber.test.ts`.
+
 ## 🚀 [2.2.28] - 2026-10-01
 - **Fix (`RATING_NUMBER`):** when a row stacked into a column (2.2.27), integrations that ship their own CSS instead of `magicfeedback-default.css` (MagicSurvey) showed both sets of min/max labels: the one-line caption and the above/below labels. The SDK now sets their visibility inline, so exactly one set shows whatever stylesheet is used. The CSS-only rule is gone.
 - **Tests:** a case in `test/ratingNumber.test.ts` checks the labels with no stylesheet loaded.

@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, test} from "@jest/globals";
+import {afterEach, beforeEach, describe, expect, jest, test} from "@jest/globals";
 import {createRatingNumberElement} from "../src/render/ratingHelpers";
 
 type Callback = (entries: { contentRect: { width: number } }[]) => void;
@@ -10,8 +10,14 @@ class FakeResizeObserver {
     disconnect() {}
 }
 
-const resize = (element: Element, width: number) =>
+let frames: FrameRequestCallback[] = [];
+const flushFrames = () => { const due = frames; frames = []; due.forEach((frame) => frame(0)); };
+
+const notify = (element: Element, width: number) =>
     observed.filter((o) => o.target === element).forEach((o) => o.callback([{contentRect: {width}}]));
+
+// A resize as the browser delivers it: the observer fires, then the next frame runs.
+const resize = (element: Element, width: number) => { notify(element, width); flushFrames(); };
 
 const nps = (order = "rtl") => createRatingNumberElement(
     "nps",
@@ -27,11 +33,14 @@ const container = (element: HTMLElement) =>
 describe("rating number row that is too narrow for its chips", () => {
     beforeEach(() => {
         observed = [];
+        frames = [];
         (global as any).ResizeObserver = FakeResizeObserver;
+        jest.spyOn(window, "requestAnimationFrame").mockImplementation((frame) => { frames.push(frame); return frames.length; });
     });
 
     afterEach(() => {
         delete (global as any).ResizeObserver;
+        jest.restoreAllMocks();
     });
 
     test("stacks into a column when a chip can't get 44px (11 points under 484px)", () => {
@@ -104,6 +113,33 @@ describe("rating number row that is too narrow for its chips", () => {
         resize(element, 800);
         expect(caption.style.display).toBe("");
         blocks.forEach((block) => expect(block.style.display).toBe("none"));
+    });
+
+    test("switches on the next frame, not inside the observer callback", () => {
+        const element = nps();
+        notify(element, 375);
+        expect(element.classList.contains("magicfeedback-rating-number--stacked")).toBe(false);
+
+        flushFrames();
+        expect(element.classList.contains("magicfeedback-rating-number--stacked")).toBe(true);
+    });
+
+    test("doesn't schedule again when only the height changed (the stacking itself)", () => {
+        const element = nps();
+        resize(element, 375);
+
+        notify(element, 375);
+        expect(frames).toHaveLength(0);
+    });
+
+    test("uses the last width when several arrive in one frame", () => {
+        const element = nps();
+        notify(element, 375);
+        notify(element, 800);
+        expect(frames).toHaveLength(1);
+
+        flushFrames();
+        expect(element.classList.contains("magicfeedback-rating-number--stacked")).toBe(false);
     });
 
     test("ignores a zero width (not attached yet)", () => {
