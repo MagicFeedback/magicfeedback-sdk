@@ -341,6 +341,46 @@ describe("Form.generate", () => {
         expect(submitButton).toBeNull();
     });
 
+    test("should hide the back button and ignore back() on the first page", async () => {
+        const form = setupForm([
+            buildQuestion({id: "11", title: "Name", ref: "name", position: 1}),
+        ], {addButton: true});
+        (form as any).formData.identity = "MAGICSURVEY";
+        await (form as any).generateForm();
+
+        const backButton = container.querySelector(".magicfeedback-back") as HTMLButtonElement;
+        expect(backButton).not.toBeNull();
+        expect(backButton.hidden).toBe(true);
+
+        await form.back();
+
+        expect(container.querySelector('input[name="name"]')).not.toBeNull();
+        expect((form as any).history.size()).toBe(1);
+    });
+
+    test("ignores a tap on the new page for 400ms, so a double tap on Start doesn't answer an NPS 0", async () => {
+        let clock = 1000;
+        const nowSpy = jest.spyOn(performance, "now").mockImplementation(() => clock);
+        const form = setupForm([
+            buildQuestion({id: "nps", title: "Recommend?", ref: "nps", type: FEEDBACKAPPANSWERTYPE.RATING_NUMBER, assets: {min: 0, max: 10}}),
+        ], {addButton: true});
+        await (form as any).generateForm();
+
+        const zero = container.querySelector('input[name="nps"][value="0"]') as HTMLInputElement;
+        const tap = () => (zero.closest("label") as HTMLLabelElement)
+            .dispatchEvent(new MouseEvent("click", {bubbles: true, cancelable: true, detail: 1}));
+
+        clock += 150;
+        tap();
+        expect(zero.checked).toBe(false);
+
+        clock += 400;
+        tap();
+        expect(zero.checked).toBe(true);
+
+        nowSpy.mockRestore();
+    });
+
     test("should log an error message when the specified selector is not found", async () => {
         const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
         const form = setupForm([

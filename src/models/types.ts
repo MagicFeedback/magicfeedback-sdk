@@ -4,6 +4,9 @@ export type InitOptions = {
     env?: 'dev' | 'prod';
     debug?: boolean;
     dryRun?: boolean;
+    // Survey language for every form (e.g. 'es'). When unset the browser or
+    // device language is used, and the API falls back to the survey default.
+    lang?: string;
 };
 
 export type NativeFeedbackAnswer = {
@@ -160,6 +163,10 @@ export type NativeQuestion<T extends FEEDBACKAPPANSWERTYPE | string = FEEDBACKAP
     updatedAt?: string | null;
     status?: string;
     followupQuestion?: string[]; // Nueva propiedad opcional
+    // Multi-language surveys: default-language originals, sent by the API only
+    // when it serves a language other than the survey's default (`lang[0]`).
+    baseValue?: any[];
+    baseDefaultValue?: string;
 };
 
 export type NativeAnswer = {
@@ -289,6 +296,8 @@ export type generateFormOptions = {
     onFinishEvent?: Function;
     onLoadedEvent?: Function;
     onBackEvent?: Function;
+    // Survey language for this form, overriding init({lang}) and the browser.
+    lang?: string;
 };
 
 enum generateFormOptionsTag {

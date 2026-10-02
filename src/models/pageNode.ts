@@ -11,6 +11,12 @@ export class PageNode {
     elements: HTMLElement[];
     isFollowup: boolean;
     answers: NativeAnswer[] = [];
+    /**
+     * Page that originated this node, only set on follow up pages. A follow up
+     * is not part of the graph, so its routing (conditional edges, answers the
+     * conditions are written against) belongs to the page it came from.
+     */
+    origin?: PageNode;
 
     constructor(id: string,
                 position: number,

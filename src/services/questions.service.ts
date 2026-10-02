@@ -1,6 +1,7 @@
 import {NativeQuestion} from "../models/types";
 import {getQuestionRenderer} from "../render/registry";
 import {getUrlParam, parseTitle} from "../render/helpers";
+import {shownValueFor} from "./surveyLang";
 
 const defaultUrl = `https://survey-dev.magicfeedback.io/assets/emojis`;
 const titleSizeMap: Record<string, string> = {
@@ -124,8 +125,9 @@ function renderContainer(
 
     const placeholderText = format === 'slim' ? parseTitle(title, language) : assets?.placeholder
 
-    // Look if exist the value in a query param with the ref like a key
-    const urlParamValue = getUrlParam(ref);
+    // Look if exist the value in a query param with the ref like a key.
+    // Prefills are written in the survey's default language; match the shown label.
+    const urlParamValue = shownValueFor(question, getUrlParam(ref));
 
     const maxCharacters = assets?.maxCharacters || 0
     const randomPosition = assets?.randomPosition === undefined ? false : assets?.randomPosition;

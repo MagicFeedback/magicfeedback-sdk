@@ -92,6 +92,7 @@ magicfeedback.init({
 | `env` | `"prod" \| "dev"` | `"prod"` | Selects the production or development API host. |
 | `debug` | `boolean` | `false` | Enables console logging. |
 | `dryRun` | `boolean` | `false` | Loads and navigates forms without sending feedback or requesting follow-up questions. |
+| `lang` | `string` | browser language | Survey language for every form (see [Multi-language surveys](#multi-language-surveys)). |
 
 `dryRun` is the safest way to QA a survey before giving it to a client.
 
@@ -160,6 +161,7 @@ await form.generate("survey-root", {
 | `beforeSubmitEvent` | `undefined` | Called before a page is submitted. |
 | `afterSubmitEvent` | `undefined` | Called after a page submit, follow-up render, or final completion. |
 | `onBackEvent` | `undefined` | Called after navigating back. |
+| `lang` | `init({lang})`, then browser language | Survey language for this form (see [Multi-language surveys](#multi-language-surveys)). |
 
 When `getMetaData` is enabled, the SDK includes the current URL, origin, pathname, query string, user agent, browser language, platform, app metadata, screen size, and the session id when rendering from `session()`. Query params are also expanded into metadata entries as `query-<param>` with all values for that param.
 
@@ -298,7 +300,7 @@ rate-limit messages — is translated into:
 
 `en` · `da` · `fi` · `no` · `sv` · `es` · `pt` · `fr` · `de` · `ar` · `bn`
 
-The language comes from the integration (`formData.lang[0]`, or `lang` in agent
+The language is the one the survey is shown in (see below; `lang` in agent
 mode), and regional tags are accepted: `es-ES`, `pt_BR` and `nb-NO` resolve to
 `es`, `pt` and `no`. Anything unknown falls back to English.
 
@@ -308,6 +310,27 @@ English.
 
 Anything you set explicitly — `sendButtonText`, `successMessage`, etc. — always
 wins over the translation.
+
+### Multi-language surveys
+
+A survey can hold several languages: `formData.lang` lists them and `lang[0]`
+is the default. The SDK asks the API for one language with `?lang=` and picks it
+in this order:
+
+1. `generate(selector, { lang })`
+2. `init({ lang })`
+3. the browser language (`navigator.languages` / `navigator.language`), which
+   is also the device language inside a mobile webview
+
+The code is normalized to two lowercase letters (`es-ES` → `es`, `nb` → `no`).
+If the survey does not support it, the API serves the default language. Read the
+language actually shown with `form.getLang()` or from `lang` in `onLoadedEvent`.
+
+Answers are always sent in the survey's default language: a respondent who picks
+"Satisfecho" in Spanish submits the default-language option at the same index
+(the API sends it as `baseValue`), so routing and reports keep working. Every
+`POST /sdk/feedback` carries the shown language as `lang`. URL prefills
+(`?<ref>=<option>`) are written in the default language too.
 
 ### Right-to-left
 

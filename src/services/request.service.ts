@@ -4,6 +4,7 @@ import {Log} from "../utils/log";
 import {endpoints} from "./paths";
 import {NativeQuestion} from "../models/types";
 import {FormData} from "../models/formData";
+import {withLangParam} from "./surveyLang";
 
 export const header = {
     Accept: "application/json",
@@ -21,9 +22,9 @@ export function validateEmail(email: string): boolean {
     return re.test(email);
 }
 
-export async function getForm(url: string, appId: string, publicKey: string, log: Log): Promise<FormData | any> {
+export async function getForm(url: string, appId: string, publicKey: string, log: Log, lang?: string | null): Promise<FormData | any> {
     try {
-        const response = await fetch(url + endpoints.sdk.app_info(appId, publicKey), {
+        const response = await fetch(withLangParam(url + endpoints.sdk.app_info(appId, publicKey), lang), {
             method: "GET",
             headers: header
         });
@@ -35,9 +36,9 @@ export async function getForm(url: string, appId: string, publicKey: string, log
     }
 }
 
-export async function getSessionForm(url: string, sessionId: string, log: Log): Promise<FormData | any> {
+export async function getSessionForm(url: string, sessionId: string, log: Log, lang?: string | null): Promise<FormData | any> {
     try {
-        const response = await fetch(url + endpoints.sdk.session(sessionId), {
+        const response = await fetch(withLangParam(url + endpoints.sdk.session(sessionId), lang), {
             method: "GET",
             headers: header
         });
@@ -49,9 +50,9 @@ export async function getSessionForm(url: string, sessionId: string, log: Log): 
     }
 }
 
-export async function getQuestions(url: string, appId: string, publicKey: string, log: Log): Promise<NativeQuestion[]> {
+export async function getQuestions(url: string, appId: string, publicKey: string, log: Log, lang?: string | null): Promise<NativeQuestion[]> {
     try {
-        const response = await fetch(url + endpoints.sdk.app(appId, publicKey), {
+        const response = await fetch(withLangParam(url + endpoints.sdk.app(appId, publicKey), lang), {
             method: "GET",
             headers: header
         });

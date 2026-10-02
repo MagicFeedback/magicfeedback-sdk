@@ -103,8 +103,7 @@ export const renderMatrix: QuestionRenderer = ({
             row.classList.add("magicfeedback-multi-question-matrix-row-tr");
 
             const questionCell = document.createElement("td");
-            questionCell.style.minWidth = "200px";
-            questionCell.style.padding = "10px";
+            questionCell.classList.add("magicfeedback-multi-question-matrix-question");
             const label = document.createElement("label");
             label.classList.add("magicfeedback-multi-question-matrix-label");
             label.textContent = questionText;
@@ -121,7 +120,16 @@ export const renderMatrix: QuestionRenderer = ({
                 input.id = `${ref}-${questionText}-${option}`;
                 input.classList.add("magicfeedback-input");
 
+                // Visually hidden while the matrix is a table (the column header
+                // names the option); shown when a narrow container stacks the rows.
+                const optionLabel = document.createElement("label");
+                optionLabel.classList.add("magicfeedback-multi-question-matrix-option-label");
+                optionLabel.htmlFor = input.id;
+                optionLabel.textContent = option;
+
+                optionCell.classList.add("magicfeedback-multi-question-matrix-option");
                 optionCell.appendChild(input);
+                optionCell.appendChild(optionLabel);
                 row.appendChild(optionCell);
             });
 

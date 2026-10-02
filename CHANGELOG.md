@@ -6,6 +6,38 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.2.29] - 2026-10-01
+- **Fix (`RATING_NUMBER`):** stacking a row into a column (2.2.27) changed the question's height from inside its own `ResizeObserver` callback, so browsers fired a `ResizeObserver loop completed with undelivered notifications` error on every stacked render (the dev overlay in MagicSurvey, a console error in production, noise in any error tracker). The switch now runs on the next animation frame and only a width change triggers it. Layout and behaviour are unchanged.
+- **Tests:** frame scheduling cases in `test/ratingNumber.test.ts`.
+
+## 🚀 [2.2.28] - 2026-10-01
+- **Fix (`RATING_NUMBER`):** when a row stacked into a column (2.2.27), integrations that ship their own CSS instead of `magicfeedback-default.css` (MagicSurvey) showed both sets of min/max labels: the one-line caption and the above/below labels. The SDK now sets their visibility inline, so exactly one set shows whatever stylesheet is used. The CSS-only rule is gone.
+- **Tests:** a case in `test/ratingNumber.test.ts` checks the labels with no stylesheet loaded.
+
+## 🚀 [2.2.27] - 2026-10-01
+- **Fix (ghost taps):** a double tap on "Start" or "Next", or a second tap on an option that auto-advances, landed on the new page and answered whatever sat under the finger. On the Club Matas NPS that was the 0, since "Start" sits right on top of it. For 400ms after a page is shown (first page, next page, follow up, back, and each agent turn) pointer clicks inside the questions are ignored. Keyboard activation is never blocked. Nothing changes visually.
+- **Fix (`RATING_NUMBER`):** a row that can't give every option at least 44px of width (an 11-point NPS on a phone left 24px chips, easy to hit the wrong number) now stacks into the bare column layout, with the min/max labels above and below. It follows the width of the question itself (`ResizeObserver`), not the window, and goes back to a row when there is room. `order` is kept (`rtl` stacks 10 at the top). Inputs, their order and a checked answer are untouched; per-option texts stay as tooltips. Without `ResizeObserver` the row renders as before.
+- **Tests:** added `test/ghostTapGuard.test.ts`, `test/ratingNumber.test.ts` and a double-tap case in `test/form.test.ts`.
+
+## 🚀 [2.2.26] - 2026-09-29
+- **Fix (`MULTI_QUESTION_MATRIX`):** in a narrow container (a pop-in, a sidebar) the matrix was a table cut off at the side. The stacked layout was only chosen when the *window* was under 600px. The matrix now follows the width of its own container (CSS container query): under 600px every statement becomes its own question with its options stacked as cards underneath, and it goes back to a table when there is room. The answer and the radio names are unchanged.
+- **Accessibility:** every matrix radio now has its own label with the option text (visually hidden while the matrix is a table).
+- **Tests:** added `test/renderMatrix.test.ts`.
+
+## 🚀 [2.2.25] - 2026-09-25
+- **Fix (`Form.back`):** on the first page, "Back" emptied the survey. The history only held that page, so `back()` rolled it out and left a blank form with no way forward. `back()` now does nothing until there is a previous page, and the back button is hidden (`hidden` attribute) while there is none. It shows again as soon as the visitor moves on. `magicfeedback-default.css` keeps the submit button on the right while the back button is hidden.
+- **New feature (multi-language surveys):** the SDK asks for one language with `?lang=` on `GET /sdk/app/{id}/{key}/info`, `GET /sdk/app/session/{id}/info` and `getQuestions()`. Order: `generate(selector, {lang})`, then `init({lang})`, then the browser / webview language (`navigator.languages`). Codes are normalized to two lowercase letters (`es-ES` → `es`, `nb` → `no`).
+- **New:** every `POST /sdk/feedback` (`Form.send()` and the top-level `send()`) carries `lang`, so the API records the `language` metric on each call.
+- **New:** answers are rewritten to the survey's default language before validation, routing and submit, using the `baseValue` the API sends by index (RADIO, MULTIPLECHOICE, MULTIPLECHOISE_IMAGE, SELECT, PRIORITY_LIST, POINT_SYSTEM and matrix columns). Free text and `extra-option-*` answers are untouched. URL prefills written in the default language select the translated option.
+- **Fix:** `formData.lang[0]` is the survey default, not the shown language. SDK copy, RTL direction and rendering now use the shown language (`servedLang` from the API when present, else the requested one if supported, else `lang[0]`). New `form.getLang()` returns it. `onLoadedEvent` also receives it as `lang`.
+- **Change:** the form cache key in localStorage is now `magicfeedback-{appId}-{lang}`.
+- **Tests:** added `test/surveyLang.test.ts` and `test/form-lang.test.ts`, and a first-page back case in `test/form.test.ts`.
+- **Example:** `examples/frontend/surveyxact_popin.html` runs the survey inside a SurveyXact pop-in once the visitor accepts its terms (Ok), styled like the pop-in's own buttons.
+
+## 🚀 [2.2.24] - 2026-09-21
+- **Fix (follow ups):** an optional follow up left blank threw "No answers provided" and trapped the visitor on the page. The follow up now checks the answer of its own question, is skipped when there is nothing to follow up on, and a failing follow up request no longer blocks the survey.
+- **Fix (routing):** conditions written against the original questions never matched after a follow up page, so every page with a follow up fell through to the next page by position (matrix conditions included). `PageNode` now keeps an `origin` reference and the route is resolved from it and its stored answers.
+
 ## 🚀 [2.2.23] - 2026-09-18
 - **Fix (`Form.generate`):** the `localStorage.setItem` that caches the fetched form data is now wrapped in `try/catch`, matching the guards `AgentForm` already had. Any environment where storage access throws — Safari private mode, "block all cookies", a partitioned third-party iframe — made the whole `generate()` call reject, so the survey never rendered. The cache write is now best-effort and logged; the survey renders and submits normally without it.
 
