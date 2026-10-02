@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## 🚀 [Unreleased]
+## 🚀 [2.2.30] - 2026-10-02
 - **New (`RATING_NUMBER`, Club Matas):** surveys whose product id contains "matas" (case-insensitive, e.g. `MATAS_DEMO_GENERAL`) get the rating as it was before the August redesign (2.2.5). On a phone (window under 600px, decided at render time) the scale is a full-width list and the min/max text sits inside its option (`10 = Very likely`), with no separate labels; on desktop it is the row with its caption. Numbers are not bold, set inline so it holds with any stylesheet, and the row never stacks by container width. The element gets `magicfeedback-rating-number--legacy`. Every other product keeps the current rating. The double-tap guard stays on for everyone.
 - **Change:** `RenderContext` carries `productId` (from the `product` passed to `renderQuestions`).
 - **Tests:** legacy cases in `test/ratingNumber.test.ts`.
