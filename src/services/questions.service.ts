@@ -87,7 +87,7 @@ export function renderQuestions(
         } else {
             // Create a container for each question
             const url = `${defaultUrl}${customIcons ? `/${id}` : ''}`;
-            const elementContainer = renderContainer(question, format, language, url, appQuestions.length === 1 ? send : undefined);
+            const elementContainer = renderContainer(question, format, language, url, appQuestions.length === 1 ? send : undefined, id);
             questions.push(elementContainer);
         }
     });
@@ -101,7 +101,8 @@ function renderContainer(
     format: string,
     language: string,
     url: string,
-    send?: () => void
+    send?: () => void,
+    productId?: string,
 ): HTMLElement {
     let {
         id,
@@ -148,7 +149,8 @@ function renderContainer(
             maxCharacters,
             randomPosition,
             direction,
-            order
+            order,
+            productId,
         });
         element = result.element;
         elementTypeClass = result.elementTypeClass;

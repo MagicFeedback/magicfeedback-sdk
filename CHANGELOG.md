@@ -6,6 +6,11 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [Unreleased]
+- **New (`RATING_NUMBER`, Club Matas):** surveys whose product id contains "matas" (case-insensitive, e.g. `MATAS_DEMO_GENERAL`) get the rating as it was before the August redesign (2.2.5). On a phone (window under 600px, decided at render time) the scale is a full-width list and the min/max text sits inside its option (`10 = Very likely`), with no separate labels; on desktop it is the row with its caption. Numbers are not bold, set inline so it holds with any stylesheet, and the row never stacks by container width. The element gets `magicfeedback-rating-number--legacy`. Every other product keeps the current rating. The double-tap guard stays on for everyone.
+- **Change:** `RenderContext` carries `productId` (from the `product` passed to `renderQuestions`).
+- **Tests:** legacy cases in `test/ratingNumber.test.ts`.
+
 ## 🚀 [2.2.29] - 2026-10-01
 - **Fix (`RATING_NUMBER`):** stacking a row into a column (2.2.27) changed the question's height from inside its own `ResizeObserver` callback, so browsers fired a `ResizeObserver loop completed with undelivered notifications` error on every stacked render (the dev overlay in MagicSurvey, a console error in production, noise in any error tracker). The switch now runs on the next animation frame and only a width change triggers it. Layout and behaviour are unchanged.
 - **Tests:** frame scheduling cases in `test/ratingNumber.test.ts`.

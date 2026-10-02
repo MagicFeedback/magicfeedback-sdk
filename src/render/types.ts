@@ -13,6 +13,8 @@ export type RenderContext = {
     randomPosition: boolean;
     direction: string;
     order: string;
+    /** The survey's product, e.g. MATAS_DEMO_GENERAL. */
+    productId?: string;
 };
 
 export type RenderResult = {
