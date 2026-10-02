@@ -1,5 +1,7 @@
 import {afterEach, beforeEach, describe, expect, jest, test} from "@jest/globals";
-import {createRatingNumberElement} from "../src/render/ratingHelpers";
+import {createRatingNumberElement, usesLegacyRatingNumber} from "../src/render/ratingHelpers";
+import {renderQuestions} from "../src/services/questions.service";
+import {FEEDBACKAPPANSWERTYPE, NativeQuestion} from "../src/models/types";
 
 type Callback = (entries: { contentRect: { width: number } }[]) => void;
 let observed: { target: Element, callback: Callback }[] = [];
@@ -152,4 +154,86 @@ describe("rating number row that is too narrow for its chips", () => {
 test("renders a plain row where ResizeObserver doesn't exist", () => {
     const element = nps();
     expect(container(element).classList.contains("magicfeedback-rating-number-container-row")).toBe(true);
+});
+
+describe("legacy rating (Club Matas: productId contains \"matas\")", () => {
+    const legacyNps = (isPhone: boolean, order = "rtl") => createRatingNumberElement(
+        "nps",
+        {min: 0, max: 10, minPlaceholder: "Not likely", maxPlaceholder: "Very likely"},
+        order,
+        "row",
+        "magicfeedback-rating-number",
+        undefined,
+        null,
+        "en",
+        {legacy: true, isPhone},
+    );
+    const texts = (element: HTMLElement) =>
+        Array.from(element.querySelectorAll(".magicfeedback-rating-number-value-num")).map((n) => n.textContent);
+
+    afterEach(() => {
+        delete (global as any).ResizeObserver;
+    });
+
+    test("recognises Matas products by their id, case-insensitive", () => {
+        expect(usesLegacyRatingNumber("MATAS_DEMO_GENERAL")).toBe(true);
+        expect(usesLegacyRatingNumber("TEST_MATAS_X")).toBe(true);
+        expect(usesLegacyRatingNumber("matas")).toBe(true);
+        expect(usesLegacyRatingNumber("ACME_GENERAL")).toBe(false);
+        expect(usesLegacyRatingNumber(undefined)).toBe(false);
+    });
+
+    test("on a phone: a full-width list with the min/max text inside the option, no separate labels", () => {
+        const element = legacyNps(true);
+        const list = container(element);
+
+        expect(element.classList.contains("magicfeedback-rating-number--legacy")).toBe(true);
+        expect(list.classList.contains("magicfeedback-rating-number-container-column--bare")).toBe(true);
+        expect(list.style.flexDirection).toBe("column-reverse");
+        expect(texts(element)[0]).toBe("0 = Not likely");
+        expect(texts(element)[10]).toBe("10 = Very likely");
+        expect(texts(element)[5]).toBe("5");
+        expect(element.querySelector(".magicfeedback-rating-number-scale-labels")).toBeNull();
+        expect(element.querySelector(".magicfeedback-rating-number-scale-label-block")).toBeNull();
+        expect((element.querySelector('input[value="10"]') as HTMLInputElement).getAttribute("aria-label")).toBe("10 — Very likely");
+    });
+
+    test("on desktop: the row with its caption and plain numbers", () => {
+        const element = legacyNps(false);
+
+        expect(container(element).classList.contains("magicfeedback-rating-number-container-row")).toBe(true);
+        expect(element.querySelector(".magicfeedback-rating-number-scale-labels")?.textContent).toBe("Very likelyNot likely");
+        expect(texts(element)[10]).toBe("10");
+    });
+
+    test("numbers are not bold, whatever stylesheet the integration ships", () => {
+        const element = legacyNps(false);
+        element.querySelectorAll<HTMLElement>(".magicfeedback-rating-number-value-num")
+            .forEach((num) => expect(num.style.fontWeight).toBe("normal"));
+    });
+
+    test("never stacks by container width", () => {
+        (global as any).ResizeObserver = jest.fn(() => ({observe: jest.fn(), disconnect: jest.fn()}));
+        legacyNps(false);
+        expect((global as any).ResizeObserver).not.toHaveBeenCalled();
+    });
+});
+
+test("other products keep the current rating", () => {
+    const element = nps();
+    expect(element.classList.contains("magicfeedback-rating-number--legacy")).toBe(false);
+    expect(element.querySelector(".magicfeedback-rating-number-value-num")?.getAttribute("style")).toBeNull();
+});
+
+test("renderQuestions turns on the legacy rating from the survey's product id", () => {
+    const question = {
+        id: "q-nps", ref: "nps", title: "Recommend?", type: FEEDBACKAPPANSWERTYPE.RATING_NUMBER,
+        questionType: {conf: []}, assets: {min: 0, max: 10}, value: [],
+    } as unknown as NativeQuestion;
+
+    const [matas] = renderQuestions([question], "standard", "en", {customIcons: false, id: "MATAS_DEMO_GENERAL"});
+    const [other] = renderQuestions([question], "standard", "en", {customIcons: false, id: "ACME_GENERAL"});
+
+    expect(matas.querySelector(".magicfeedback-rating-number--legacy")).not.toBeNull();
+    expect(other.querySelector(".magicfeedback-rating-number--legacy")).toBeNull();
 });
