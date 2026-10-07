@@ -18,6 +18,7 @@ import {Config} from "../src/models/config";
 import {FormData} from "../src/models/formData";
 import {Page} from "../src/models/page";
 import {PageNode} from "../src/models/pageNode";
+import * as requestService from "../src/services/request.service";
 
 const buildQuestion = (overrides: Partial<NativeQuestion> = {}): NativeQuestion => ({
     id: overrides.id || "q-1",
@@ -874,5 +875,108 @@ describe("Form.answer", () => {
         const feedback = (form as any).feedback;
         expect(feedback.answers).toEqual([]);
         expect(feedback.profile).toEqual([]);
+    });
+});
+
+/**
+ * Form.finish
+ */
+describe("Form.finish", () => {
+    let container: HTMLElement;
+    let logSpy: ReturnType<typeof jest.spyOn>;
+    let errorSpy: ReturnType<typeof jest.spyOn>;
+    let sendSpy: ReturnType<typeof jest.spyOn>;
+    let sent: any[];
+
+    // Answer the only page of a one-question survey and submit it: send()
+    // pushes the page, finds no next page and finish() pushes the completion.
+    const completeSurvey = async (addSuccessScreen: boolean) => {
+        const form = setupForm([
+            buildQuestion({id: "1", title: "Name", ref: "name", position: 1}),
+        ], {addSuccessScreen});
+        (form as any).config.set("url", "https://api.test");
+        await (form as any).generateForm();
+
+        (container.querySelector('input[name="name"]') as HTMLInputElement).value = "Ada";
+        await form.send();
+        // finish() is not awaited by the routing, let its push settle.
+        for (let i = 0; i < 10; i++) await Promise.resolve();
+        return form;
+    };
+
+    beforeEach(() => {
+        document.body.innerHTML = "";
+        container = document.createElement("div");
+        container.id = "form-container";
+        document.body.appendChild(container);
+        logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+        errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+        // Snapshot each body when it is sent, as the real request serializes it
+        // on the spot while `feedback` keeps being mutated afterwards.
+        sent = [];
+        sendSpy = jest.spyOn(requestService, "sendFeedback").mockImplementation(async (_url, body) => {
+            sent.push(JSON.parse(JSON.stringify(body)));
+            return "session-1";
+        });
+    });
+
+    afterEach(() => {
+        container.remove();
+        logSpy.mockRestore();
+        errorSpy.mockRestore();
+        sendSpy.mockRestore();
+    });
+
+    test.each([true, false])(
+        "with addSuccessScreen %s, completes without errors and without re-sending the answers",
+        async (addSuccessScreen) => {
+            const form = await completeSurvey(addSuccessScreen);
+
+            expect(errorSpy).not.toHaveBeenCalled();
+            expect(form.completed).toBe(true);
+
+            expect(sent).toHaveLength(2);
+            const [pagePush, completionPush] = sent;
+
+            // The page push carries the answers and opens the session.
+            expect(pagePush.completed).toBe(false);
+            expect(pagePush.sessionId).toBeUndefined();
+            expect(pagePush.feedback.answers).toEqual([{key: "name", value: ["Ada"]}]);
+
+            // The completion push closes that session with its metadata only.
+            expect(completionPush.completed).toBe(true);
+            expect(completionPush.sessionId).toBe("session-1");
+            expect(completionPush.integration).toBe("app-id");
+            expect(completionPush.feedback.answers).toEqual([]);
+            expect(completionPush.feedback.metadata).toEqual(
+                expect.arrayContaining([
+                    {key: "time-to-complete", value: [expect.stringMatching(/^\d+$/)]},
+                ])
+            );
+        }
+    );
+
+    test("with addSuccessScreen true, replaces the form with the success message", async () => {
+        await completeSurvey(true);
+
+        expect(document.getElementById("magicfeedback-app-id")).toBeNull();
+        expect(container.querySelector(".magicfeedback-success")).not.toBeNull();
+    });
+
+    test("with addSuccessScreen false, leaves the form in place", async () => {
+        await completeSurvey(false);
+
+        expect(document.getElementById("magicfeedback-app-id")).not.toBeNull();
+    });
+});
+
+describe("Form.answer missing form", () => {
+    test("names the missing form id in the error", () => {
+        const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+        document.body.innerHTML = "";
+        new Form(new Config(), "missing-app", "public-key").answer();
+
+        expect(errorSpy).toHaveBeenCalledWith("[MagicFeedback]:", 'Form "magicfeedback-missing-app" not found.');
+        errorSpy.mockRestore();
     });
 });

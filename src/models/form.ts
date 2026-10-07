@@ -801,12 +801,11 @@ export class Form {
      * @public
      */
     public answer(): NativeAnswer[] {
-        const form: HTMLElement | null = document.getElementById(
-            "magicfeedback-" + this.appId
-        );
+        const formId = "magicfeedback-" + this.appId;
+        const form: HTMLElement | null = document.getElementById(formId);
 
         if (!form) {
-            this.log.err(`Form "${form}" not found.`);
+            this.log.err(`Form "${formId}" not found.`);
             this.feedback.answers = [];
             return [];
         }
@@ -1042,7 +1041,11 @@ export class Form {
             container.appendChild(successMessage);
         }
 
-        this.answer();
+        // The last page's answers were already pushed by send(), so the
+        // completion push only closes the session (completed + metadata such as
+        // time-to-complete). Re-scraping here would fail once the success
+        // screen has replaced the form, and re-send the answers when it hasn't.
+        this.feedback.answers = [];
 
         try {
             const response = await this.pushAnswers(true);
