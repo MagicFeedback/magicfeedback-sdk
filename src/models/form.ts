@@ -17,6 +17,7 @@ import {PageNode} from "./pageNode";
 import {t} from "../services/i18n";
 import {detectSurveyLang, toBaseAnswers} from "../services/surveyLang";
 import {armGhostTapGuard} from "../utils/ghostTapGuard";
+import {focusFirstTextQuestion} from "../utils/autofocus";
 import {cancelAutoAdvance} from "../utils/autoAdvance";
 
 export class Form {
@@ -238,7 +239,7 @@ export class Form {
 
             this.formData.style?.startMessage ?
                 await this.generateWelcomeMessage(this.formData.style.startMessage) :
-                this.startForm();
+                this.generateForm("open");
 
         } catch (e) {
             this.log.err(e);
@@ -412,7 +413,7 @@ export class Form {
      * @private
      * @returns void
      */
-    private async generateForm() {
+    private async generateForm(trigger: "open" | "navigation" = "open") {
         try {
             if (!this.formData || !this.formData.pages || this.formData.pages.length === 0) {
                 throw new Error("No form data");
@@ -501,6 +502,7 @@ export class Form {
                     formOptionsConfig: this.formOptionsConfig
                 });
             }
+            this.autofocusAfterRender(trigger);
         } catch (e) {
             this.log.err(e);
 
@@ -519,7 +521,34 @@ export class Form {
      * @public
      **/
     public startForm() {
-        this.generateForm()
+        // Leaving the welcome message: the visitor has just pressed "Start".
+        this.generateForm("navigation")
+    }
+
+    /**
+     * Put the cursor in the first question of the current page when it is a
+     * text field. For integrations that show the survey after rendering it
+     * (see the `autofocus` option); a field that is not visible yet cannot
+     * take the focus. Returns whether the focus moved.
+     * @public
+     */
+    public focusFirstQuestion(): boolean {
+        if (typeof document === "undefined") return false;
+        return focusFirstTextQuestion(document.getElementById("magicfeedback-questions-" + this.appId));
+    }
+
+    /**
+     * Applies the `autofocus` option after a page is rendered. Runs after the
+     * lifecycle hook on purpose: an integration may keep the questions inert
+     * while a page loads and release them in that hook, and an inert field
+     * cannot take the focus.
+     * @private
+     */
+    private autofocusAfterRender(trigger: "open" | "navigation") {
+        const mode = this.formOptionsConfig.autofocus;
+        if (!mode) return;
+        if (trigger === "open" && mode !== "always") return;
+        this.focusFirstQuestion();
     }
 
     /**
@@ -1366,6 +1395,7 @@ export class Form {
                 error: null
             });
         }
+        this.autofocusAfterRender("navigation");
 
     }
 
@@ -1510,6 +1540,7 @@ export class Form {
                 error: null
             });
         }
+        this.autofocusAfterRender("navigation");
     }
 
 
@@ -1559,6 +1590,7 @@ export class Form {
                 error: !page ? "No page found" : null
             });
         }
+        if (page) this.autofocusAfterRender("navigation");
     }
 
     /**
