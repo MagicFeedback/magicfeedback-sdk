@@ -2,6 +2,7 @@ import {NativeQuestion} from "../models/types";
 import {getQuestionRenderer} from "../render/registry";
 import {getUrlParam, parseTitle} from "../render/helpers";
 import {shownValueFor} from "./surveyLang";
+import {autoAdvanceOn} from "../utils/autoAdvance";
 
 const defaultUrl = `https://survey-dev.magicfeedback.io/assets/emojis`;
 const titleSizeMap: Record<string, string> = {
@@ -259,8 +260,8 @@ function renderContainer(
 
                 skipButton.addEventListener("click", () => {
                     (element as HTMLTextAreaElement).value = '-'
-                    if (send) send();
                 });
+                autoAdvanceOn(skipButton, send, "click");
 
                 skipContainer.appendChild(skipButton);
                 skipContainer.appendChild(skipLabel);

@@ -17,6 +17,7 @@ import {PageNode} from "./pageNode";
 import {t} from "../services/i18n";
 import {detectSurveyLang, toBaseAnswers} from "../services/surveyLang";
 import {armGhostTapGuard} from "../utils/ghostTapGuard";
+import {cancelAutoAdvance} from "../utils/autoAdvance";
 
 export class Form {
     /**
@@ -59,6 +60,9 @@ export class Form {
     public total: number;
     public completed: boolean;
     public timeToCompleted: number;
+
+    // True while send() is running, so an auto-advance doesn't send again
+    private sending: boolean;
 
     /**
      *
@@ -115,6 +119,7 @@ export class Form {
         this.progress = 0;
         this.total = 0;
         this.completed = false;
+        this.sending = false;
         this.timeToCompleted = 0;
     }
 
@@ -444,7 +449,7 @@ export class Form {
                 this.formOptionsConfig.questionFormat,
                 this.lang(),
                 this.formData?.product,
-                () => this.send()
+                () => this.autoSend()
             );
 
             page.elements?.forEach((element) =>
@@ -648,6 +653,10 @@ export class Form {
 
         const questionContainer = document.getElementById("magicfeedback-questions-" + this.appId) as HTMLElement;
 
+        // "Next" pressed while a picked option was about to auto-advance
+        cancelAutoAdvance(questionContainer);
+        this.sending = true;
+
         try {
             if (profile) this.feedback.profile = [...this.feedback.profile, ...profile];
             if (metrics) this.feedback.metrics = [...this.feedback.metrics, ...metrics];
@@ -804,7 +813,18 @@ export class Form {
                     error
                 });
             }
+        } finally {
+            this.sending = false;
         }
+    }
+
+    /**
+     * What the renderers call when an option that auto-advances is picked
+     * (after AUTO_ADVANCE_DELAY_MS). Skipped while a send is in flight.
+     */
+    private autoSend() {
+        if (this.sending) return;
+        return this.send();
     }
 
     /**
@@ -1320,7 +1340,7 @@ export class Form {
             this.formOptionsConfig.questionFormat,
             this.lang(),
             this.formData?.product,
-            () => this.send()
+            () => this.autoSend()
         );
 
         // Update the progress +0.5, because the follow up questions are
@@ -1466,7 +1486,7 @@ export class Form {
             this.formOptionsConfig.questionFormat,
             this.lang(),
             this.formData?.product,
-            () => this.send()
+            () => this.autoSend()
         );
 
         form.innerHTML = "";
@@ -1514,6 +1534,7 @@ export class Form {
 
         const form = document.getElementById("magicfeedback-questions-" + this.appId) as HTMLElement;
 
+        cancelAutoAdvance(form);
         if (form && form.childNodes.length > 0) form.innerHTML = "";
 
         this.history.rollback();

@@ -20,6 +20,7 @@ import {Page} from "../src/models/page";
 import {PageNode} from "../src/models/pageNode";
 import * as requestService from "../src/services/request.service";
 import {renderMaxDiff} from "../src/render/renderMaxDiff";
+import {AUTO_ADVANCE_DELAY_MS} from "../src/utils/autoAdvance";
 
 const buildQuestion = (overrides: Partial<NativeQuestion> = {}): NativeQuestion => ({
     id: overrides.id || "q-1",
@@ -1198,5 +1199,93 @@ describe("Form.send with a required MAX_DIFF", () => {
                 value: [JSON.stringify([{set: 1, shown: ["Price", "Delivery", "Support"], best: "Price", worst: "Support"}])],
             },
         ]);
+    });
+});
+
+describe("Form auto-advance", () => {
+    let container: HTMLElement;
+    let logSpy: ReturnType<typeof jest.spyOn>;
+    let sendSpy: ReturnType<typeof jest.spyOn>;
+    let sent: any[];
+    let respond: () => void;
+
+    const renderBoolean = async () => {
+        const form = setupForm([
+            buildQuestion({id: "1", ref: "yn", type: FEEDBACKAPPANSWERTYPE.BOOLEAN, position: 1}),
+        ], {addButton: true});
+        (form as any).config.set("url", "https://api.test");
+        await (form as any).generateForm();
+        return form;
+    };
+
+    // the page pushes, not the completion push of this one-page survey
+    const pagePushes = () => sent.filter((body) => !body.completed);
+
+    const pick = (value: string) =>
+        (container.querySelector(`input[name="yn"][value="${value}"]`) as HTMLInputElement).click();
+
+    beforeEach(() => {
+        jest.useFakeTimers();
+        document.body.innerHTML = "";
+        container = document.createElement("div");
+        container.id = "form-container";
+        document.body.appendChild(container);
+        logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+        sent = [];
+        sendSpy = jest.spyOn(requestService, "sendFeedback").mockImplementation((_url, body) => {
+            sent.push(JSON.parse(JSON.stringify(body)));
+            return new Promise((resolve) => { respond = () => resolve("session-1"); });
+        });
+    });
+
+    afterEach(() => {
+        jest.clearAllTimers();
+        jest.useRealTimers();
+        container.remove();
+        logSpy.mockRestore();
+        sendSpy.mockRestore();
+    });
+
+    test("tapping \"No\" leaves it checked and sends it AUTO_ADVANCE_DELAY_MS later", async () => {
+        await renderBoolean();
+
+        pick("No");
+        await jest.advanceTimersByTimeAsync(AUTO_ADVANCE_DELAY_MS - 1);
+        expect(pagePushes()).toHaveLength(0);
+
+        await jest.advanceTimersByTimeAsync(1);
+        expect(pagePushes()).toHaveLength(1);
+        expect(pagePushes()[0].feedback.answers).toEqual([{key: "yn", value: ["No"]}]);
+    });
+
+    test("pressing Next inside the window sends the page once", async () => {
+        const form = await renderBoolean();
+
+        pick("Yes");
+        const sending = form.send();
+        await jest.advanceTimersByTimeAsync(AUTO_ADVANCE_DELAY_MS * 2);
+        respond();
+        await sending;
+
+        expect(pagePushes()).toHaveLength(1);
+        expect(pagePushes()[0].feedback.answers).toEqual([{key: "yn", value: ["Yes"]}]);
+    });
+
+    test("a pick while the page is being sent doesn't send it again", async () => {
+        const form = await renderBoolean();
+
+        pick("Yes");
+        await jest.advanceTimersByTimeAsync(AUTO_ADVANCE_DELAY_MS);
+        expect(pagePushes()).toHaveLength(1);
+
+        // the request hasn't come back yet
+        pick("No");
+        await jest.advanceTimersByTimeAsync(AUTO_ADVANCE_DELAY_MS);
+        expect(pagePushes()).toHaveLength(1);
+        expect((form as any).sending).toBe(true);
+
+        respond();
+        await jest.advanceTimersByTimeAsync(0);
+        expect((form as any).sending).toBe(false);
     });
 });

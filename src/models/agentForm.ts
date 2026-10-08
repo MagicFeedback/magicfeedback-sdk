@@ -21,6 +21,7 @@ import {awaitUploadReady} from "../render/uploadHelpers";
 import {renderActions, renderError, renderQuestions, renderSuccess} from "../services/questions.service";
 import {t} from "../services/i18n";
 import {armGhostTapGuard} from "../utils/ghostTapGuard";
+import {cancelAutoAdvance} from "../utils/autoAdvance";
 
 /** How long a persisted session stays resumable. */
 const RESUME_TTL_MS = 30 * 60 * 1000;
@@ -260,10 +261,14 @@ export class AgentForm {
      * the "agent stops at currentTurn >= maxTurns" rule.
      */
     private async runTurn(): Promise<void> {
-        // Auto-advance (change handlers on RADIO/BOOLEAN/RATING), the submit
-        // button and Enter-on-text can all fire within the same tick.
+        // Auto-advance (change handlers on RADIO/BOOLEAN/RATING, sent after
+        // AUTO_ADVANCE_DELAY_MS), the submit button and Enter-on-text can all
+        // fire within the same tick.
         if (this.busy || this.completed || !this.currentQuestion) return;
 
+        // The submit button beat a pending auto-advance: it would only bounce
+        // off `busy`, drop it.
+        cancelAutoAdvance(document.getElementById(this.questionsId()));
         this.busy = true;
         this.setSubmitDisabled(true);
         this.clearError();

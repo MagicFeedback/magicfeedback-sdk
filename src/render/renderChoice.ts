@@ -1,6 +1,7 @@
 import {FEEDBACKAPPANSWERTYPE} from "../models/types";
 import {placeholder} from "../services/placeholder";
 import {QuestionRenderer} from "./types";
+import {autoAdvanceOn} from "../utils/autoAdvance";
 
 export const renderChoice: QuestionRenderer = ({
     question,
@@ -63,9 +64,7 @@ export const renderChoice: QuestionRenderer = ({
 
         if (type === FEEDBACKAPPANSWERTYPE.RADIO && send) {
             if (!assets?.extraOptionText || assets?.extraOptionText && option !== assets?.extraOptionText)
-                input.addEventListener("change", () => {
-                    send();
-                });
+                autoAdvanceOn(input, send);
         }
 
         if (option === defaultValue || option === urlParamValue) {

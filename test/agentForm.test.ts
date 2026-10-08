@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, jest, test} from "@jest/globals";
+import {afterEach, beforeEach, describe, expect, jest, test} from "@jest/globals";
 
 import {AgentForm} from "../src/models/agentForm";
 import {Config} from "../src/models/config";
@@ -6,6 +6,7 @@ import {AgentApiError} from "../src/services/agentErrors";
 import {nextAgentTurn, startAgentSurvey} from "../src/services/agent.service";
 import {sendFeedback} from "../src/services/request.service";
 import {AgentNextRequest} from "../src/models/types";
+import {AUTO_ADVANCE_DELAY_MS} from "../src/utils/autoAdvance";
 
 jest.mock("../src/services/agent.service");
 jest.mock("../src/services/request.service", () => ({
@@ -283,5 +284,47 @@ describe("AgentForm", () => {
 
         form.reset();
         expect(localStorage.getItem(`magicfeedback-agent-${INTEGRATION}`)).toBeNull();
+    });
+
+    describe("auto-advance on a BOOLEAN turn", () => {
+        const yesNo = () => ({...turn(1, "ref-1"), questionType: "BOOLEAN", questionValues: ["Yes", "No"]});
+        const pick = (value: string) =>
+            (document.querySelector(`input[name="ref-1"][value="${value}"]`) as HTMLInputElement).click();
+
+        beforeEach(() => {
+            jest.useFakeTimers();
+            mockedStart.mockResolvedValue(yesNo() as any);
+            mockedNext.mockResolvedValue(turn(2, "ref-2") as any);
+        });
+
+        afterEach(() => {
+            jest.clearAllTimers();
+            jest.useRealTimers();
+        });
+
+        test("sends the pick AUTO_ADVANCE_DELAY_MS later, once", async () => {
+            const form = makeForm();
+            await form.generate("demo", {resume: false});
+
+            pick("No");
+            await jest.advanceTimersByTimeAsync(AUTO_ADVANCE_DELAY_MS - 1);
+            expect(mockedNext).not.toHaveBeenCalled();
+
+            await jest.advanceTimersByTimeAsync(1);
+            expect(mockedNext).toHaveBeenCalledTimes(1);
+            expect(lastNextRequest().lastAnswer).toBe("No");
+        });
+
+        test("the submit button inside the window takes the turn alone", async () => {
+            const form = makeForm();
+            await form.generate("demo", {resume: false});
+
+            pick("Yes");
+            await form.next();
+            await jest.advanceTimersByTimeAsync(AUTO_ADVANCE_DELAY_MS * 2);
+
+            expect(mockedNext).toHaveBeenCalledTimes(1);
+            expect(lastNextRequest().lastAnswer).toBe("Yes");
+        });
     });
 });

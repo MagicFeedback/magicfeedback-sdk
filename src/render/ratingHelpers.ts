@@ -1,4 +1,5 @@
 import {t} from "../services/i18n";
+import {autoAdvanceOn} from "../utils/autoAdvance";
 
 /**
  * A caption line for min/max labels — one line, min on one side and max on
@@ -82,8 +83,8 @@ export function createStarRating(
                 }
             }
             ratingContainer.dataset.originalSelection = ratingInput.value;
-            if (send) send();
         });
+        autoAdvanceOn(ratingInput, send);
 
         ratingOption.appendChild(ratingInput);
 
@@ -261,7 +262,7 @@ export function createRatingNumberElement(
         const inlineText = legacyText?.(i);
         input.setAttribute('aria-label', ownPlaceholder ? `${i} — ${ownPlaceholder}` : inlineText ? `${i} — ${inlineText}` : `${i}`);
 
-        if (send) input.addEventListener("change", () => send());
+        autoAdvanceOn(input, send);
 
         if (urlParamValue && urlParamValue === input.value) {
             input.checked = true;
@@ -336,7 +337,7 @@ export function createRatingNumberElement(
         input.classList.add(elementTypeClass);
         input.classList.add("magicfeedback-input");
         input.setAttribute('aria-label', assets?.extraOptionText);
-        if (send) input.addEventListener("change", () => send());
+        autoAdvanceOn(input, send);
 
         const ratingValue = document.createElement('span');
         ratingValue.classList.add('magicfeedback-rating-number-value');
