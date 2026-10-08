@@ -1,4 +1,4 @@
-import {NativeQuestion} from "../models/types";
+import {FEEDBACKAPPANSWERTYPE, NativeQuestion} from "../models/types";
 import {getQuestionRenderer} from "../render/registry";
 import {getUrlParam, parseTitle} from "../render/helpers";
 import {shownValueFor} from "./surveyLang";
@@ -132,6 +132,10 @@ function renderContainer(
     const urlParamValue = shownValueFor(question, getUrlParam(ref));
 
     const maxCharacters = assets?.maxCharacters || 0
+
+    // assets.autoAdvance === false: picking an option doesn't send the page.
+    // Enter in a TEXT field is the visitor asking to send, so it keeps `send`.
+    const autoSend = assets?.autoAdvance === false ? undefined : send;
     const randomPosition = assets?.randomPosition === undefined ? false : assets?.randomPosition;
     const direction = assets?.direction || "row";
     const order = assets?.order || "ltr";
@@ -143,7 +147,7 @@ function renderContainer(
             format,
             language,
             url,
-            send,
+            send: type === FEEDBACKAPPANSWERTYPE.TEXT ? send : autoSend,
             isPhone,
             urlParamValue,
             placeholderText,
@@ -261,7 +265,7 @@ function renderContainer(
                 skipButton.addEventListener("click", () => {
                     (element as HTMLTextAreaElement).value = '-'
                 });
-                autoAdvanceOn(skipButton, send, "click");
+                autoAdvanceOn(skipButton, autoSend, "click");
 
                 skipContainer.appendChild(skipButton);
                 skipContainer.appendChild(skipLabel);

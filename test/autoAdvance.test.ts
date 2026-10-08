@@ -170,4 +170,57 @@ describe("auto-advance", () => {
 
         expect(send).not.toHaveBeenCalled();
     });
+
+    describe("assets.autoAdvance", () => {
+        const off = {autoAdvance: false};
+
+        test.each([
+            ["BOOLEAN", question(FEEDBACKAPPANSWERTYPE.BOOLEAN, {assets: off}), 'input[value="No"]'],
+            ["RADIO", question(FEEDBACKAPPANSWERTYPE.RADIO, {value: ["Red", "Blue"], assets: off}), 'input[value="Blue"]'],
+            ["RATING_NUMBER", question(FEEDBACKAPPANSWERTYPE.RATING_NUMBER, {assets: {min: 0, max: 10, ...off}}), 'input[value="7"]'],
+            ["RATING_NUMBER extra option", question(FEEDBACKAPPANSWERTYPE.RATING_NUMBER, {
+                assets: {min: 0, max: 10, extraOption: true, extraOptionText: "N/A", ...off},
+            }), 'input[value="-"]'],
+            ["RATING_STAR", question(FEEDBACKAPPANSWERTYPE.RATING_STAR, {assets: off}), 'input[value="4"]'],
+            ["RATING_EMOJI", question(FEEDBACKAPPANSWERTYPE.RATING_EMOJI, {assets: {min: 1, max: 5, ...off}}), 'input[value="2"]'],
+            ["MULTIPLECHOISE_IMAGE", question(FEEDBACKAPPANSWERTYPE.MULTIPLECHOISE_IMAGE, {
+                value: [JSON.stringify({position: 1, url: "a.png", value: "A"})],
+                assets: off,
+            }), 'input[value="A"]'],
+            ["CONSENT", question(FEEDBACKAPPANSWERTYPE.CONSENT, {assets: off}), 'input[type="checkbox"]'],
+            ["LONGTEXT skip", question(FEEDBACKAPPANSWERTYPE.LONGTEXT, {
+                assets: {maxCharacters: 200, extraOption: true, extraOptionText: "Skip", ...off},
+            }), ".magicfeedback-skip"],
+        ])("false: picking on a %s leaves the page for Next", (_type, q, selector) => {
+            const send = jest.fn();
+            const container = page(q, send);
+            const option = container.querySelector(selector) as HTMLInputElement;
+
+            option.click();
+            jest.advanceTimersByTime(AUTO_ADVANCE_DELAY_MS * 3);
+
+            expect(option.checked).toBe(true);
+            expect(send).not.toHaveBeenCalled();
+        });
+
+        test("true behaves as when it is missing", () => {
+            const send = jest.fn();
+            const container = page(question(FEEDBACKAPPANSWERTYPE.BOOLEAN, {assets: {autoAdvance: true}}), send);
+
+            input(container, "No").click();
+            jest.advanceTimersByTime(AUTO_ADVANCE_DELAY_MS);
+
+            expect(send).toHaveBeenCalledTimes(1);
+        });
+
+        test("false keeps Enter in a TEXT field sending", () => {
+            const send = jest.fn();
+            const container = page(question(FEEDBACKAPPANSWERTYPE.TEXT, {assets: off}), send);
+
+            (container.querySelector("input") as HTMLInputElement)
+                .dispatchEvent(new KeyboardEvent("keyup", {key: "Enter"}));
+
+            expect(send).toHaveBeenCalledTimes(1);
+        });
+    });
 });

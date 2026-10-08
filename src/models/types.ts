@@ -68,6 +68,13 @@ export type QuestionAssetsBase = {
     extraOption?: boolean;
     extraOptionText?: string;
     extraOptionPlaceholder?: string;
+    /**
+     * `false` turns off the auto-advance of this question: picking an option
+     * no longer sends the page, the visitor presses "Next". Missing or `true`
+     * keeps the behaviour of its type (it never adds auto-advance to a type
+     * that doesn't have it).
+     */
+    autoAdvance?: boolean;
 };
 
 export type QuestionAssetsByType = {
