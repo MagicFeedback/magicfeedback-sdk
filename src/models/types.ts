@@ -337,6 +337,18 @@ export type generateFormOptions = {
     onBackEvent?: Function;
     // Survey language for this form, overriding init({lang}) and the browser.
     lang?: string;
+    /**
+     * Put the cursor in the first question of a page when it is a text field
+     * (TEXT, LONGTEXT, EMAIL, NUMBER, or the first field of CONTACT). A page
+     * that starts with any other question type is left alone.
+     * - "always": on the first page too, as soon as the survey is shown.
+     * - "navigation": only after "Start", "Next" or "Back", when the visitor
+     *   has just tapped. Integrations that show the survey later than it is
+     *   rendered (a popup revealed once painted) use this and call
+     *   `focusFirstQuestion()` themselves when it becomes visible.
+     * Missing or false: no automatic focus (the behaviour so far).
+     */
+    autofocus?: "always" | "navigation" | false;
 };
 
 enum generateFormOptionsTag {
