@@ -226,6 +226,21 @@ Each item should follow the same shape:
 { key: "some-key", value: ["some-value"] }
 ```
 
+## Auto-advance
+
+On a page with a single question, picking an option submits the page by itself for these types:
+
+- `BOOLEAN`
+- `RADIO` (not its extra "Other" option)
+- `RATING_NUMBER`, `RATING_STAR`, `RATING_EMOJI` (their extra option included)
+- `MULTIPLECHOISE_IMAGE` when it is single choice
+- `CONSENT`
+- the "skip" checkbox of a `LONGTEXT` with `maxCharacters` and an extra option
+
+Since 2.2.31 the page is submitted 300ms after the pick, so the choice is seen checked first. Picking again inside that window restarts it and only the last pick is sent, once. Pressing "Next" inside the window sends the page once, and nothing is sent if the page has changed by then. Keyboard selection waits the same. Pages with several questions never auto-advance, and Enter in a `TEXT` field submits right away.
+
+A question with `assets.autoAdvance: false` doesn't auto-advance: the respondent presses "Next". Missing or `true` keeps the behaviour above (`true` never adds auto-advance to other types). With `addButton: false`, make sure your own "Next" calls `form.send()`, or a question with auto-advance off can't be left.
+
 ## Send feedback directly
 
 Use `magicfeedback.send()` when you do not want the SDK to render any UI.
