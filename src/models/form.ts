@@ -1,4 +1,4 @@
-import {agentFormOptions, FEEDBACKAPPANSWERTYPE, generateFormOptions, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
+import {agentFormOptions, FEEDBACKAPPANSWERTYPE, generateFormOptions, MaxDiffSet, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
 import {AgentForm} from "./agentForm";
 
 import {Config} from "./config";
@@ -734,6 +734,18 @@ export class Form {
                     }
                 }
 
+                // MAX_DIFF needs both picks on the screen being answered (the
+                // answer also carries the screens of earlier pages)
+                if (question.type === FEEDBACKAPPANSWERTYPE.MAX_DIFF) {
+                    const setIndex = question.assets?.setIndex ?? 1;
+                    const current = this.parseMaxDiffAnswer(this.feedback.answers.find(a => a.key === question.ref))
+                        .find(set => set.set === setIndex);
+                    if (!current?.best || !current?.worst) {
+                        this.log.err(`The MaxDiff question ${question.ref} requires the most and the least important`);
+                        throw new Error(`No response`);
+                    }
+                }
+
                 // Validación específica para MULTI_QUESTION_MATRIX (todas las filas deben tener respuesta si es required)
                 if (question.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {
                     // La respuesta de matriz se guarda agrupada bajo la key exactamente igual a question.ref
@@ -825,6 +837,7 @@ export class Form {
         const priorityMap: Record<string, string[]> = {};
         const multipleChoiceMap: Record<string, string[]> = {};
         const pointSystemMap: Record<string, string[]> = {};
+        const maxDiffMap: Record<string, MaxDiffSet> = {};
 
         inputs.forEach((input) => {
             const htmlInput = input as HTMLInputElement;
@@ -934,6 +947,25 @@ export class Form {
                         surveyAnswers.push(ans);
                     }
                     break;
+                case FEEDBACKAPPANSWERTYPE.MAX_DIFF: {
+                    // Two radio groups per question, `${ref}-best` and `${ref}-worst`,
+                    // grouped into one answer under the ref after the loop.
+                    if (inputType !== 'radio' || !question) break;
+                    const side = ans.key === `${question.ref}-best` ? 'best'
+                        : ans.key === `${question.ref}-worst` ? 'worst'
+                        : null;
+                    if (!side) break;
+
+                    if (!maxDiffMap[question.ref]) {
+                        maxDiffMap[question.ref] = {set: question.assets?.setIndex ?? 1, shown: [], best: null, worst: null};
+                    }
+                    const set = maxDiffMap[question.ref];
+                    // Every item has one radio per side; the "best" ones list the
+                    // set in the order it was shown.
+                    if (side === 'best') set.shown.push(value);
+                    if (htmlInput.checked) set[side] = value;
+                    break;
+                }
                 case FEEDBACKAPPANSWERTYPE.UPLOAD_IMAGE:
                 case FEEDBACKAPPANSWERTYPE.UPLOAD_FILE: {
                     const uploadValues = getUploadValues(htmlInput);
@@ -967,6 +999,13 @@ export class Form {
             if (!arr || arr.length === 0) return;
             const sorted = arr.slice().sort((a, b) => Number(a.split('.')[0]) - Number(b.split('.')[0]));
             surveyAnswers.push({key: k, value: sorted});
+        });
+
+        // MAX_DIFF: one answer per question with this screen's set; the screens
+        // answered on earlier pages are added after toBaseAnswers
+        Object.entries(maxDiffMap).forEach(([k, set]) => {
+            if (!set.best && !set.worst) return;
+            surveyAnswers.push({key: k, value: [JSON.stringify([set])]});
         });
 
         // --- Agrupación especial para MULTI_QUESTION_MATRIX ---
@@ -1011,11 +1050,43 @@ export class Form {
 
         // Multi-language surveys: the inputs hold the shown labels, but routing,
         // validation and storage all match on the default-language options.
-        const baseAnswers = toBaseAnswers(surveyAnswers, page.questions);
+        // After toBaseAnswers: the earlier screens are already in the base language.
+        const baseAnswers = this.withEarlierMaxDiffSets(toBaseAnswers(surveyAnswers, page.questions), page.questions);
 
         this.feedback.answers = baseAnswers;
         page.setAnswer(baseAnswers);
         return baseAnswers;
+    }
+
+    /**
+     * The API serves each screen of a MAX_DIFF as its own page, all with the same
+     * ref, and the backend keeps only the last answer row per key. So every push
+     * carries, under the ref, all the screens answered so far: those of the latest
+     * earlier page that answered the ref, with the current screen replacing an
+     * earlier answer to the same set. Going back works on its own, since the
+     * rollback drops the later pages from the history.
+     */
+    private withEarlierMaxDiffSets(answers: NativeAnswer[], questions: NativeQuestion[]): NativeAnswer[] {
+        return answers.map((answer) => {
+            const isMaxDiff = questions.some(q => q.ref === answer.key && q.type === FEEDBACKAPPANSWERTYPE.MAX_DIFF);
+            if (!isMaxDiff) return answer;
+
+            const current = this.parseMaxDiffAnswer(answer);
+            const earlier = this.parseMaxDiffAnswer(this.earlierAnswer(answer.key))
+                .filter(set => !current.some(c => c.set === set.set));
+            const sets = [...earlier, ...current].sort((a, b) => a.set - b.set);
+
+            return {...answer, value: [JSON.stringify(sets)]};
+        });
+    }
+
+    /** Latest answer to `key` on a page before the one being answered (history.back()). */
+    private earlierAnswer(key: string): NativeAnswer | undefined {
+        for (let i = this.history.size() - 2; i >= 0; i--) {
+            const found = this.history.get(i)?.answers?.find(a => a.key === key);
+            if (found) return found;
+        }
+        return undefined;
     }
 
     /**
@@ -1532,6 +1603,16 @@ export class Form {
 
         elements.forEach(el => target.appendChild(el));
         return container;
+    }
+
+    private parseMaxDiffAnswer(ans: NativeAnswer | undefined): MaxDiffSet[] {
+        if (!ans || typeof ans.value?.[0] !== 'string') return [];
+        try {
+            const parsed = JSON.parse(ans.value[0]);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (_) {
+            return [];
+        }
     }
 
     private parseMatrixAnswerPre(ans: NativeAnswer): { key: string; value: any[] }[] {
