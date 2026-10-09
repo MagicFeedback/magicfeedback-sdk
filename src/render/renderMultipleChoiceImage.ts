@@ -1,4 +1,5 @@
 import {QuestionRenderer} from "./types";
+import {autoAdvanceOn} from "../utils/autoAdvance";
 
 export const renderMultipleChoiceImage: QuestionRenderer = ({
     question,
@@ -100,11 +101,7 @@ export const renderMultipleChoiceImage: QuestionRenderer = ({
                 input.checked = true;
             }
 
-            if (!multiOptions && send) {
-                input.addEventListener("change", () => {
-                    send();
-                });
-            }
+            if (!multiOptions) autoAdvanceOn(input, send);
 
             const image = document.createElement("img");
             image.classList.add("magicfeedback-multiple-choice-image-image");

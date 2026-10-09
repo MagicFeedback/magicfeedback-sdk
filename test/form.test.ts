@@ -18,6 +18,9 @@ import {Config} from "../src/models/config";
 import {FormData} from "../src/models/formData";
 import {Page} from "../src/models/page";
 import {PageNode} from "../src/models/pageNode";
+import * as requestService from "../src/services/request.service";
+import {renderMaxDiff} from "../src/render/renderMaxDiff";
+import {AUTO_ADVANCE_DELAY_MS} from "../src/utils/autoAdvance";
 
 const buildQuestion = (overrides: Partial<NativeQuestion> = {}): NativeQuestion => ({
     id: overrides.id || "q-1",
@@ -508,6 +511,26 @@ describe("Form.answer", () => {
         return input;
     };
 
+    // The real renderer, wrapped the way renderQuestion() does it (the wrapper
+    // itself is a ".magicfeedback-input" named after the ref).
+    const addMaxDiff = (formEl: HTMLFormElement, ref: string) => {
+        const {element} = renderMaxDiff({
+            question: buildQuestion({type: FEEDBACKAPPANSWERTYPE.MAX_DIFF, ref, value: ["Price", "Delivery", "Support"]}),
+            format: "standard",
+            language: "en",
+            url: "",
+            isPhone: false,
+            urlParamValue: null,
+            maxCharacters: 0,
+            randomPosition: false,
+            direction: "row",
+            order: "ltr",
+        });
+        element.setAttribute("name", ref);
+        element.classList.add("magicfeedback-input");
+        formEl.appendChild(element);
+    };
+
     beforeEach(() => {
         document.body.innerHTML = "";
         logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
@@ -804,6 +827,48 @@ describe("Form.answer", () => {
             ],
         },
         {
+            name: "MAX_DIFF",
+            type: FEEDBACKAPPANSWERTYPE.MAX_DIFF,
+            ref: "q_maxdiff",
+            setup: (formEl) => {
+                addMaxDiff(formEl, "q_maxdiff");
+                (formEl.querySelector("#q_maxdiff-best-1") as HTMLInputElement).checked = true;
+                (formEl.querySelector("#q_maxdiff-worst-2") as HTMLInputElement).checked = true;
+            },
+            expectedAnswers: [
+                {
+                    key: "q_maxdiff",
+                    value: [
+                        JSON.stringify([
+                            {set: 1, shown: ["Price", "Delivery", "Support"], best: "Delivery", worst: "Support"},
+                        ]),
+                    ],
+                },
+            ],
+        },
+        {
+            name: "MAX_DIFF with one pick only",
+            type: FEEDBACKAPPANSWERTYPE.MAX_DIFF,
+            ref: "q_maxdiff",
+            setup: (formEl) => {
+                addMaxDiff(formEl, "q_maxdiff");
+                (formEl.querySelector("#q_maxdiff-worst-0") as HTMLInputElement).checked = true;
+            },
+            expectedAnswers: [
+                {
+                    key: "q_maxdiff",
+                    value: [JSON.stringify([{set: 1, shown: ["Price", "Delivery", "Support"], best: null, worst: "Price"}])],
+                },
+            ],
+        },
+        {
+            name: "MAX_DIFF with nothing picked",
+            type: FEEDBACKAPPANSWERTYPE.MAX_DIFF,
+            ref: "q_maxdiff",
+            setup: (formEl) => addMaxDiff(formEl, "q_maxdiff"),
+            expectedAnswers: [],
+        },
+        {
             name: "PRIORITY_LIST",
             type: FEEDBACKAPPANSWERTYPE.PRIORITY_LIST,
             ref: "q_priority",
@@ -864,6 +929,69 @@ describe("Form.answer", () => {
         }
     });
 
+    describe("MAX_DIFF screens served as separate pages", () => {
+        const screen = (setIndex: number) => buildQuestion({
+            type: FEEDBACKAPPANSWERTYPE.MAX_DIFF,
+            ref: "q_maxdiff",
+            value: ["Price", "Delivery", "Support"],
+            assets: {setIndex, setCount: 3} as any,
+        });
+        const earlierPage = (form: Form, answers: NativeAnswer[]) => {
+            const node = seedHistory(form, [screen(1)]);
+            node.setAnswer(answers);
+        };
+        const sets = (form: Form) => JSON.parse((form as any).feedback.answers[0].value[0]);
+
+        test("each push carries every screen answered so far, ordered by set", () => {
+            const formEl = createFormRoot();
+            addMaxDiff(formEl, "q_maxdiff");
+            (formEl.querySelector("#q_maxdiff-best-0") as HTMLInputElement).checked = true;
+            (formEl.querySelector("#q_maxdiff-worst-1") as HTMLInputElement).checked = true;
+            const form = new Form(new Config(), appId, "public-key");
+            earlierPage(form, [{
+                key: "q_maxdiff",
+                value: [JSON.stringify([{set: 2, shown: ["A", "B"], best: "A", worst: "B"}, {set: 1, shown: ["C", "D"], best: "D", worst: "C"}])],
+            }]);
+            seedHistory(form, [screen(3)]);
+
+            form.answer();
+
+            expect(sets(form).map((set: any) => set.set)).toEqual([1, 2, 3]);
+            expect(sets(form)[2]).toEqual({set: 3, shown: ["Price", "Delivery", "Support"], best: "Price", worst: "Delivery"});
+        });
+
+        test("answering a screen again replaces its earlier set", () => {
+            const formEl = createFormRoot();
+            addMaxDiff(formEl, "q_maxdiff");
+            (formEl.querySelector("#q_maxdiff-best-2") as HTMLInputElement).checked = true;
+            (formEl.querySelector("#q_maxdiff-worst-0") as HTMLInputElement).checked = true;
+            const form = new Form(new Config(), appId, "public-key");
+            earlierPage(form, [{
+                key: "q_maxdiff",
+                value: [JSON.stringify([{set: 1, shown: ["Price", "Delivery", "Support"], best: "Price", worst: "Support"}])],
+            }]);
+            seedHistory(form, [screen(1)]);
+
+            form.answer();
+
+            expect(sets(form)).toEqual([{set: 1, shown: ["Price", "Delivery", "Support"], best: "Support", worst: "Price"}]);
+        });
+
+        test("a page that skipped the question does not hide earlier screens", () => {
+            const formEl = createFormRoot();
+            addMaxDiff(formEl, "q_maxdiff");
+            (formEl.querySelector("#q_maxdiff-best-0") as HTMLInputElement).checked = true;
+            const form = new Form(new Config(), appId, "public-key");
+            earlierPage(form, [{key: "q_maxdiff", value: [JSON.stringify([{set: 1, shown: ["A"], best: "A", worst: null}])]}]);
+            earlierPage(form, []);
+            seedHistory(form, [screen(3)]);
+
+            form.answer();
+
+            expect(sets(form).map((set: any) => set.set)).toEqual([1, 3]);
+        });
+    });
+
     test("clears answers when email is invalid", () => {
         const formEl = createFormRoot();
         addInput(formEl, {type: "email", name: "q_email", value: "invalid"});
@@ -874,5 +1002,290 @@ describe("Form.answer", () => {
         const feedback = (form as any).feedback;
         expect(feedback.answers).toEqual([]);
         expect(feedback.profile).toEqual([]);
+    });
+});
+
+/**
+ * Form.finish
+ */
+describe("Form.finish", () => {
+    let container: HTMLElement;
+    let logSpy: ReturnType<typeof jest.spyOn>;
+    let errorSpy: ReturnType<typeof jest.spyOn>;
+    let sendSpy: ReturnType<typeof jest.spyOn>;
+    let sent: any[];
+
+    // Answer the only page of a one-question survey and submit it: send()
+    // pushes the page, finds no next page and finish() pushes the completion.
+    const completeSurvey = async (addSuccessScreen: boolean) => {
+        const form = setupForm([
+            buildQuestion({id: "1", title: "Name", ref: "name", position: 1}),
+        ], {addSuccessScreen});
+        (form as any).config.set("url", "https://api.test");
+        await (form as any).generateForm();
+
+        (container.querySelector('input[name="name"]') as HTMLInputElement).value = "Ada";
+        await form.send();
+        // finish() is not awaited by the routing, let its push settle.
+        for (let i = 0; i < 10; i++) await Promise.resolve();
+        return form;
+    };
+
+    beforeEach(() => {
+        document.body.innerHTML = "";
+        container = document.createElement("div");
+        container.id = "form-container";
+        document.body.appendChild(container);
+        logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+        errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+        // Snapshot each body when it is sent, as the real request serializes it
+        // on the spot while `feedback` keeps being mutated afterwards.
+        sent = [];
+        sendSpy = jest.spyOn(requestService, "sendFeedback").mockImplementation(async (_url, body) => {
+            sent.push(JSON.parse(JSON.stringify(body)));
+            return "session-1";
+        });
+    });
+
+    afterEach(() => {
+        container.remove();
+        logSpy.mockRestore();
+        errorSpy.mockRestore();
+        sendSpy.mockRestore();
+    });
+
+    test.each([true, false])(
+        "with addSuccessScreen %s, completes without errors and without re-sending the answers",
+        async (addSuccessScreen) => {
+            const form = await completeSurvey(addSuccessScreen);
+
+            expect(errorSpy).not.toHaveBeenCalled();
+            expect(form.completed).toBe(true);
+
+            expect(sent).toHaveLength(2);
+            const [pagePush, completionPush] = sent;
+
+            // The page push carries the answers and opens the session.
+            expect(pagePush.completed).toBe(false);
+            expect(pagePush.sessionId).toBeUndefined();
+            expect(pagePush.feedback.answers).toEqual([{key: "name", value: ["Ada"]}]);
+
+            // The completion push closes that session with its metadata only.
+            expect(completionPush.completed).toBe(true);
+            expect(completionPush.sessionId).toBe("session-1");
+            expect(completionPush.integration).toBe("app-id");
+            expect(completionPush.feedback.answers).toEqual([]);
+            expect(completionPush.feedback.metadata).toEqual(
+                expect.arrayContaining([
+                    {key: "time-to-complete", value: [expect.stringMatching(/^\d+$/)]},
+                ])
+            );
+        }
+    );
+
+    test("with addSuccessScreen true, replaces the form with the success message", async () => {
+        await completeSurvey(true);
+
+        expect(document.getElementById("magicfeedback-app-id")).toBeNull();
+        expect(container.querySelector(".magicfeedback-success")).not.toBeNull();
+    });
+
+    test("with addSuccessScreen false, leaves the form in place", async () => {
+        await completeSurvey(false);
+
+        expect(document.getElementById("magicfeedback-app-id")).not.toBeNull();
+    });
+});
+
+describe("Form.answer missing form", () => {
+    test("names the missing form id in the error", () => {
+        const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+        document.body.innerHTML = "";
+        new Form(new Config(), "missing-app", "public-key").answer();
+
+        expect(errorSpy).toHaveBeenCalledWith("[MagicFeedback]:", 'Form "magicfeedback-missing-app" not found.');
+        errorSpy.mockRestore();
+    });
+});
+
+describe("Form.send with a required MAX_DIFF", () => {
+    let container: HTMLElement;
+    let logSpy: ReturnType<typeof jest.spyOn>;
+    let errorSpy: ReturnType<typeof jest.spyOn>;
+    let sendSpy: ReturnType<typeof jest.spyOn>;
+    let sent: any[];
+
+    const renderSurvey = async (setIndex?: number) => {
+        const form = setupForm([
+            buildQuestion({
+                id: "1",
+                ref: "md",
+                type: FEEDBACKAPPANSWERTYPE.MAX_DIFF,
+                require: true,
+                value: ["Price", "Delivery", "Support"],
+                position: 1,
+                assets: (setIndex ? {setIndex, setCount: 3} : {}) as any,
+            }),
+        ]);
+        (form as any).config.set("url", "https://api.test");
+        await (form as any).generateForm();
+        return form;
+    };
+
+    const pick = (side: "best" | "worst", index: number) => {
+        (container.querySelector(`#md-${side}-${index}`) as HTMLInputElement).click();
+    };
+
+    beforeEach(() => {
+        document.body.innerHTML = "";
+        container = document.createElement("div");
+        container.id = "form-container";
+        document.body.appendChild(container);
+        logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+        errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+        sent = [];
+        sendSpy = jest.spyOn(requestService, "sendFeedback").mockImplementation(async (_url, body) => {
+            sent.push(JSON.parse(JSON.stringify(body)));
+            return "session-1";
+        });
+    });
+
+    afterEach(() => {
+        container.remove();
+        logSpy.mockRestore();
+        errorSpy.mockRestore();
+        sendSpy.mockRestore();
+    });
+
+    test("does not send with only one of the two picks", async () => {
+        const form = await renderSurvey();
+        pick("best", 0);
+
+        await form.send();
+
+        expect(sent).toHaveLength(0);
+        expect(errorSpy).toHaveBeenCalledWith(
+            "[MagicFeedback]:",
+            "The MaxDiff question md requires the most and the least important"
+        );
+    });
+
+    test("only the screen being answered needs both picks", async () => {
+        const form = await renderSurvey(2);
+        // an earlier screen with one side empty, as an optional skip would leave it
+        const node = new PageNode("earlier", 0, [], new Page("earlier", 0, "integration-1", [], []), [], false);
+        node.setAnswer([{key: "md", value: [JSON.stringify([{set: 1, shown: ["A"], best: "A", worst: null}])]}]);
+        (form as any).history.items.unshift(node);
+        pick("best", 0);
+        pick("worst", 1);
+
+        await form.send();
+
+        // the page push went out (a completion push follows, as this is the last page)
+        expect(sent[0].completed).toBe(false);
+        expect(JSON.parse(sent[0].feedback.answers[0].value[0]).map((set: any) => set.set)).toEqual([1, 2]);
+    });
+
+    test("sends the set with both picks", async () => {
+        const form = await renderSurvey();
+        pick("best", 0);
+        pick("worst", 2);
+
+        await form.send();
+
+        expect(sent[0].feedback.answers).toEqual([
+            {
+                key: "md",
+                value: [JSON.stringify([{set: 1, shown: ["Price", "Delivery", "Support"], best: "Price", worst: "Support"}])],
+            },
+        ]);
+    });
+});
+
+describe("Form auto-advance", () => {
+    let container: HTMLElement;
+    let logSpy: ReturnType<typeof jest.spyOn>;
+    let sendSpy: ReturnType<typeof jest.spyOn>;
+    let sent: any[];
+    let respond: () => void;
+
+    const renderBoolean = async () => {
+        const form = setupForm([
+            buildQuestion({id: "1", ref: "yn", type: FEEDBACKAPPANSWERTYPE.BOOLEAN, position: 1}),
+        ], {addButton: true});
+        (form as any).config.set("url", "https://api.test");
+        await (form as any).generateForm();
+        return form;
+    };
+
+    // the page pushes, not the completion push of this one-page survey
+    const pagePushes = () => sent.filter((body) => !body.completed);
+
+    const pick = (value: string) =>
+        (container.querySelector(`input[name="yn"][value="${value}"]`) as HTMLInputElement).click();
+
+    beforeEach(() => {
+        jest.useFakeTimers();
+        document.body.innerHTML = "";
+        container = document.createElement("div");
+        container.id = "form-container";
+        document.body.appendChild(container);
+        logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+        sent = [];
+        sendSpy = jest.spyOn(requestService, "sendFeedback").mockImplementation((_url, body) => {
+            sent.push(JSON.parse(JSON.stringify(body)));
+            return new Promise((resolve) => { respond = () => resolve("session-1"); });
+        });
+    });
+
+    afterEach(() => {
+        jest.clearAllTimers();
+        jest.useRealTimers();
+        container.remove();
+        logSpy.mockRestore();
+        sendSpy.mockRestore();
+    });
+
+    test("tapping \"No\" leaves it checked and sends it AUTO_ADVANCE_DELAY_MS later", async () => {
+        await renderBoolean();
+
+        pick("No");
+        await jest.advanceTimersByTimeAsync(AUTO_ADVANCE_DELAY_MS - 1);
+        expect(pagePushes()).toHaveLength(0);
+
+        await jest.advanceTimersByTimeAsync(1);
+        expect(pagePushes()).toHaveLength(1);
+        expect(pagePushes()[0].feedback.answers).toEqual([{key: "yn", value: ["No"]}]);
+    });
+
+    test("pressing Next inside the window sends the page once", async () => {
+        const form = await renderBoolean();
+
+        pick("Yes");
+        const sending = form.send();
+        await jest.advanceTimersByTimeAsync(AUTO_ADVANCE_DELAY_MS * 2);
+        respond();
+        await sending;
+
+        expect(pagePushes()).toHaveLength(1);
+        expect(pagePushes()[0].feedback.answers).toEqual([{key: "yn", value: ["Yes"]}]);
+    });
+
+    test("a pick while the page is being sent doesn't send it again", async () => {
+        const form = await renderBoolean();
+
+        pick("Yes");
+        await jest.advanceTimersByTimeAsync(AUTO_ADVANCE_DELAY_MS);
+        expect(pagePushes()).toHaveLength(1);
+
+        // the request hasn't come back yet
+        pick("No");
+        await jest.advanceTimersByTimeAsync(AUTO_ADVANCE_DELAY_MS);
+        expect(pagePushes()).toHaveLength(1);
+        expect((form as any).sending).toBe(true);
+
+        respond();
+        await jest.advanceTimersByTimeAsync(0);
+        expect((form as any).sending).toBe(false);
     });
 });

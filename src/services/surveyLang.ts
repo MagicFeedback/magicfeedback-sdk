@@ -134,6 +134,23 @@ function mapMatrix(value: string, map: Map<string, string>): string {
     }
 }
 
+function mapMaxDiff(value: string, map: Map<string, string>): string {
+    // JSON of [{shown: [item], best: item, worst: item}]
+    try {
+        const sets = JSON.parse(value);
+        if (!Array.isArray(sets)) return value;
+        const base = (v: any) => (typeof v === "string" ? map.get(v) ?? v : v);
+        return JSON.stringify(sets.map((set: any) => ({
+            ...set,
+            shown: Array.isArray(set?.shown) ? set.shown.map(base) : set?.shown,
+            best: base(set?.best),
+            worst: base(set?.worst),
+        })));
+    } catch {
+        return value;
+    }
+}
+
 /**
  * Rewrite collected answers from the shown language to the base language.
  * Values with no match (free text, "other" options, exclusive answers kept in
@@ -160,6 +177,8 @@ export function toBaseAnswers(answers: NativeAnswer[], questions: NativeQuestion
             mapValue = (v) => (typeof v === "string" ? mapPointSystem(v, map) : v);
         } else if (question.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {
             mapValue = (v) => (typeof v === "string" ? mapMatrix(v, map) : v);
+        } else if (question.type === FEEDBACKAPPANSWERTYPE.MAX_DIFF) {
+            mapValue = (v) => (typeof v === "string" ? mapMaxDiff(v, map) : v);
         } else {
             return answer;
         }
