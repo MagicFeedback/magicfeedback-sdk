@@ -162,8 +162,20 @@ await form.generate("survey-root", {
 | `afterSubmitEvent` | `undefined` | Called after a page submit, follow-up render, or final completion. |
 | `onBackEvent` | `undefined` | Called after navigating back. |
 | `lang` | `init({lang})`, then browser language | Survey language for this form (see [Multi-language surveys](#multi-language-surveys)). |
+| `autofocus` | `false` | `"always"` or `"navigation"`: puts the cursor in the first question of a page when it is a text field (see [Focus on text questions](#focus-on-text-questions)). |
 
 When `getMetaData` is enabled, the SDK includes the current URL, origin, pathname, query string, user agent, browser language, platform, app metadata, screen size, and the session id when rendering from `session()`. Query params are also expanded into metadata entries as `query-<param>` with all values for that param.
+
+### Focus on text questions
+
+With `autofocus`, the cursor goes to the first question of a page when it is a text field (`TEXT`, `LONGTEXT`, `EMAIL`, `NUMBER`, or the first field of `CONTACT`). Only the first question counts: a page that starts with a rating and has a text field after it is left alone.
+
+- `"always"`: on the first page too, as soon as the survey is rendered. Fits a survey that fills the page.
+- `"navigation"`: only after "Start", "Next" or "Back", when the visitor has just tapped. Fits a survey embedded in a page, where taking the focus on load would pop up the keyboard on a phone before the visitor has touched anything.
+
+The focus never moves away from an editable field outside the survey, so a visitor typing in the host page's own form keeps their cursor. It is applied after `onLoadedEvent`, `afterSubmitEvent` or `onBackEvent`, so an integration that disables the questions while a page loads can enable them again in that hook.
+
+If you show the survey later than it is rendered (for example, a popup revealed once its content is painted), a hidden field cannot take the focus: use `"navigation"` and call `form.focusFirstQuestion()` when it becomes visible. It returns whether the focus moved.
 
 ## Resume an existing session
 
@@ -213,6 +225,21 @@ Each item should follow the same shape:
 ```ts
 { key: "some-key", value: ["some-value"] }
 ```
+
+## Auto-advance
+
+On a page with a single question, picking an option submits the page by itself for these types:
+
+- `BOOLEAN`
+- `RADIO` (not its extra "Other" option)
+- `RATING_NUMBER`, `RATING_STAR`, `RATING_EMOJI` (their extra option included)
+- `MULTIPLECHOISE_IMAGE` when it is single choice
+- `CONSENT`
+- the "skip" checkbox of a `LONGTEXT` with `maxCharacters` and an extra option
+
+Since 2.2.31 the page is submitted 300ms after the pick, so the choice is seen checked first. Picking again inside that window restarts it and only the last pick is sent, once. Pressing "Next" inside the window sends the page once, and nothing is sent if the page has changed by then. Keyboard selection waits the same. Pages with several questions never auto-advance, and Enter in a `TEXT` field submits right away.
+
+A question with `assets.autoAdvance: false` doesn't auto-advance: the respondent presses "Next". Missing or `true` keeps the behaviour above (`true` never adds auto-advance to other types). With `addButton: false`, make sure your own "Next" calls `form.send()`, or a question with auto-advance off can't be left.
 
 ## Send feedback directly
 

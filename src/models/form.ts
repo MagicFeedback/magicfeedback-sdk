@@ -1,4 +1,4 @@
-import {agentFormOptions, FEEDBACKAPPANSWERTYPE, generateFormOptions, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
+import {agentFormOptions, FEEDBACKAPPANSWERTYPE, generateFormOptions, MaxDiffSet, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
 import {AgentForm} from "./agentForm";
 
 import {Config} from "./config";
@@ -17,6 +17,8 @@ import {PageNode} from "./pageNode";
 import {t} from "../services/i18n";
 import {detectSurveyLang, toBaseAnswers} from "../services/surveyLang";
 import {armGhostTapGuard} from "../utils/ghostTapGuard";
+import {focusFirstTextQuestion} from "../utils/autofocus";
+import {cancelAutoAdvance} from "../utils/autoAdvance";
 
 export class Form {
     /**
@@ -59,6 +61,9 @@ export class Form {
     public total: number;
     public completed: boolean;
     public timeToCompleted: number;
+
+    // True while send() is running, so an auto-advance doesn't send again
+    private sending: boolean;
 
     /**
      *
@@ -115,6 +120,7 @@ export class Form {
         this.progress = 0;
         this.total = 0;
         this.completed = false;
+        this.sending = false;
         this.timeToCompleted = 0;
     }
 
@@ -233,7 +239,7 @@ export class Form {
 
             this.formData.style?.startMessage ?
                 await this.generateWelcomeMessage(this.formData.style.startMessage) :
-                this.startForm();
+                this.generateForm("open");
 
         } catch (e) {
             this.log.err(e);
@@ -407,7 +413,7 @@ export class Form {
      * @private
      * @returns void
      */
-    private async generateForm() {
+    private async generateForm(trigger: "open" | "navigation" = "open") {
         try {
             if (!this.formData || !this.formData.pages || this.formData.pages.length === 0) {
                 throw new Error("No form data");
@@ -444,7 +450,7 @@ export class Form {
                 this.formOptionsConfig.questionFormat,
                 this.lang(),
                 this.formData?.product,
-                () => this.send()
+                () => this.autoSend()
             );
 
             page.elements?.forEach((element) =>
@@ -496,6 +502,7 @@ export class Form {
                     formOptionsConfig: this.formOptionsConfig
                 });
             }
+            this.autofocusAfterRender(trigger);
         } catch (e) {
             this.log.err(e);
 
@@ -514,7 +521,34 @@ export class Form {
      * @public
      **/
     public startForm() {
-        this.generateForm()
+        // Leaving the welcome message: the visitor has just pressed "Start".
+        this.generateForm("navigation")
+    }
+
+    /**
+     * Put the cursor in the first question of the current page when it is a
+     * text field. For integrations that show the survey after rendering it
+     * (see the `autofocus` option); a field that is not visible yet cannot
+     * take the focus. Returns whether the focus moved.
+     * @public
+     */
+    public focusFirstQuestion(): boolean {
+        if (typeof document === "undefined") return false;
+        return focusFirstTextQuestion(document.getElementById("magicfeedback-questions-" + this.appId));
+    }
+
+    /**
+     * Applies the `autofocus` option after a page is rendered. Runs after the
+     * lifecycle hook on purpose: an integration may keep the questions inert
+     * while a page loads and release them in that hook, and an inert field
+     * cannot take the focus.
+     * @private
+     */
+    private autofocusAfterRender(trigger: "open" | "navigation") {
+        const mode = this.formOptionsConfig.autofocus;
+        if (!mode) return;
+        if (trigger === "open" && mode !== "always") return;
+        this.focusFirstQuestion();
     }
 
     /**
@@ -648,6 +682,10 @@ export class Form {
 
         const questionContainer = document.getElementById("magicfeedback-questions-" + this.appId) as HTMLElement;
 
+        // "Next" pressed while a picked option was about to auto-advance
+        cancelAutoAdvance(questionContainer);
+        this.sending = true;
+
         try {
             if (profile) this.feedback.profile = [...this.feedback.profile, ...profile];
             if (metrics) this.feedback.metrics = [...this.feedback.metrics, ...metrics];
@@ -734,6 +772,18 @@ export class Form {
                     }
                 }
 
+                // MAX_DIFF needs both picks on the screen being answered (the
+                // answer also carries the screens of earlier pages)
+                if (question.type === FEEDBACKAPPANSWERTYPE.MAX_DIFF) {
+                    const setIndex = question.assets?.setIndex ?? 1;
+                    const current = this.parseMaxDiffAnswer(this.feedback.answers.find(a => a.key === question.ref))
+                        .find(set => set.set === setIndex);
+                    if (!current?.best || !current?.worst) {
+                        this.log.err(`The MaxDiff question ${question.ref} requires the most and the least important`);
+                        throw new Error(`No response`);
+                    }
+                }
+
                 // Validación específica para MULTI_QUESTION_MATRIX (todas las filas deben tener respuesta si es required)
                 if (question.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {
                     // La respuesta de matriz se guarda agrupada bajo la key exactamente igual a question.ref
@@ -792,7 +842,18 @@ export class Form {
                     error
                 });
             }
+        } finally {
+            this.sending = false;
         }
+    }
+
+    /**
+     * What the renderers call when an option that auto-advances is picked
+     * (after AUTO_ADVANCE_DELAY_MS). Skipped while a send is in flight.
+     */
+    private autoSend() {
+        if (this.sending) return;
+        return this.send();
     }
 
     /**
@@ -801,12 +862,11 @@ export class Form {
      * @public
      */
     public answer(): NativeAnswer[] {
-        const form: HTMLElement | null = document.getElementById(
-            "magicfeedback-" + this.appId
-        );
+        const formId = "magicfeedback-" + this.appId;
+        const form: HTMLElement | null = document.getElementById(formId);
 
         if (!form) {
-            this.log.err(`Form "${form}" not found.`);
+            this.log.err(`Form "${formId}" not found.`);
             this.feedback.answers = [];
             return [];
         }
@@ -826,6 +886,7 @@ export class Form {
         const priorityMap: Record<string, string[]> = {};
         const multipleChoiceMap: Record<string, string[]> = {};
         const pointSystemMap: Record<string, string[]> = {};
+        const maxDiffMap: Record<string, MaxDiffSet> = {};
 
         inputs.forEach((input) => {
             const htmlInput = input as HTMLInputElement;
@@ -935,6 +996,25 @@ export class Form {
                         surveyAnswers.push(ans);
                     }
                     break;
+                case FEEDBACKAPPANSWERTYPE.MAX_DIFF: {
+                    // Two radio groups per question, `${ref}-best` and `${ref}-worst`,
+                    // grouped into one answer under the ref after the loop.
+                    if (inputType !== 'radio' || !question) break;
+                    const side = ans.key === `${question.ref}-best` ? 'best'
+                        : ans.key === `${question.ref}-worst` ? 'worst'
+                        : null;
+                    if (!side) break;
+
+                    if (!maxDiffMap[question.ref]) {
+                        maxDiffMap[question.ref] = {set: question.assets?.setIndex ?? 1, shown: [], best: null, worst: null};
+                    }
+                    const set = maxDiffMap[question.ref];
+                    // Every item has one radio per side; the "best" ones list the
+                    // set in the order it was shown.
+                    if (side === 'best') set.shown.push(value);
+                    if (htmlInput.checked) set[side] = value;
+                    break;
+                }
                 case FEEDBACKAPPANSWERTYPE.UPLOAD_IMAGE:
                 case FEEDBACKAPPANSWERTYPE.UPLOAD_FILE: {
                     const uploadValues = getUploadValues(htmlInput);
@@ -968,6 +1048,13 @@ export class Form {
             if (!arr || arr.length === 0) return;
             const sorted = arr.slice().sort((a, b) => Number(a.split('.')[0]) - Number(b.split('.')[0]));
             surveyAnswers.push({key: k, value: sorted});
+        });
+
+        // MAX_DIFF: one answer per question with this screen's set; the screens
+        // answered on earlier pages are added after toBaseAnswers
+        Object.entries(maxDiffMap).forEach(([k, set]) => {
+            if (!set.best && !set.worst) return;
+            surveyAnswers.push({key: k, value: [JSON.stringify([set])]});
         });
 
         // --- Agrupación especial para MULTI_QUESTION_MATRIX ---
@@ -1012,11 +1099,43 @@ export class Form {
 
         // Multi-language surveys: the inputs hold the shown labels, but routing,
         // validation and storage all match on the default-language options.
-        const baseAnswers = toBaseAnswers(surveyAnswers, page.questions);
+        // After toBaseAnswers: the earlier screens are already in the base language.
+        const baseAnswers = this.withEarlierMaxDiffSets(toBaseAnswers(surveyAnswers, page.questions), page.questions);
 
         this.feedback.answers = baseAnswers;
         page.setAnswer(baseAnswers);
         return baseAnswers;
+    }
+
+    /**
+     * The API serves each screen of a MAX_DIFF as its own page, all with the same
+     * ref, and the backend keeps only the last answer row per key. So every push
+     * carries, under the ref, all the screens answered so far: those of the latest
+     * earlier page that answered the ref, with the current screen replacing an
+     * earlier answer to the same set. Going back works on its own, since the
+     * rollback drops the later pages from the history.
+     */
+    private withEarlierMaxDiffSets(answers: NativeAnswer[], questions: NativeQuestion[]): NativeAnswer[] {
+        return answers.map((answer) => {
+            const isMaxDiff = questions.some(q => q.ref === answer.key && q.type === FEEDBACKAPPANSWERTYPE.MAX_DIFF);
+            if (!isMaxDiff) return answer;
+
+            const current = this.parseMaxDiffAnswer(answer);
+            const earlier = this.parseMaxDiffAnswer(this.earlierAnswer(answer.key))
+                .filter(set => !current.some(c => c.set === set.set));
+            const sets = [...earlier, ...current].sort((a, b) => a.set - b.set);
+
+            return {...answer, value: [JSON.stringify(sets)]};
+        });
+    }
+
+    /** Latest answer to `key` on a page before the one being answered (history.back()). */
+    private earlierAnswer(key: string): NativeAnswer | undefined {
+        for (let i = this.history.size() - 2; i >= 0; i--) {
+            const found = this.history.get(i)?.answers?.find(a => a.key === key);
+            if (found) return found;
+        }
+        return undefined;
     }
 
     /**
@@ -1042,7 +1161,11 @@ export class Form {
             container.appendChild(successMessage);
         }
 
-        this.answer();
+        // The last page's answers were already pushed by send(), so the
+        // completion push only closes the session (completed + metadata such as
+        // time-to-complete). Re-scraping here would fail once the success
+        // screen has replaced the form, and re-send the answers when it hasn't.
+        this.feedback.answers = [];
 
         try {
             const response = await this.pushAnswers(true);
@@ -1246,7 +1369,7 @@ export class Form {
             this.formOptionsConfig.questionFormat,
             this.lang(),
             this.formData?.product,
-            () => this.send()
+            () => this.autoSend()
         );
 
         // Update the progress +0.5, because the follow up questions are
@@ -1272,6 +1395,7 @@ export class Form {
                 error: null
             });
         }
+        this.autofocusAfterRender("navigation");
 
     }
 
@@ -1392,7 +1516,7 @@ export class Form {
             this.formOptionsConfig.questionFormat,
             this.lang(),
             this.formData?.product,
-            () => this.send()
+            () => this.autoSend()
         );
 
         form.innerHTML = "";
@@ -1416,6 +1540,7 @@ export class Form {
                 error: null
             });
         }
+        this.autofocusAfterRender("navigation");
     }
 
 
@@ -1440,6 +1565,7 @@ export class Form {
 
         const form = document.getElementById("magicfeedback-questions-" + this.appId) as HTMLElement;
 
+        cancelAutoAdvance(form);
         if (form && form.childNodes.length > 0) form.innerHTML = "";
 
         this.history.rollback();
@@ -1464,6 +1590,7 @@ export class Form {
                 error: !page ? "No page found" : null
             });
         }
+        if (page) this.autofocusAfterRender("navigation");
     }
 
     /**
@@ -1529,6 +1656,16 @@ export class Form {
 
         elements.forEach(el => target.appendChild(el));
         return container;
+    }
+
+    private parseMaxDiffAnswer(ans: NativeAnswer | undefined): MaxDiffSet[] {
+        if (!ans || typeof ans.value?.[0] !== 'string') return [];
+        try {
+            const parsed = JSON.parse(ans.value[0]);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (_) {
+            return [];
+        }
     }
 
     private parseMatrixAnswerPre(ans: NativeAnswer): { key: string; value: any[] }[] {

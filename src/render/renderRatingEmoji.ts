@@ -1,5 +1,6 @@
 import {QuestionRenderer} from "./types";
 import {createRatingPlaceholder} from "./ratingHelpers";
+import {autoAdvanceOn} from "../utils/autoAdvance";
 
 const defaultEmojiUrl = `https://survey-dev.magicfeedback.io/assets/emojis`;
 
@@ -81,11 +82,7 @@ export const renderRatingEmoji: QuestionRenderer = ({
         input.classList.add(elementTypeClass);
         input.classList.add("magicfeedback-input");
 
-        if (send) {
-            input.addEventListener("change", () => {
-                send();
-            });
-        }
+        autoAdvanceOn(input, send);
 
         if (urlParamValue && urlParamValue === input.value) {
             input.checked = true;
@@ -124,11 +121,7 @@ export const renderRatingEmoji: QuestionRenderer = ({
         input.classList.add(elementTypeClass);
         input.classList.add("magicfeedback-input");
 
-        if (send) {
-            input.addEventListener("change", () => {
-                send();
-            });
-        }
+        autoAdvanceOn(input, send);
 
         containerLabel.appendChild(input);
         containerLabel.appendChild(ratingImage);

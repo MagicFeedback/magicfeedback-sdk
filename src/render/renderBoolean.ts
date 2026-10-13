@@ -1,5 +1,6 @@
 import {getBooleanOptions} from "./helpers";
 import {QuestionRenderer} from "./types";
+import {autoAdvanceOn} from "../utils/autoAdvance";
 
 export const renderBoolean: QuestionRenderer = ({
     question,
@@ -54,9 +55,7 @@ export const renderBoolean: QuestionRenderer = ({
         input.style.height = "0";
         input.style.margin = "0";
 
-        input.addEventListener("change", () => {
-            if (send) send();
-        });
+        autoAdvanceOn(input, send);
 
         if (urlParamValue && urlParamValue.toLowerCase() === input.value.toLowerCase()) {
             input.checked = true;

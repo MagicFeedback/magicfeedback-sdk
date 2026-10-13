@@ -147,6 +147,15 @@ describe("toBaseAnswers", () => {
         expect(JSON.parse(answer.value[0])).toEqual([{key: "Row A", value: ["Tilfreds"]}]);
     });
 
+    test("MAX_DIFF maps the shown items and both picks", () => {
+        const q = question({ref: "md", type: FEEDBACKAPPANSWERTYPE.MAX_DIFF, value: shownEs, baseValue: baseDa});
+        const [answer] = toBaseAnswers(
+            [{key: "md", value: [JSON.stringify([{set: 1, shown: shownEs, best: "Satisfecho", worst: null}])]}],
+            [q],
+        );
+        expect(JSON.parse(answer.value[0])).toEqual([{set: 1, shown: baseDa, best: "Tilfreds", worst: null}]);
+    });
+
     test("open text is untouched", () => {
         const q = question({ref: "t", type: FEEDBACKAPPANSWERTYPE.TEXT, value: shownEs, baseValue: baseDa});
         expect(toBaseAnswers([{key: "t", value: ["Satisfecho"]}], [q])).toEqual([{key: "t", value: ["Satisfecho"]}]);

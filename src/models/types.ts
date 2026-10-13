@@ -42,6 +42,7 @@ export enum FEEDBACKAPPANSWERTYPE {
     INFO_PAGE = "INFO_PAGE",
     UPLOAD_FILE = "UPLOAD_FILE",
     UPLOAD_IMAGE = "UPLOAD_IMAGE",
+    MAX_DIFF = "MAX_DIFF",
 }
 
 export class QuestionType{
@@ -67,6 +68,13 @@ export type QuestionAssetsBase = {
     extraOption?: boolean;
     extraOptionText?: string;
     extraOptionPlaceholder?: string;
+    /**
+     * `false` turns off the auto-advance of this question: picking an option
+     * no longer sends the page, the visitor presses "Next". Missing or `true`
+     * keeps the behaviour of its type (it never adds auto-advance to a type
+     * that doesn't have it).
+     */
+    autoAdvance?: boolean;
 };
 
 export type QuestionAssetsByType = {
@@ -137,6 +145,25 @@ export type QuestionAssetsByType = {
     };
     [FEEDBACKAPPANSWERTYPE.UPLOAD_IMAGE]: QuestionAssetsByType[FEEDBACKAPPANSWERTYPE.UPLOAD_FILE];
     [FEEDBACKAPPANSWERTYPE.CONTACT]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.MAX_DIFF]: QuestionAssetsBase & {
+        /** "Most" column header. Defaults to the translated "Most important". */
+        bestLabel?: string | Record<string, string>;
+        /** "Least" column header. Defaults to the translated "Least important". */
+        worstLabel?: string | Record<string, string>;
+        /** Shows "Block {k} of {n}" above the set. Default false. */
+        showSetProgress?: boolean;
+        /**
+         * Set by the API when it expands the question into one page per screen:
+         * this screen's position (1-based) and the number of screens. Missing
+         * means a single screen with every item of `value`.
+         */
+        setIndex?: number;
+        setCount?: number;
+        /** Admin-side design settings; the API expands them and does not serve `design`. */
+        itemsPerSet?: number;
+        sets?: number;
+        design?: number[][];
+    };
 };
 
 export type QuestionAssetsFor<T extends FEEDBACKAPPANSWERTYPE | string> =
@@ -175,6 +202,18 @@ export type NativeAnswer = {
     // se requiere una estructura anidada: [ [ { key: rowKey, value: [..] }, ... ] ]
     // Mantener string[] también funciona porque strings siguen siendo válidos dentro de any[]
     value: any[];
+};
+
+/**
+ * One MAX_DIFF screen as it is sent: its position in the design (1-based), the
+ * items shown, in the order they were shown, and the two picks. The answer value
+ * is `[JSON.stringify(MaxDiffSet[])]` with every screen answered so far.
+ */
+export type MaxDiffSet = {
+    set: number;
+    shown: string[];
+    best: string | null;
+    worst: string | null;
 };
 
 export type NativeFeedback = {
@@ -298,6 +337,18 @@ export type generateFormOptions = {
     onBackEvent?: Function;
     // Survey language for this form, overriding init({lang}) and the browser.
     lang?: string;
+    /**
+     * Put the cursor in the first question of a page when it is a text field
+     * (TEXT, LONGTEXT, EMAIL, NUMBER, or the first field of CONTACT). A page
+     * that starts with any other question type is left alone.
+     * - "always": on the first page too, as soon as the survey is shown.
+     * - "navigation": only after "Start", "Next" or "Back", when the visitor
+     *   has just tapped. Integrations that show the survey later than it is
+     *   rendered (a popup revealed once painted) use this and call
+     *   `focusFirstQuestion()` themselves when it becomes visible.
+     * Missing or false: no automatic focus (the behaviour so far).
+     */
+    autofocus?: "always" | "navigation" | false;
 };
 
 enum generateFormOptionsTag {

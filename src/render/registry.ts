@@ -20,6 +20,7 @@ import {renderUploadImage} from "./renderUploadImage";
 import {renderUploadFile} from "./renderUploadFile";
 import {renderMultipleChoiceImage} from "./renderMultipleChoiceImage";
 import {renderInfoPage} from "./renderInfoPage";
+import {renderMaxDiff} from "./renderMaxDiff";
 
 const registry = new Map<FEEDBACKAPPANSWERTYPE, QuestionRenderer>([
     [FEEDBACKAPPANSWERTYPE.TEXT, renderText],
@@ -43,6 +44,7 @@ const registry = new Map<FEEDBACKAPPANSWERTYPE, QuestionRenderer>([
     [FEEDBACKAPPANSWERTYPE.UPLOAD_FILE, renderUploadFile],
     [FEEDBACKAPPANSWERTYPE.MULTIPLECHOISE_IMAGE, renderMultipleChoiceImage],
     [FEEDBACKAPPANSWERTYPE.INFO_PAGE, renderInfoPage],
+    [FEEDBACKAPPANSWERTYPE.MAX_DIFF, renderMaxDiff],
 ]);
 
 export function getQuestionRenderer(type: FEEDBACKAPPANSWERTYPE | string): QuestionRenderer | undefined {

@@ -1,4 +1,5 @@
 import {t} from "../services/i18n";
+import {autoAdvanceOn} from "../utils/autoAdvance";
 
 /**
  * A caption line for min/max labels — one line, min on one side and max on
@@ -82,8 +83,8 @@ export function createStarRating(
                 }
             }
             ratingContainer.dataset.originalSelection = ratingInput.value;
-            if (send) send();
         });
+        autoAdvanceOn(ratingInput, send);
 
         ratingOption.appendChild(ratingInput);
 
@@ -137,9 +138,24 @@ export function createRatingNumberElement(
     send?: () => void,
     urlParamValue?: string | null,
     language?: string,
+    options: RatingNumberOptions = {},
 ): HTMLElement {
     const element = document.createElement("div");
     element.classList.add('magicfeedback-rating-number');
+
+    // Legacy (the 2.2.5 rating, before the August redesign): on a phone the
+    // scale is a full-width list and the min/max text sits inside its option
+    // ("10 = Very likely") instead of in separate labels. Desktop keeps the
+    // row with the caption. The phone decision is the window width at render
+    // time, as it was then, and the row never stacks by container width.
+    const legacy = !!options.legacy;
+    const legacyPhone = legacy && !!options.isPhone;
+    const legacyText = legacyPhone ? legacyInlineText(assets) : null;
+    if (legacyPhone) {
+        direction = 'column';
+        assets = {...assets, minPlaceholder: undefined, maxPlaceholder: undefined, numberPlaceholders: undefined};
+    }
+    if (legacy) element.classList.add('magicfeedback-rating-number--legacy');
 
     const isColumn = direction === 'column';
     const numberContainerDirection = order === 'ltr' ? direction : `${direction}-reverse`;
@@ -243,9 +259,10 @@ export function createRatingNumberElement(
         input.value = i.toString();
         input.classList.add(elementTypeClass);
         input.classList.add("magicfeedback-input");
-        input.setAttribute('aria-label', ownPlaceholder ? `${i} — ${ownPlaceholder}` : `${i}`);
+        const inlineText = legacyText?.(i);
+        input.setAttribute('aria-label', ownPlaceholder ? `${i} — ${ownPlaceholder}` : inlineText ? `${i} — ${inlineText}` : `${i}`);
 
-        if (send) input.addEventListener("change", () => send());
+        autoAdvanceOn(input, send);
 
         if (urlParamValue && urlParamValue === input.value) {
             input.checked = true;
@@ -260,8 +277,11 @@ export function createRatingNumberElement(
         ratingValue.classList.add('magicfeedback-rating-number-value');
 
         const ratingNumber = document.createElement('span');
-        ratingNumber.textContent = i.toString();
+        ratingNumber.textContent = inlineText ? `${i} = ${inlineText}` : i.toString();
         ratingNumber.classList.add('magicfeedback-rating-number-value-num');
+        // Inline, not a stylesheet rule: integrations that ship their own copy
+        // of the CSS (MagicSurvey) bold the number.
+        if (legacy) ratingNumber.style.fontWeight = 'normal';
         ratingValue.appendChild(ratingNumber);
 
         if (isColumn) {
@@ -291,7 +311,7 @@ export function createRatingNumberElement(
     if (columnAfterLabel) element.appendChild(columnAfterLabel);
     if (rowScaleLabels) element.appendChild(rowScaleLabels);
 
-    if (!isColumn) {
+    if (!isColumn && !legacy) {
         stackRowWhenNarrow(element, ratingNumberContainer, maxRatingNumber - minRatingNumber + 1, order);
     }
 
@@ -317,7 +337,7 @@ export function createRatingNumberElement(
         input.classList.add(elementTypeClass);
         input.classList.add("magicfeedback-input");
         input.setAttribute('aria-label', assets?.extraOptionText);
-        if (send) input.addEventListener("change", () => send());
+        autoAdvanceOn(input, send);
 
         const ratingValue = document.createElement('span');
         ratingValue.classList.add('magicfeedback-rating-number-value');
@@ -335,6 +355,31 @@ export function createRatingNumberElement(
     }
 
     return element;
+}
+
+export type RatingNumberOptions = {
+    /** Render the pre-August (2.2.5) rating: see createRatingNumberElement. */
+    legacy?: boolean;
+    /** Window narrower than a tablet, decided by the caller at render time. */
+    isPhone?: boolean;
+};
+
+/**
+ * Club Matas keeps the pre-August rating: its surveys are recognised by a
+ * product id that contains "matas" (MATAS_DEMO_GENERAL, ...).
+ */
+export function usesLegacyRatingNumber(productId?: string | null): boolean {
+    return !!productId && /matas/i.test(productId);
+}
+
+/** The text 2.2.5 appended to an option on a phone ("10 = Very likely"). */
+function legacyInlineText(assets: any): (value: number) => string | undefined {
+    const max = assets?.max ? Number(assets.max) : 10;
+    const min = assets?.min ? Number(assets.min) : 0;
+    return (value) => assets?.numberPlaceholders?.[value]
+        || (value === min ? assets?.minPlaceholder : undefined)
+        || (value === max ? assets?.maxPlaceholder : undefined)
+        || undefined;
 }
 
 /** Narrowest a row chip may get before the row stacks into a column. */

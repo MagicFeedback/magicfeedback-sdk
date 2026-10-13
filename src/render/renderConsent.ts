@@ -1,4 +1,5 @@
 import {QuestionRenderer} from "./types";
+import {autoAdvanceOn} from "../utils/autoAdvance";
 
 export const renderConsent: QuestionRenderer = ({
     question,
@@ -22,11 +23,7 @@ export const renderConsent: QuestionRenderer = ({
         (element as HTMLInputElement).checked = true;
     }
 
-    if (send) {
-        element.addEventListener("change", () => {
-            send();
-        });
-    }
+    autoAdvanceOn(element, send);
 
     return {element, elementTypeClass};
 };

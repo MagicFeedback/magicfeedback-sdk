@@ -1,5 +1,5 @@
 import {QuestionRenderer} from "./types";
-import {createRatingNumberElement} from "./ratingHelpers";
+import {createRatingNumberElement, usesLegacyRatingNumber} from "./ratingHelpers";
 
 export const renderRatingNumber: QuestionRenderer = ({
     question,
@@ -7,7 +7,9 @@ export const renderRatingNumber: QuestionRenderer = ({
     direction,
     send,
     urlParamValue,
-    language
+    language,
+    isPhone,
+    productId,
 }) => {
     const elementTypeClass = 'magicfeedback-rating-number';
     const element = createRatingNumberElement(
@@ -18,7 +20,8 @@ export const renderRatingNumber: QuestionRenderer = ({
         elementTypeClass,
         send,
         urlParamValue,
-        language
+        language,
+        {legacy: usesLegacyRatingNumber(productId), isPhone},
     );
 
     return {element, elementTypeClass};
