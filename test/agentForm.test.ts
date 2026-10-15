@@ -328,3 +328,63 @@ describe("AgentForm", () => {
         });
     });
 });
+
+describe("AgentForm delegated from Form: integration texts", () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        localStorage.clear();
+        document.body.innerHTML = '<div id="demo"></div>';
+    });
+
+    const integration = (style: Record<string, any>) => ({lang: ["es"], style});
+
+    test("passes the integration payload to onLoadedEvent, as a static form does", async () => {
+        mockedStart.mockResolvedValue(turn(1, "ref-1") as any);
+        const onLoadedEvent = jest.fn();
+        const form = makeForm();
+        form.applyIntegrationContext(integration({logo: "logo.png"}));
+
+        await form.generate("demo", {resume: false, onLoadedEvent});
+
+        expect(onLoadedEvent).toHaveBeenCalledWith(expect.objectContaining({
+            formData: integration({logo: "logo.png"}),
+            lang: "es",
+        }));
+    });
+
+    // A visitor who leaves on the introduction must not cost an AI call.
+    test("shows the introduction first and opens the session only on Start", async () => {
+        mockedStart.mockResolvedValue(turn(1, "ref-1") as any);
+        const onLoadedEvent = jest.fn();
+        const form = makeForm();
+        form.applyIntegrationContext(integration({startMessage: "<p>Hola</p>"}));
+
+        await form.generate("demo", {resume: false, onLoadedEvent});
+
+        expect(document.querySelector(".magicfeedback-start-message")?.innerHTML).toBe("<p>Hola</p>");
+        expect(mockedStart).not.toHaveBeenCalled();
+        expect(onLoadedEvent).toHaveBeenCalledWith(expect.objectContaining({
+            formData: integration({startMessage: "<p>Hola</p>"}),
+        }));
+
+        (document.getElementById("magicfeedback-start-message-button") as HTMLButtonElement).click();
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(mockedStart).toHaveBeenCalledTimes(1);
+        expect(document.body.textContent).toContain("Question 1?");
+        expect(document.querySelector(".magicfeedback-start-message")).toBeNull();
+    });
+
+    // Hosts with their own Start button (addButton: false) call startForm().
+    test("startForm() opens the session once, however often it is called", async () => {
+        mockedStart.mockResolvedValue(turn(1, "ref-1") as any);
+        const form = makeForm();
+        form.applyIntegrationContext(integration({startMessage: "Hola"}));
+        await form.generate("demo", {resume: false, addButton: false});
+
+        await Promise.all([form.startForm(), form.startForm()]);
+
+        expect(mockedStart).toHaveBeenCalledTimes(1);
+        expect(document.body.textContent).toContain("Question 1?");
+    });
+});

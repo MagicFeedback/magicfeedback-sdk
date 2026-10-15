@@ -521,6 +521,11 @@ export class Form {
      * @public
      **/
     public startForm() {
+        // Delegated AGENT survey: its introduction opens the AI session.
+        if (this.agentForm) {
+            this.agentForm.startForm();
+            return;
+        }
         // Leaving the welcome message: the visitor has just pressed "Start".
         this.generateForm("navigation")
     }
