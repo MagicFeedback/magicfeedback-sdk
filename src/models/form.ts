@@ -1388,6 +1388,7 @@ export class Form {
         if (!current) return [];
 
         const upcoming: FollowUpUpcomingQuestion[] = [];
+        const seen = new Set<string>();
         const visited = new Set<string>();
 
         // The way out of the page being answered is known: its answers are in.
@@ -1426,6 +1427,9 @@ export class Form {
 
             for (const question of next.questions) {
                 if (question.type === FEEDBACKAPPANSWERTYPE.INFO_PAGE) continue;
+                // A MAX_DIFF is served as one page per screen, all with the same ref
+                if (seen.has(question.ref)) continue;
+                seen.add(question.ref);
                 upcoming.push({title: question.title});
             }
             node = next;

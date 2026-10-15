@@ -158,6 +158,19 @@ describe("Follow up context", () => {
             expect((form as any).upcomingQuestions()).toEqual([{title: "Q3"}]);
         });
 
+        test("lists a question served over several pages once", () => {
+            const maxDiff = question("md", "Most and least important?", FEEDBACKAPPANSWERTYPE.MAX_DIFF);
+            const pages = [
+                new Page("p1", 1, "integration-1", [question("q1", "Q1", FEEDBACKAPPANSWERTYPE.TEXT, true)], []),
+                new Page("p2", 2, "integration-1", [maxDiff], []),
+                new Page("p3", 3, "integration-1", [maxDiff], []),
+                new Page("p4", 4, "integration-1", [question("q4", "Q4")], []),
+            ];
+            const form = setup(pages, ["p1"], {p1: [{key: "q1", value: ["a"]}]});
+
+            expect((form as any).upcomingQuestions()).toEqual([{title: "Most and least important?"}, {title: "Q4"}]);
+        });
+
         test("is empty when the survey finishes after the current page", () => {
             const pages = [
                 new Page("p1", 1, "integration-1", [question("q1", "Q1", FEEDBACKAPPANSWERTYPE.TEXT, true)], [finish("f1", "p1")]),
