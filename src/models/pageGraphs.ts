@@ -90,6 +90,38 @@ export class PageGraph {
             return undefined;
         }
 
+        const route = this.findRoute(currentNode, answer);
+
+        // Si no hay ninguna ruta que cumpla, ir a la siguiente página por posición
+        if (!route) {
+            const nextPage = this.getNextEdgeByDefault(currentNode);
+            if (!nextPage) return undefined;
+            return this.getNodeById(nextPage);
+        }
+
+        switch (route.transition) {
+            case TransitionType.PAGE:
+                if (!route.transitionDestiny) return undefined;
+                return this.getNodeById(route.transitionDestiny);
+            case TransitionType.FINISH:
+                return undefined;
+            case TransitionType.REDIRECT:
+                window.location.href = route.transitionDestiny?.includes('?') ? `${route.transitionDestiny}&${window.location.search.slice(1)}`
+                    : `${route.transitionDestiny}${window.location.search}`
+                return undefined;
+            default:
+                return undefined;
+        }
+    }
+
+    /**
+     * Get the route the respondent takes out of the current page given the
+     * answer, without following it (getNextPage acts on a REDIRECT).
+     * @param currentNode
+     * @param answer - answer to the question in the current page
+     * @returns the matching route, undefined when the next page by position applies
+     **/
+    findRoute(currentNode: PageNode, answer: NativeAnswer[]): PageRoute | undefined {
         // Ordenar edges: primero lógicos, luego directos
         currentNode.edges.sort((a, b) => {
             if (a.typeCondition === 'DIRECT') return 1;
@@ -161,26 +193,7 @@ export class PageGraph {
             }
         });
 
-        // Si no hay ninguna ruta que cumpla, ir a la siguiente página por posición
-        if (!route) {
-            const nextPage = this.getNextEdgeByDefault(currentNode);
-            if (!nextPage) return undefined;
-            return this.getNodeById(nextPage);
-        }
-
-        switch (route.transition) {
-            case TransitionType.PAGE:
-                if (!route.transitionDestiny) return undefined;
-                return this.getNodeById(route.transitionDestiny);
-            case TransitionType.FINISH:
-                return undefined;
-            case TransitionType.REDIRECT:
-                window.location.href = route.transitionDestiny?.includes('?') ? `${route.transitionDestiny}&${window.location.search.slice(1)}`
-                    : `${route.transitionDestiny}${window.location.search}`
-                return undefined;
-            default:
-                return undefined;
-        }
+        return route;
     }
 
 
