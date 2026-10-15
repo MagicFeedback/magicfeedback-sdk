@@ -388,3 +388,47 @@ describe("AgentForm delegated from Form: integration texts", () => {
         expect(document.body.textContent).toContain("Question 1?");
     });
 });
+
+describe("AgentForm in dryRun (demo mode, editor preview)", () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        localStorage.clear();
+        document.body.innerHTML = '<div id="demo"></div>';
+    });
+
+    function makePreviewForm(): AgentForm {
+        const config = new Config();
+        config.set("url", "http://example.com/");
+        config.set("dryRun", true);
+        return new AgentForm(config, INTEGRATION, PUBLIC_KEY);
+    }
+
+    test("asks the API for a preview on /start and /next", async () => {
+        mockedStart.mockResolvedValue(turn(1, "ref-1") as any);
+        mockedNext.mockResolvedValue(turn(2, "ref-2") as any);
+        const form = makePreviewForm();
+        await form.generate("demo");
+
+        answerCurrentQuestion("Too expensive");
+        await form.next();
+
+        expect(mockedStart.mock.calls[0][1]).toMatchObject({preview: true});
+        expect(lastNextRequest()).toMatchObject({preview: true});
+    });
+
+    // A real visit to the same survey must not resume the preview's session.
+    test("leaves no session behind to resume", async () => {
+        mockedStart.mockResolvedValue(turn(1, "ref-1") as any);
+        const form = makePreviewForm();
+        await form.generate("demo");
+
+        expect(localStorage.length).toBe(0);
+    });
+
+    test("a real run sends no preview flag", async () => {
+        mockedStart.mockResolvedValue(turn(1, "ref-1") as any);
+        await makeForm().generate("demo", {resume: false});
+
+        expect(mockedStart.mock.calls[0][1]).not.toHaveProperty("preview");
+    });
+});

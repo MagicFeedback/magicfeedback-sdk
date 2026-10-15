@@ -259,6 +259,8 @@ export type AgentStartRequest = {
     publicKey: string;
     privateKey?: string;
     integrationId: string;
+    /** Preview run (dryRun): the API stores no answer and publishes no completion. */
+    preview?: boolean;
 };
 
 export type AgentStartResponse = AgentQuestionPayload & {

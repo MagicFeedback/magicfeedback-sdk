@@ -154,11 +154,8 @@ export class AgentForm {
         if (options.lang) this.language = options.lang;
         if (options.primaryColor) this.primaryColor = options.primaryColor;
 
-        if (this.config.get<boolean>("dryRun")) {
-            this.log.log("dryRun has no effect in agent mode: the server drives the conversation");
-        }
-
-        const restored = this.formOptionsConfig.resume !== false ? this.restore() : null;
+        // A preview never resumes, nor leaves a session for a real visit to resume.
+        const restored = this.formOptionsConfig.resume !== false && !this.isPreview() ? this.restore() : null;
         const startMessage = this.integrationData?.style?.startMessage;
 
         // Like a static form, the introduction text comes first and the
@@ -384,6 +381,7 @@ export class AgentForm {
                 lastAnswer,
                 lastQuestionRef: question.ref,
                 askedRefs: [...this.askedRefs],
+                ...this.previewFlag(),
             }, this.log);
 
             // --- commit ---
@@ -687,6 +685,7 @@ export class AgentForm {
             publicKey: this.publicKey,
             privateKey: this.privateKey,
             integrationId: this.integrationId,
+            ...this.previewFlag(),
         };
 
         try {
@@ -760,7 +759,21 @@ export class AgentForm {
      * Every localStorage access is guarded: Safari private mode throws on
      * access, and a survey must not die because a snapshot could not be written.
      */
+    /**
+     * dryRun (MagicSurvey's demo mode, the editor's preview): the API still
+     * writes the questions but stores nothing, as a static form submits nothing.
+     */
+    private isPreview(): boolean {
+        return Boolean(this.config.get<boolean>("dryRun"));
+    }
+
+    /** Only sent when on: an API without the field would refuse it. */
+    private previewFlag(): {preview?: true} {
+        return this.isPreview() ? {preview: true} : {};
+    }
+
     private persist(): void {
+        if (this.isPreview()) return;
         if (this.formOptionsConfig.resume === false) return;
 
         try {
