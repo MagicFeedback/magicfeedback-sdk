@@ -18,7 +18,7 @@ import {
 import {scrapeInputs} from "../services/answerScrape";
 import {applyDirection, applyPrimaryColor, generateContainer} from "../render/containerHelpers";
 import {awaitUploadReady} from "../render/uploadHelpers";
-import {renderActions, renderError, renderQuestions, renderSuccess} from "../services/questions.service";
+import {renderActions, renderError, renderQuestions, renderStartMessage, renderSuccess} from "../services/questions.service";
 import {t} from "../services/i18n";
 import {armGhostTapGuard} from "../utils/ghostTapGuard";
 import {cancelAutoAdvance} from "../utils/autoAdvance";
@@ -64,6 +64,10 @@ export class AgentForm {
     private language: string;
     private product: any;
     private primaryColor?: string;
+    // The integration payload when `Form` delegated to this class: hosts read
+    // it from onLoadedEvent (style, texts) exactly as they do for a static form.
+    private integrationData: {lang?: string[]; product?: any; style?: Record<string, any>} | null;
+    private started: boolean;
 
     // Conversation state
     private sessionId: string;
@@ -114,6 +118,8 @@ export class AgentForm {
         this.selector = "";
         this.language = "en";
         this.product = {customIcons: false};
+        this.integrationData = null;
+        this.started = false;
 
         this.sessionId = "";
         this.conversation = [];
@@ -148,13 +154,62 @@ export class AgentForm {
         if (options.lang) this.language = options.lang;
         if (options.primaryColor) this.primaryColor = options.primaryColor;
 
-        if (this.config.get<boolean>("dryRun")) {
-            this.log.log("dryRun has no effect in agent mode: the server drives the conversation");
+        // A preview never resumes, nor leaves a session for a real visit to resume.
+        const restored = this.formOptionsConfig.resume !== false && !this.isPreview() ? this.restore() : null;
+        const startMessage = this.integrationData?.style?.startMessage;
+
+        // Like a static form, the introduction text comes first and the
+        // session only opens once the visitor presses Start (startForm()), so
+        // a visitor who leaves on the introduction costs no AI call.
+        if (!restored && startMessage) {
+            try {
+                this.renderWelcome(startMessage);
+            } catch (e) {
+                this.log.err(`Could not show the introduction of ${this.integrationId}:`, e);
+                if (this.formOptionsConfig.onLoadedEvent) {
+                    await this.formOptionsConfig.onLoadedEvent({loading: false, error: e});
+                }
+            }
+            return;
         }
 
-        try {
-            const restored = this.formOptionsConfig.resume !== false ? this.restore() : null;
+        await this.open(restored);
+    }
 
+    /**
+     * Leaves the introduction text and opens the session. Called by the
+     * introduction's own button, or by a host with its own Start button
+     * (`addButton: false`).
+     */
+    public async startForm(): Promise<void> {
+        if (this.started) return;
+        await this.open(null);
+    }
+
+    private renderWelcome(startMessage: string): void {
+        const container = generateContainer(this.selector, this.integrationId);
+        if (this.primaryColor) applyPrimaryColor(container, this.primaryColor);
+        applyDirection(container, this.language);
+
+        container.appendChild(renderStartMessage(
+            startMessage,
+            this.formOptionsConfig.addButton,
+            this.formOptionsConfig.startButtonText || t(this.language, "action.start"),
+            () => this.startForm(),
+        ));
+
+        if (this.formOptionsConfig.onLoadedEvent) {
+            this.formOptionsConfig.onLoadedEvent({
+                loading: false,
+                formData: this.integrationData ?? undefined,
+                lang: this.language,
+            });
+        }
+    }
+
+    private async open(restored: ReturnType<AgentForm["restore"]>): Promise<void> {
+        this.started = true;
+        try {
             if (restored) {
                 this.log.log(`Resuming agent session ${restored.sessionId} at turn ${restored.currentTurn}`);
                 this.mountForm();
@@ -180,6 +235,8 @@ export class AgentForm {
                             progress: this.progress,
                             total: this.total,
                             sessionId: this.sessionId,
+                            formData: this.integrationData ?? undefined,
+                            lang: this.language,
                             completed: true,
                         });
                     }
@@ -199,6 +256,8 @@ export class AgentForm {
                     progress: this.progress,
                     total: this.total,
                     sessionId: this.sessionId,
+                    formData: this.integrationData ?? undefined,
+                    lang: this.language,
                     formOptionsConfig: this.formOptionsConfig,
                 });
             }
@@ -322,6 +381,7 @@ export class AgentForm {
                 lastAnswer,
                 lastQuestionRef: question.ref,
                 askedRefs: [...this.askedRefs],
+                ...this.previewFlag(),
             }, this.log);
 
             // --- commit ---
@@ -625,6 +685,7 @@ export class AgentForm {
             publicKey: this.publicKey,
             privateKey: this.privateKey,
             integrationId: this.integrationId,
+            ...this.previewFlag(),
         };
 
         try {
@@ -698,7 +759,21 @@ export class AgentForm {
      * Every localStorage access is guarded: Safari private mode throws on
      * access, and a survey must not die because a snapshot could not be written.
      */
+    /**
+     * dryRun (MagicSurvey's demo mode, the editor's preview): the API still
+     * writes the questions but stores nothing, as a static form submits nothing.
+     */
+    private isPreview(): boolean {
+        return Boolean(this.config.get<boolean>("dryRun"));
+    }
+
+    /** Only sent when on: an API without the field would refuse it. */
+    private previewFlag(): {preview?: true} {
+        return this.isPreview() ? {preview: true} : {};
+    }
+
     private persist(): void {
+        if (this.isPreview()) return;
         if (this.formOptionsConfig.resume === false) return;
 
         try {
@@ -762,6 +837,7 @@ export class AgentForm {
     public applyIntegrationContext(
         formData: {lang?: string[]; product?: any; style?: Record<string, any>},
     ): void {
+        this.integrationData = formData;
         if (formData?.lang?.length) this.language = formData.lang[0];
         if (formData?.product) this.product = formData.product;
         if (formData?.style?.primaryColor) this.primaryColor = formData.style.primaryColor;
