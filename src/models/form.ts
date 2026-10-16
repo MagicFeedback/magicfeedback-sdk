@@ -1,4 +1,4 @@
-import {agentFormOptions, FEEDBACKAPPANSWERTYPE, generateFormOptions, MaxDiffSet, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
+import {agentFormOptions, FEEDBACKAPPANSWERTYPE, FollowUpPreviousAnswer, FollowUpUpcomingQuestion, generateFormOptions, MaxDiffSet, NativeAnswer, NativeFeedback, NativeQuestion, PreviewPageInput} from "./types";
 import {AgentForm} from "./agentForm";
 
 import {Config} from "./config";
@@ -11,7 +11,7 @@ import {applyDirection, applyPrimaryColor, generateContainer} from "../render/co
 import {scrapeInputs} from "../services/answerScrape";
 import {PageGraph} from "./pageGraphs";
 import {Page} from "./page";
-import {OperatorType, PageRoute, TransitionType} from "./pageRoute";
+import {ConditionType, OperatorType, PageRoute, TransitionType} from "./pageRoute";
 import {History} from "./History";
 import {PageNode} from "./pageNode";
 import {t} from "../services/i18n";
@@ -19,6 +19,21 @@ import {detectSurveyLang, toBaseAnswers} from "../services/surveyLang";
 import {armGhostTapGuard} from "../utils/ghostTapGuard";
 import {focusFirstTextQuestion} from "../utils/autofocus";
 import {cancelAutoAdvance} from "../utils/autoAdvance";
+
+/**
+ * Questions left out of a follow up's previous answers: nothing the respondent
+ * said about the experience (info, files, passwords, contact details) or, for
+ * MAX_DIFF, nothing that reads as an answer.
+ */
+const FOLLOWUP_SKIPPED_PREVIOUS_TYPES: FEEDBACKAPPANSWERTYPE[] = [
+    FEEDBACKAPPANSWERTYPE.INFO_PAGE,
+    FEEDBACKAPPANSWERTYPE.PASSWORD,
+    FEEDBACKAPPANSWERTYPE.EMAIL,
+    FEEDBACKAPPANSWERTYPE.CONTACT,
+    FEEDBACKAPPANSWERTYPE.UPLOAD_FILE,
+    FEEDBACKAPPANSWERTYPE.UPLOAD_IMAGE,
+    FEEDBACKAPPANSWERTYPE.MAX_DIFF,
+];
 
 export class Form {
     /**
@@ -1288,7 +1303,11 @@ export class Form {
                 ...(this.publicKey !== '' && {publicKey: this.publicKey}),
                 ...(this.publicKey === '' && {campaignSessionId: this.appId}),
                 sessionId: this.id,
-                question
+                question,
+                // So the follow up doesn't ask what was already answered or
+                // what a later question of the survey will ask anyway.
+                previousAnswers: this.previousAnswers(question),
+                upcomingQuestions: this.upcomingQuestions(),
             }
 
             return await getFollowUpQuestion(
@@ -1305,6 +1324,119 @@ export class Form {
             );
             return null;
         }
+    }
+
+    /**
+     * What the respondent already answered, earliest first, for the follow up
+     * of `current`: every question in the history, the rest of the current
+     * page included, but not `current` itself (sending it there suppresses
+     * the follow up). A question answered twice (a MAX_DIFF over several
+     * pages) keeps its latest answer, in its latest place.
+     * @param current
+     * @private
+     */
+    private previousAnswers(current: NativeQuestion): FollowUpPreviousAnswer[] {
+        const byRef = new Map<string, FollowUpPreviousAnswer>();
+        for (let i = 0; i < this.history.size(); i++) {
+            const node = this.history.get(i);
+            if (!node) continue;
+            for (const question of node.questions) {
+                if (question.ref === current.ref) continue;
+                if (FOLLOWUP_SKIPPED_PREVIOUS_TYPES.includes(question.type as FEEDBACKAPPANSWERTYPE)) continue;
+                const answer = this.followUpAnswerValue(question, node.answers?.find((a) => a.key === question.ref));
+                if (answer === undefined) continue;
+                byRef.delete(question.ref);
+                byRef.set(question.ref, {title: question.title, answer});
+            }
+        }
+        return [...byRef.values()];
+    }
+
+    /**
+     * An answer as the follow up endpoint takes it: a string, a boolean for a
+     * Yes/No question, or a list of strings. undefined when left blank.
+     * @private
+     */
+    private followUpAnswerValue(question: NativeQuestion, answer: NativeAnswer | undefined): string | boolean | string[] | undefined {
+        const values = (answer?.value ?? []).filter((v) => v !== undefined && v !== null && v !== "");
+        if (values.length === 0) return undefined;
+
+        if (question.type === FEEDBACKAPPANSWERTYPE.BOOLEAN && values.length === 1 && ["Yes", "No"].includes(values[0])) {
+            return values[0] === "Yes";
+        }
+
+        if (question.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {
+            const rows = this.parseMatrixAnswerPre({key: question.ref, value: values});
+            const lines = rows.map((r) => `${r.key}: ${(Array.isArray(r.value) ? r.value : [r.value]).join(", ")}`);
+            return lines.length > 0 ? lines : undefined;
+        }
+
+        const strings = values.map((v) => typeof v === "string" ? v : JSON.stringify(v));
+        return strings.length === 1 ? strings[0] : strings;
+    }
+
+    /**
+     * What the survey will still ask, soonest first: the questions of the
+     * pages ahead on the route the respondent will actually take. The route is
+     * followed while it is certain, so it stops after a page whose way out
+     * depends on its own answers, and before a page whose preconditions depend
+     * on a question not answered yet.
+     * @private
+     */
+    private upcomingQuestions(): FollowUpUpcomingQuestion[] {
+        const current = this.history.back();
+        if (!current) return [];
+
+        const upcoming: FollowUpUpcomingQuestion[] = [];
+        const seen = new Set<string>();
+        const visited = new Set<string>();
+
+        // The way out of the page being answered is known: its answers are in.
+        let node: PageNode = current.isFollowup && current.origin ? current.origin : current;
+        let answers: NativeAnswer[] | null = node.answers ?? [];
+
+        while (!visited.has(node.id)) {
+            visited.add(node.id);
+
+            let nextId: string | undefined;
+            if (answers) {
+                const route = this.graph.findRoute(node, answers);
+                nextId = !route
+                    ? this.graph.getNextEdgeByDefault(node)
+                    : route.transition === TransitionType.PAGE ? route.transitionDestiny ?? undefined : undefined;
+            } else {
+                // Not answered yet: only a page without conditions has a known way out
+                const conditional = node.edges.some((e) =>
+                    e.typeCondition !== ConditionType.DIRECT && e.typeCondition !== ConditionType.PRECONDITIONAL);
+                if (conditional) break;
+                nextId = this.graph.getNextEdgeByDefault(node);
+            }
+
+            const next = nextId ? this.graph.getNodeById(nextId) : undefined;
+            if (!next) break;
+
+            const preconditions = next.edges.filter((e) => e.typeCondition === ConditionType.PRECONDITIONAL);
+            if (preconditions.some((e) => !this.latestAnswer(e.questionRef))) break;
+
+            if (this.skipsByPreconditions(next)) {
+                // Skipped pages route on with no answers (see renderNextQuestion)
+                node = next;
+                answers = [];
+                continue;
+            }
+
+            for (const question of next.questions) {
+                if (question.type === FEEDBACKAPPANSWERTYPE.INFO_PAGE) continue;
+                // A MAX_DIFF is served as one page per screen, all with the same ref
+                if (seen.has(question.ref)) continue;
+                seen.add(question.ref);
+                upcoming.push({title: question.title});
+            }
+            node = next;
+            answers = null;
+        }
+
+        return upcoming;
     }
 
     /**
@@ -1425,91 +1557,12 @@ export class Form {
             return;
         }
 
-        // --- NEW: Check preconditional routes ---
-        const preconditionalRoute: PageRoute[] = nextPage.edges.filter(edge => edge.typeCondition === 'PRECONDITIONAL').sort((a, b) => {
-            // Sort by position
-            if (a.position < b.position) return -1;
-            if (a.position > b.position) return 1;
-            return 0;
-        });
-
-        if (preconditionalRoute?.length > 0) {
-            // Determine if there are ALLOW routes — if so, ALL must be satisfied (AND logic)
-            const hasAllowRoutes = preconditionalRoute.some(route => route.transition === TransitionType.ALLOW);
-            let allAllowMet = hasAllowRoutes; // starts true, will be set to false if any ALLOW fails
-
-            for (const route of preconditionalRoute) {
-                // FIX: Search the answer SPECIFIC to this route's questionRef, not a generic one
-                let foundAnswer: NativeAnswer | undefined;
-                for (let i = this.history.size() - 1; i >= 0; i--) {
-                    const node = this.history.get(i);
-                    if (!node) continue;
-                    foundAnswer = node.answers?.find((ans: NativeAnswer) => ans.key === route.questionRef);
-                    if (foundAnswer) break;
-                }
-
-                let conditionMet = false;
-                if (foundAnswer) {
-                    const question = this.formData?.questions.find(q => q.ref === route.questionRef);
-                    const answerVals = Array.isArray(foundAnswer.value) ? foundAnswer.value : [foundAnswer.value];
-                    const routeVals = Array.isArray(route.value) ? route.value : [route.value];
-
-                    // Lógica especial para matrices
-                    if (question?.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {
-                        conditionMet = this.evaluateMatrixPreconditional(route, foundAnswer);
-                    } else {
-                        switch (route.typeOperator) {
-                            case 'EQUAL':
-                                conditionMet = answerVals.some((v: any) => routeVals.includes(v));
-                                break;
-                            case 'NOEQUAL':
-                                conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
-                                break;
-                            case 'GREATER':
-                                conditionMet = answerVals.some((v: any) => Number(v) > Number(routeVals[0]));
-                                break;
-                            case 'LESS':
-                                conditionMet = answerVals.some((v: any) => Number(v) < Number(routeVals[0]));
-                                break;
-                            case 'GREATEREQUAL':
-                                conditionMet = answerVals.some((v: any) => Number(v) >= Number(routeVals[0]));
-                                break;
-                            case 'LESSEQUAL':
-                                conditionMet = answerVals.some((v: any) => Number(v) <= Number(routeVals[0]));
-                                break;
-                            case 'INQ':
-                                conditionMet = answerVals.some((v: any) => routeVals.includes(v));
-                                break;
-                            case 'NINQ':
-                                conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                }
-
-                // Apply transition logic per route
-                if (route.transition === TransitionType.ALLOW) {
-                    // FIX: AND logic — if ANY ALLOW condition fails, page is not allowed
-                    if (!conditionMet) {
-                        allAllowMet = false;
-                    }
-                } else if (route.transition === TransitionType.NEXT && conditionMet) {
-                    this.feedback.answers = [];
-                    if (nextPage) await this.renderNextQuestion(form, nextPage);
-                    return;
-                }
-            }
-
-            const allowToContinue = hasAllowRoutes ? allAllowMet : true;
-            if (!allowToContinue) {
-                this.feedback.answers = []
-                if (nextPage) await this.renderNextQuestion(form, nextPage);
-                return;
-            }
+        // A page whose preconditions are not met is skipped, routing on from it
+        if (this.skipsByPreconditions(nextPage)) {
+            this.feedback.answers = [];
+            await this.renderNextQuestion(form, nextPage);
+            return;
         }
-        // --- END NEW ---
 
         nextPage.elements = renderQuestions(
             nextPage.questions,
@@ -1543,6 +1596,96 @@ export class Form {
         this.autofocusAfterRender("navigation");
     }
 
+
+    /**
+     * Whether `page` has to be skipped because of its PRECONDITIONAL routes:
+     * a NEXT route whose condition is met, or any ALLOW route that is not
+     * (they combine with AND). Conditions are checked against the latest
+     * answer to each route's question in the history.
+     * @param page
+     * @private
+     */
+    private skipsByPreconditions(page: PageNode): boolean {
+        const preconditionalRoute: PageRoute[] = page.edges.filter(edge => edge.typeCondition === 'PRECONDITIONAL').sort((a, b) => {
+            // Sort by position
+            if (a.position < b.position) return -1;
+            if (a.position > b.position) return 1;
+            return 0;
+        });
+
+        if (preconditionalRoute.length === 0) return false;
+
+        // Determine if there are ALLOW routes — if so, ALL must be satisfied (AND logic)
+        const hasAllowRoutes = preconditionalRoute.some(route => route.transition === TransitionType.ALLOW);
+        let allAllowMet = hasAllowRoutes; // starts true, will be set to false if any ALLOW fails
+
+        for (const route of preconditionalRoute) {
+            // FIX: Search the answer SPECIFIC to this route's questionRef, not a generic one
+            const foundAnswer = this.latestAnswer(route.questionRef);
+
+            let conditionMet = false;
+            if (foundAnswer) {
+                const question = this.formData?.questions.find(q => q.ref === route.questionRef);
+                const answerVals = Array.isArray(foundAnswer.value) ? foundAnswer.value : [foundAnswer.value];
+                const routeVals = Array.isArray(route.value) ? route.value : [route.value];
+
+                // Lógica especial para matrices
+                if (question?.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {
+                    conditionMet = this.evaluateMatrixPreconditional(route, foundAnswer);
+                } else {
+                    switch (route.typeOperator) {
+                        case 'EQUAL':
+                            conditionMet = answerVals.some((v: any) => routeVals.includes(v));
+                            break;
+                        case 'NOEQUAL':
+                            conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
+                            break;
+                        case 'GREATER':
+                            conditionMet = answerVals.some((v: any) => Number(v) > Number(routeVals[0]));
+                            break;
+                        case 'LESS':
+                            conditionMet = answerVals.some((v: any) => Number(v) < Number(routeVals[0]));
+                            break;
+                        case 'GREATEREQUAL':
+                            conditionMet = answerVals.some((v: any) => Number(v) >= Number(routeVals[0]));
+                            break;
+                        case 'LESSEQUAL':
+                            conditionMet = answerVals.some((v: any) => Number(v) <= Number(routeVals[0]));
+                            break;
+                        case 'INQ':
+                            conditionMet = answerVals.some((v: any) => routeVals.includes(v));
+                            break;
+                        case 'NINQ':
+                            conditionMet = answerVals.every((v: any) => !routeVals.includes(v));
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            // Apply transition logic per route
+            if (route.transition === TransitionType.ALLOW) {
+                // FIX: AND logic — if ANY ALLOW condition fails, page is not allowed
+                if (!conditionMet) {
+                    allAllowMet = false;
+                }
+            } else if (route.transition === TransitionType.NEXT && conditionMet) {
+                return true;
+            }
+        }
+
+        return hasAllowRoutes ? !allAllowMet : false;
+    }
+
+    /** Latest answer to `key` in the history, current page included. */
+    private latestAnswer(key: string): NativeAnswer | undefined {
+        for (let i = this.history.size() - 1; i >= 0; i--) {
+            const found = this.history.get(i)?.answers?.find((ans: NativeAnswer) => ans.key === key);
+            if (found) return found;
+        }
+        return undefined;
+    }
 
     /**
      * Hide the back button while there is no previous page to return to.

@@ -204,6 +204,17 @@ export type NativeAnswer = {
     value: any[];
 };
 
+/** A question the respondent already answered, as the follow up endpoint takes it. */
+export type FollowUpPreviousAnswer = {
+    title: string;
+    answer: string | boolean | string[];
+};
+
+/** A question the survey will still ask, as the follow up endpoint takes it. */
+export type FollowUpUpcomingQuestion = {
+    title: string;
+};
+
 /**
  * One MAX_DIFF screen as it is sent: its position in the design (1-based), the
  * items shown, in the order they were shown, and the two picks. The answer value
