@@ -18,7 +18,7 @@ import {t} from "../services/i18n";
 import {detectSurveyLang, toBaseAnswers} from "../services/surveyLang";
 import {armGhostTapGuard} from "../utils/ghostTapGuard";
 import {focusFirstTextQuestion} from "../utils/autofocus";
-import {cancelAutoAdvance} from "../utils/autoAdvance";
+import {answeredInput, autoAdvanceRequested, cancelAutoAdvance, scheduleAutoAdvance} from "../utils/autoAdvance";
 
 /**
  * Questions left out of a follow up's previous answers: nothing the respondent
@@ -79,6 +79,9 @@ export class Form {
 
     // True while send() is running, so an auto-advance doesn't send again
     private sending: boolean;
+
+    // `?autoadvance=true` acts on the first page shown only, once per load.
+    private urlAutoAdvanceChecked = false;
 
     /**
      *
@@ -518,6 +521,7 @@ export class Form {
                 });
             }
             this.autofocusAfterRender(trigger);
+            this.autoAdvanceFromUrl(questionContainer, page);
         } catch (e) {
             this.log.err(e);
 
@@ -529,6 +533,23 @@ export class Form {
             }
             return;
         }
+    }
+
+    /**
+     * `?autoadvance=true` on the link: when the first page has one question and
+     * the URL prefilled it (`?<ref>=<value>`), send the page as if the visitor
+     * had picked the option, after the same short delay. With a welcome
+     * message this happens once "Start" is pressed. A value that matches no
+     * option, or a page with more questions, is left for the visitor.
+     * @private
+     */
+    private autoAdvanceFromUrl(questionContainer: HTMLElement, page: PageNode) {
+        if (this.urlAutoAdvanceChecked) return;
+        this.urlAutoAdvanceChecked = true;
+        if (!autoAdvanceRequested() || page.questions.length !== 1) return;
+
+        const prefilled = answeredInput(questionContainer, page.questions[0].ref);
+        if (prefilled) scheduleAutoAdvance(prefilled, () => this.autoSend());
     }
 
     /**
