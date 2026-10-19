@@ -47,3 +47,28 @@ export function cancelAutoAdvance(container: Element | null | undefined) {
         pending.delete(send);
     });
 }
+
+/**
+ * Query param that sends the first page on its own when its question comes
+ * prefilled from the URL (`?<ref>=4&autoadvance=true`). The Quick answer
+ * links in emails use it so the score is stored on the click, even if the
+ * visitor closes the survey right after.
+ */
+export const AUTO_ADVANCE_PARAM = "autoadvance";
+
+export function autoAdvanceRequested(search: string = window.location.search): boolean {
+    const value = new URLSearchParams(search).get(AUTO_ADVANCE_PARAM);
+    return value === "true" || value === "1";
+}
+
+/**
+ * The input of question `ref` that holds a value, if any: a checked option or
+ * a filled field. A URL value that matches no option leaves nothing checked.
+ */
+export function answeredInput(container: Element, ref: string): HTMLInputElement | null {
+    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>(".magicfeedback-input"))
+        .filter((input) => input.name === ref);
+    return inputs.find((input) =>
+        input.type === "radio" || input.type === "checkbox" ? input.checked : input.value !== ""
+    ) || null;
+}

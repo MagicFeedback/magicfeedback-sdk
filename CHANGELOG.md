@@ -6,6 +6,11 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## [Unreleased]
+- **New (`?autoadvance=true`):** a link that prefills the first question (`?<ref>=<value>`) and adds `autoadvance=true` (or `1`) sends the first page on its own 300ms after it is shown, as if the visitor had picked the option, so the answer is stored even if they leave. Only the first page, once per load, only with a single question on it and only when the URL value matched an option; with a welcome message it happens after "Start", and "Back" never sends it again. Without the param nothing changes. Used by the Quick answer email links of the admin panel.
+- **Fix (`RATING_STAR` prefill):** a score prefilled from the URL checked the radio but showed five empty stars, and hovering in and out cleared it. The stars now show the score and go back to it after a hover.
+- **Tests:** added `test/urlAutoAdvance.form.test.ts` and `test/ratingStar.test.ts`.
+
 ## 🚀 [2.2.32] - 2026-10-16
 - **New (follow up context, MF-2820):** the follow up request (`sdk/followUpQuestion`) now carries `previousAnswers` (`[{title, answer}]`, earliest first: what the respondent already answered, earlier follow ups included, never the question being followed up) and `upcomingQuestions` (`[{title}]`, soonest first: the questions on the route the respondent will actually take). With them the API asks `/v4/survey/followup`, so the follow up no longer asks what was already answered or what a later question asks. `answer` is a string, a boolean for a Yes/No question, or a list of strings (matrix rows as `"row: value"`). Left out of `previousAnswers`: blank answers, `INFO_PAGE`, `PASSWORD`, `EMAIL`, `CONTACT`, uploads and `MAX_DIFF`. `upcomingQuestions` stops after a page whose way out depends on its own answers and before a page whose preconditions depend on a question not answered yet; a question served over several pages (`MAX_DIFF`) is listed once.
 - **Requires** the API with MF-2846 (MagicFeedback_API#508). An older API rejects the two fields with `422` and the survey gets no follow up (it keeps going).

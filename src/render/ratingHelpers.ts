@@ -54,6 +54,13 @@ export function createStarRating(
     ratingContainer.style.margin = "auto";
     ratingContainer.dataset.originalSelection = '0';
 
+    // Fills the stars up to `value` (1-5); 0 empties them.
+    const paintStars = (value: number) => {
+        ratingContainer.querySelectorAll(".rating__star").forEach((star, starIdx) => {
+            star.classList.toggle(selectedClass, starIdx < value);
+        });
+    };
+
     for (let i = 1; i <= 5; i++) {
         const ratingOption = document.createElement("label");
         ratingOption.classList.add("magicfeedback-rating-star-option");
@@ -74,14 +81,7 @@ export function createStarRating(
         }
 
         ratingInput.addEventListener("change", () => {
-            const allStars = ratingContainer.querySelectorAll(".rating__star");
-            for (let j = 0; j < allStars.length; j++) {
-                if (j + 1 <= Number(ratingInput.value)) {
-                    if (!allStars[j].classList.contains(selectedClass)) allStars[j].classList.add(selectedClass);
-                } else {
-                    if (allStars[j].classList.contains(selectedClass)) allStars[j].classList.remove(selectedClass);
-                }
-            }
+            paintStars(Number(ratingInput.value));
             ratingContainer.dataset.originalSelection = ratingInput.value;
         });
         autoAdvanceOn(ratingInput, send);
@@ -96,31 +96,21 @@ export function createStarRating(
         starElement.style.color = "#CCCCCC";
         starElement.style.cursor = "pointer";
 
-        starElement.addEventListener("mouseenter", () => {
-            const allStars = ratingContainer.querySelectorAll(".rating__star");
-            const idx = i - 1;
-            allStars.forEach((star, starIdx) => {
-                if (starIdx <= idx) {
-                    if (!star.classList.contains(selectedClass)) star.classList.add(selectedClass);
-                } else {
-                    if (star.classList.contains(selectedClass)) star.classList.remove(selectedClass);
-                }
-            });
-        });
-        starElement.addEventListener("mouseleave", () => {
-            const original = Number(ratingContainer.dataset.originalSelection || '0');
-            const allStars = ratingContainer.querySelectorAll(".rating__star");
-            allStars.forEach((star, starIdx) => {
-                if (starIdx < original) {
-                    if (!star.classList.contains(selectedClass)) star.classList.add(selectedClass);
-                } else {
-                    if (star.classList.contains(selectedClass)) star.classList.remove(selectedClass);
-                }
-            });
-        });
+        starElement.addEventListener("mouseenter", () => paintStars(i));
+        starElement.addEventListener("mouseleave", () =>
+            paintStars(Number(ratingContainer.dataset.originalSelection || '0')));
 
         ratingOption.appendChild(starElement);
         ratingContainer.appendChild(ratingOption);
+    }
+
+    // A score prefilled from the URL (`?<ref>=4`) only checks the radio, which
+    // the stars don't show: paint it and keep it as the selection, or the
+    // visitor sees five empty stars and hovering out clears them.
+    const prefilled = ratingContainer.querySelector<HTMLInputElement>("input:checked");
+    if (prefilled) {
+        ratingContainer.dataset.originalSelection = prefilled.value;
+        paintStars(Number(prefilled.value));
     }
 
     const ratingPlaceholder = createRatingPlaceholder(minPlaceholder, maxPlaceholder);
