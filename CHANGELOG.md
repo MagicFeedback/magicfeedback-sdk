@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## [Unreleased]
+## 🚀 [2.2.33] - 2026-10-19
 - **New (`?autoadvance=true`):** a link that prefills the first question (`?<ref>=<value>`) and adds `autoadvance=true` (or `1`) sends the first page on its own 300ms after it is shown, as if the visitor had picked the option, so the answer is stored even if they leave. Only the first page, once per load, only with a single question on it and only when the URL value matched an option; with a welcome message it happens after "Start", and "Back" never sends it again. Without the param nothing changes. Used by the Quick answer email links of the admin panel.
 - **Fix (`RATING_STAR` prefill):** a score prefilled from the URL checked the radio but showed five empty stars, and hovering in and out cleared it. The stars now show the score and go back to it after a hover.
 - **Tests:** added `test/urlAutoAdvance.form.test.ts` and `test/ratingStar.test.ts`.
