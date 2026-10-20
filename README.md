@@ -241,7 +241,7 @@ Since 2.2.31 the page is submitted 300ms after the pick, so the choice is seen c
 
 A question with `assets.autoAdvance: false` doesn't auto-advance: the respondent presses "Next". Missing or `true` keeps the behaviour above (`true` never adds auto-advance to other types). With `addButton: false`, make sure your own "Next" calls `form.send()`, or a question with auto-advance off can't be left.
 
-A link can prefill a question with `?<ref>=<value>`. Add `autoadvance=true` (or `1`) and the first page is sent on its own once it is shown with that answer, after the same 300ms: `https://survey.example/…?experience=4&autoadvance=true`. Email "Quick answer" links use it so the score is stored on the click, even if the visitor leaves right after. It only acts on the first page, once per load, when that page has a single question and the URL value matched an option; otherwise the visitor presses "Next" as usual. With a welcome message it happens after "Start".
+A link can prefill a question with `?<ref>=<value>`. Add `autoadvance=true` (or `1`) and the first page is sent on its own as soon as it loads, without being shown: `https://survey.example/…?experience=4&autoadvance=true`. `onLoadedEvent` then comes with `loading: true` and `autoAdvancing: true`, so keep your loader up until `afterSubmitEvent` brings the next page; if the send fails, the prefilled page is shown so the visitor can send it. Email "Quick answer" links use it so the score is stored on the click, even if the visitor leaves right after. It only acts on the first page, once per load, when that page has a single question and the URL value matched an option; otherwise the visitor presses "Next" as usual. With a welcome message it happens after "Start".
 
 ## Send feedback directly
 
