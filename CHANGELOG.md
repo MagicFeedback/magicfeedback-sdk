@@ -6,6 +6,10 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.2.34] - 2026-10-20
+- **Fix (`?autoadvance=true`):** the prefilled first page was shown for a moment, with the answer checked, before the next page replaced it. It is now sent as soon as it loads, hidden and without the 300ms delay, so the visitor lands on the next page. `onLoadedEvent` comes with `loading: true` and a new `autoAdvancing: true` so the host keeps its loader until `afterSubmitEvent`; it is `false` (and `loading: false`) in every other case, as before. If the send fails, the page is shown so the visitor can send it. Picking an option keeps its 300ms delay.
+- **Tests:** `test/urlAutoAdvance.form.test.ts` covers the hidden page, the loading flag and a failed send.
+
 ## 🚀 [2.2.33] - 2026-10-19
 - **New (`?autoadvance=true`):** a link that prefills the first question (`?<ref>=<value>`) and adds `autoadvance=true` (or `1`) sends the first page on its own 300ms after it is shown, as if the visitor had picked the option, so the answer is stored even if they leave. Only the first page, once per load, only with a single question on it and only when the URL value matched an option; with a welcome message it happens after "Start", and "Back" never sends it again. Without the param nothing changes. Used by the Quick answer email links of the admin panel.
 - **Fix (`RATING_STAR` prefill):** a score prefilled from the URL checked the radio but showed five empty stars, and hovering in and out cleared it. The stars now show the score and go back to it after a hover.

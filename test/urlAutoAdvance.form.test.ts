@@ -67,12 +67,42 @@ describe("autoadvance query param", () => {
         const form = setupForm([[star], [text]]);
         await (form as any).generateForm("open");
 
-        expect(sendSpy).not.toHaveBeenCalled();
-        await afterDelay();
-
         expect(sendSpy).toHaveBeenCalledTimes(1);
         expect(JSON.stringify(sendSpy.mock.calls[0])).toContain('"key":"q1","value":["4"]');
         expect(shownRefs()).toEqual(["q2"]);
+    });
+
+    test("the prefilled page is never shown: hidden and reported as loading", async () => {
+        openWith("?q1=4&autoadvance=true");
+        const container = () => document.getElementById("magicfeedback-questions-app-id") as HTMLElement;
+        const seen: any[] = [];
+        const form = setupForm([[star], [text]], {
+            onLoadedEvent: (res: any) => seen.push({...res, visibility: container().style.visibility}),
+        });
+        await (form as any).generateForm("open");
+
+        expect(seen[0]).toMatchObject({loading: true, autoAdvancing: true, visibility: "hidden"});
+        expect(container().style.visibility).toBe("");
+        expect(shownRefs()).toEqual(["q2"]);
+    });
+
+    test("a failed send shows the prefilled page so the visitor can retry", async () => {
+        openWith("?q1=4&autoadvance=true");
+        sendSpy.mockRejectedValue(new Error("down") as never);
+        const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+        await (setupForm([[star], [text]]) as any).generateForm("open");
+        errorSpy.mockRestore();
+
+        expect(document.getElementById("magicfeedback-questions-app-id")!.style.visibility).toBe("");
+        expect(shownRefs()).toEqual(["q1"]);
+    });
+
+    test("without autoadvance the first page loads as usual", async () => {
+        openWith("?q1=4");
+        const seen: any[] = [];
+        await (setupForm([[star], [text]], {onLoadedEvent: (res: any) => seen.push(res)}) as any).generateForm("open");
+
+        expect(seen[0]).toMatchObject({loading: false, autoAdvancing: false});
     });
 
     test("accepts autoadvance=1 too", async () => {

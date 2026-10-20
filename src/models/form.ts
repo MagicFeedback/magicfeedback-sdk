@@ -18,7 +18,7 @@ import {t} from "../services/i18n";
 import {detectSurveyLang, toBaseAnswers} from "../services/surveyLang";
 import {armGhostTapGuard} from "../utils/ghostTapGuard";
 import {focusFirstTextQuestion} from "../utils/autofocus";
-import {answeredInput, autoAdvanceRequested, cancelAutoAdvance, scheduleAutoAdvance} from "../utils/autoAdvance";
+import {answeredInput, autoAdvanceRequested, cancelAutoAdvance} from "../utils/autoAdvance";
 
 /**
  * Questions left out of a follow up's previous answers: nothing the respondent
@@ -509,10 +509,16 @@ export class Form {
             // init time to complete in milliseconds
             this.timeToCompleted = Date.now();
 
+            // A Quick answer link sends this page straight away: it stays hidden
+            // so the visitor lands on the next one instead of seeing it flash.
+            const autoAdvancing = this.autoAdvanceFromUrl(questionContainer, page);
+            if (autoAdvancing) questionContainer.style.visibility = "hidden";
+
             // Send the data to manage loadings and progress
             if (this.formOptionsConfig.onLoadedEvent) {
                 await this.formOptionsConfig.onLoadedEvent({
-                    loading: false,
+                    loading: autoAdvancing,
+                    autoAdvancing,
                     progress: this.progress,
                     total: this.total,
                     formData: this.formData,
@@ -520,8 +526,11 @@ export class Form {
                     formOptionsConfig: this.formOptionsConfig
                 });
             }
+            if (autoAdvancing) {
+                await this.autoSend();
+                return;
+            }
             this.autofocusAfterRender(trigger);
-            this.autoAdvanceFromUrl(questionContainer, page);
         } catch (e) {
             this.log.err(e);
 
@@ -536,20 +545,19 @@ export class Form {
     }
 
     /**
-     * `?autoadvance=true` on the link: when the first page has one question and
-     * the URL prefilled it (`?<ref>=<value>`), send the page as if the visitor
-     * had picked the option, after the same short delay. With a welcome
-     * message this happens once "Start" is pressed. A value that matches no
-     * option, or a page with more questions, is left for the visitor.
+     * `?autoadvance=true` on the link: whether the first page has one question
+     * and the URL prefilled it (`?<ref>=<value>`), so it is sent as if the
+     * visitor had picked the option. With a welcome message this happens once
+     * "Start" is pressed. A value that matches no option, or a page with more
+     * questions, is left for the visitor.
      * @private
      */
-    private autoAdvanceFromUrl(questionContainer: HTMLElement, page: PageNode) {
-        if (this.urlAutoAdvanceChecked) return;
+    private autoAdvanceFromUrl(questionContainer: HTMLElement, page: PageNode): boolean {
+        if (this.urlAutoAdvanceChecked) return false;
         this.urlAutoAdvanceChecked = true;
-        if (!autoAdvanceRequested() || page.questions.length !== 1) return;
+        if (!autoAdvanceRequested() || page.questions.length !== 1) return false;
 
-        const prefilled = answeredInput(questionContainer, page.questions[0].ref);
-        if (prefilled) scheduleAutoAdvance(prefilled, () => this.autoSend());
+        return !!answeredInput(questionContainer, page.questions[0].ref);
     }
 
     /**
@@ -885,6 +893,9 @@ export class Form {
             }
         } finally {
             this.sending = false;
+            // Shown again whatever came next: the next page, or the
+            // auto-advanced one when its send failed.
+            questionContainer?.style.removeProperty("visibility");
         }
     }
 
