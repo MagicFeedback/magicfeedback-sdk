@@ -22,9 +22,40 @@ export function validateEmail(email: string): boolean {
     return re.test(email);
 }
 
+/**
+ * Get Survey already made by MagicSurvey's bootstrap (MF-3177): it reads the
+ * response to pick the frontend version, then leaves it here so the survey
+ * does not ask twice. Used once, and only for the very request this SDK would
+ * make (same URL, language included, and same link parameters); anything else
+ * goes to the network as before.
+ */
+interface PreloadedInfo {
+    url: string;
+    parameters: string;
+    body: string;
+}
+
+export function takePreloadedInfo(requestUrl: string): any | undefined {
+    if (typeof window === "undefined") return undefined;
+    const holder = window as unknown as {__MAGICFEEDBACK_PRELOADED_INFO__?: PreloadedInfo};
+    const preloaded = holder.__MAGICFEEDBACK_PRELOADED_INFO__;
+    if (!preloaded || preloaded.url !== requestUrl || preloaded.parameters !== header["x-magicfeedback-parameters"]) {
+        return undefined;
+    }
+    delete holder.__MAGICFEEDBACK_PRELOADED_INFO__;
+    try {
+        return JSON.parse(preloaded.body);
+    } catch {
+        return undefined;
+    }
+}
+
 export async function getForm(url: string, appId: string, publicKey: string, log: Log, lang?: string | null): Promise<FormData | any> {
     try {
-        const response = await fetch(withLangParam(url + endpoints.sdk.app_info(appId, publicKey), lang), {
+        const requestUrl = withLangParam(url + endpoints.sdk.app_info(appId, publicKey), lang);
+        const preloaded = takePreloadedInfo(requestUrl);
+        if (preloaded !== undefined) return preloaded;
+        const response = await fetch(requestUrl, {
             method: "GET",
             headers: header
         });
@@ -38,7 +69,10 @@ export async function getForm(url: string, appId: string, publicKey: string, log
 
 export async function getSessionForm(url: string, sessionId: string, log: Log, lang?: string | null): Promise<FormData | any> {
     try {
-        const response = await fetch(withLangParam(url + endpoints.sdk.session(sessionId), lang), {
+        const requestUrl = withLangParam(url + endpoints.sdk.session(sessionId), lang);
+        const preloaded = takePreloadedInfo(requestUrl);
+        if (preloaded !== undefined) return preloaded;
+        const response = await fetch(requestUrl, {
             method: "GET",
             headers: header
         });
