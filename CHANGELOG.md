@@ -6,9 +6,13 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## 🚀 [2.2.34] - unreleased
+## 🚀 [2.2.35] - unreleased
 - **New (Get Survey handoff, MF-3177):** `getForm` / `getSessionForm` first look for `window.__MAGICFEEDBACK_PRELOADED_INFO__` (`{url, parameters, body}`). The MagicSurvey bootstrap sets it after making Get Survey itself, because it needs the `frontend.version` from the response to pick the frontend version to load. When `url` is exactly the request this SDK would make (language included) and `parameters` equals its `x-magicfeedback-parameters`, the body is used instead of asking again, and the object is removed, so it is used only once. Anything else goes to the network as before, and so does a body that is not JSON. Without the object nothing changes. Effect: one Get Survey request per survey load instead of two.
 - **Tests:** added `test/preloaded-info.test.ts`.
+
+## 🚀 [2.2.34] - 2026-10-20
+- **Fix (`?autoadvance=true`):** the prefilled first page was shown for a moment, with the answer checked, before the next page replaced it. It is now sent as soon as it loads, hidden and without the 300ms delay, so the visitor lands on the next page. `onLoadedEvent` comes with `loading: true` and a new `autoAdvancing: true` so the host keeps its loader until `afterSubmitEvent`; it is `false` (and `loading: false`) in every other case, as before. If the send fails, the page is shown so the visitor can send it. Picking an option keeps its 300ms delay.
+- **Tests:** `test/urlAutoAdvance.form.test.ts` covers the hidden page, the loading flag and a failed send.
 
 ## 🚀 [2.2.33] - 2026-10-19
 - **New (`?autoadvance=true`):** a link that prefills the first question (`?<ref>=<value>`) and adds `autoadvance=true` (or `1`) sends the first page on its own 300ms after it is shown, as if the visitor had picked the option, so the answer is stored even if they leave. Only the first page, once per load, only with a single question on it and only when the URL value matched an option; with a welcome message it happens after "Start", and "Back" never sends it again. Without the param nothing changes. Used by the Quick answer email links of the admin panel.
