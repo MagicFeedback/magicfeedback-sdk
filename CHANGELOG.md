@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## 🚀 [2.2.35] - unreleased
+## 🚀 [2.2.35] - 2026-10-20
 - **New (Get Survey handoff, MF-3177):** `getForm` / `getSessionForm` first look for `window.__MAGICFEEDBACK_PRELOADED_INFO__` (`{url, parameters, body}`). The MagicSurvey bootstrap sets it after making Get Survey itself, because it needs the `frontend.version` from the response to pick the frontend version to load. When `url` is exactly the request this SDK would make (language included) and `parameters` equals its `x-magicfeedback-parameters`, the body is used instead of asking again, and the object is removed, so it is used only once. Anything else goes to the network as before, and so does a body that is not JSON. Without the object nothing changes. Effect: one Get Survey request per survey load instead of two.
 - **Tests:** added `test/preloaded-info.test.ts`.
 
