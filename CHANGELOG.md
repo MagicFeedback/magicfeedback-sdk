@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## 🚀 [Unreleased]
+## 🚀 [2.2.36] - 2026-10-27
 - **New (`RADIO` in a row):** `assets.direction: "row"` shows a single choice question as one row of equal boxes (radio on the left, label on the right). It turns into the usual vertical list on a phone (window under 600px) or when the question can't give each option 120px, and back when there is room. The "other" text field goes on its own line below. Without `assets.direction` (every existing question) or with `"column"` nothing changes: the `direction` the renderer receives falls back to `"row"` for every type, so the check reads the asset itself.
 - **New (`RATING_NUMBER` texts per number in a row):** a horizontal rating with `numberPlaceholders` now shows each number's text above its chip (they were only a tooltip). `assets.numberPlaceholdersPosition: "bottom"` puts them below. The texts are labels for the same input, so clicking one answers. The min/max caption is left out, since the first and last texts already say it (a number without its own text falls back to the min/max text, as in the vertical layout). The row stacks below 72px per chip instead of 44px, and stacked it shows each text inside its chip, like the vertical layout. Empty texts (`{"1": ""}`) count as none. The legacy rating (Club Matas) keeps the tooltip.
 - **New (`RATING_NUMBER` min/max caption position):** `assets.minMaxPlaceholderPosition: "top" | "bottom"` puts the min/max caption of a horizontal rating above or below the numbers, with an inline `order` so it also wins over MagicSurvey's own CSS (which puts it above). Unset keeps each stylesheet's place.
