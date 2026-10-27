@@ -171,10 +171,22 @@ export function createRatingNumberElement(
     const numberPlaceholders = assets?.numberPlaceholders || null;
     const hasNumberPlaceholders = !!(numberPlaceholders && Object.keys(numberPlaceholders).length);
 
-    // Row: min/max as one caption line below, left/right — the row itself
-    // reads left-to-right, so the caption bookends it the same way.
+    // Row with a text per number: every option shows its own text above
+    // its chip (or below, numberPlaceholdersPosition "bottom"), so the
+    // min/max caption would only repeat the two ends. The legacy rating
+    // keeps them as tooltips, as it always had.
+    const rowCaptions = !isColumn && !legacy && !!numberPlaceholders
+        && Object.values(numberPlaceholders).some((text) => !!text);
+    const captionPosition = assets?.numberPlaceholdersPosition === 'bottom' ? 'bottom' : 'top';
+    // Every option as tall as the tallest text, so the chips line up.
+    if (rowCaptions) ratingNumberContainer.style.alignItems = 'stretch';
+
+    // Row: min/max as one caption line, left/right — the row itself reads
+    // left-to-right, so the caption bookends it the same way. It sits where
+    // the integration's stylesheet puts it unless minMaxPlaceholderPosition
+    // says "top" or "bottom".
     let rowScaleLabels: HTMLElement | null = null;
-    if (!isColumn && (assets?.minPlaceholder || assets?.maxPlaceholder)) {
+    if (!isColumn && !rowCaptions && (assets?.minPlaceholder || assets?.maxPlaceholder)) {
         rowScaleLabels = document.createElement('div');
         rowScaleLabels.classList.add('magicfeedback-rating-number-scale-labels');
 
@@ -205,7 +217,7 @@ export function createRatingNumberElement(
     if (isColumn && !hasNumberPlaceholders) {
         ratingNumberContainer.classList.add('magicfeedback-rating-number-container-column--bare');
     }
-    if ((!isColumn || !hasNumberPlaceholders) && (assets?.minPlaceholder || assets?.maxPlaceholder)) {
+    if ((isColumn ? !hasNumberPlaceholders : !rowCaptions) && (assets?.minPlaceholder || assets?.maxPlaceholder)) {
         // order="rtl" flips the list itself (rendered column-reverse),
         // so the end each label sits next to flips with it.
         const topText = order === 'ltr' ? assets?.minPlaceholder : assets?.maxPlaceholder;
@@ -274,22 +286,40 @@ export function createRatingNumberElement(
         if (legacy) ratingNumber.style.fontWeight = 'normal';
         ratingValue.appendChild(ratingNumber);
 
-        if (isColumn) {
+        if ((isColumn || rowCaptions) && ownPlaceholder) {
             // Column rows have room to show the option's own text plainly —
             // capsule row, not squeezed into a bead the way row mode is.
-            if (ownPlaceholder) {
-                const ratingText = document.createElement('span');
-                ratingText.textContent = ownPlaceholder;
-                ratingText.classList.add('magicfeedback-rating-number-value-label');
-                ratingValue.appendChild(ratingText);
-            }
-        } else if (numberPlaceholders && numberPlaceholders[i]) {
-            // Row mode has no room for text per option — surface it as a
-            // hoverable tooltip instead.
+            // A captioned row gets it too, hidden, for when it stacks.
+            const ratingText = document.createElement('span');
+            ratingText.textContent = ownPlaceholder;
+            ratingText.classList.add('magicfeedback-rating-number-value-label');
+            if (!isColumn) ratingText.style.display = 'none';
+            ratingValue.appendChild(ratingText);
+        } else if (!isColumn && !rowCaptions && numberPlaceholders && numberPlaceholders[i]) {
+            // Legacy row: no text per option, only a hoverable tooltip.
             containerLabel.title = numberPlaceholders[i];
         }
 
         containerLabel.appendChild(ratingValue);
+
+        if (rowCaptions) {
+            // The option becomes a column: its text, then the chip (or the
+            // other way round). The text is a label for the same input, so
+            // clicking it answers too. Options without text keep an empty
+            // caption, so every chip still lines up.
+            const caption = document.createElement('label');
+            caption.htmlFor = input.id;
+            caption.classList.add('magicfeedback-rating-number-option-caption');
+            caption.textContent = ownPlaceholder || '';
+            ratingOption.classList.add('magicfeedback-rating-number-option--captioned');
+            ratingOption.classList.add(`magicfeedback-rating-number-option--caption-${captionPosition}`);
+            // Inline, not a stylesheet rule: integrations that ship their own
+            // copy of the CSS (MagicSurvey) lay the option out as a row.
+            ratingOption.style.flexDirection = captionPosition === 'top' ? 'column' : 'column-reverse';
+            ratingOption.style.justifyContent = 'flex-end';
+            ratingOption.appendChild(caption);
+        }
+
         ratingOption.appendChild(containerLabel);
         ratingNumberContainer.appendChild(ratingOption);
     }
@@ -299,10 +329,21 @@ export function createRatingNumberElement(
     // The "after" label always sits right after the container, so the
     // container + label-block spacing rule holds in a stacked row too.
     if (columnAfterLabel) element.appendChild(columnAfterLabel);
-    if (rowScaleLabels) element.appendChild(rowScaleLabels);
+    if (rowScaleLabels) {
+        const position = assets?.minMaxPlaceholderPosition;
+        if (position === 'top' || position === 'bottom') {
+            rowScaleLabels.classList.add(`magicfeedback-rating-number-scale-labels--${position}`);
+            // Inline order: MagicSurvey's own CSS moves the caption above
+            // the row with order -1, so the DOM position alone isn't enough.
+            rowScaleLabels.style.order = position === 'top' ? '-1' : '1';
+        }
+        if (position === 'top') element.insertBefore(rowScaleLabels, ratingNumberContainer);
+        else element.appendChild(rowScaleLabels);
+    }
 
     if (!isColumn && !legacy) {
-        stackRowWhenNarrow(element, ratingNumberContainer, maxRatingNumber - minRatingNumber + 1, order);
+        stackRowWhenNarrow(element, ratingNumberContainer, maxRatingNumber - minRatingNumber + 1, order,
+            rowCaptions ? RATING_NUMBER_MIN_CAPTIONED_WIDTH : RATING_NUMBER_MIN_CHIP_WIDTH);
     }
 
     if (assets?.extraOption && assets?.extraOptionText) {
@@ -375,6 +416,9 @@ function legacyInlineText(assets: any): (value: number) => string | undefined {
 /** Narrowest a row chip may get before the row stacks into a column. */
 export const RATING_NUMBER_MIN_CHIP_WIDTH = 44;
 
+/** The same for a chip with its own text above or below it. */
+export const RATING_NUMBER_MIN_CAPTIONED_WIDTH = 72;
+
 /**
  * A row that can't give every chip RATING_NUMBER_MIN_CHIP_WIDTH (an 11-point
  * NPS on a phone, a narrow pop-in) turns into the bare column layout, and
@@ -382,10 +426,17 @@ export const RATING_NUMBER_MIN_CHIP_WIDTH = 44;
  * itself, not the window. Only classes and the flex direction change, so
  * the inputs, their order and a checked answer stay as they are.
  */
-function stackRowWhenNarrow(element: HTMLElement, container: HTMLElement, optionCount: number, order: string) {
+function stackRowWhenNarrow(
+    element: HTMLElement,
+    container: HTMLElement,
+    optionCount: number,
+    order: string,
+    minChipWidth = RATING_NUMBER_MIN_CHIP_WIDTH,
+) {
     if (typeof ResizeObserver === 'undefined') return;
 
     const isDense = container.classList.contains('magicfeedback-rating-number-container-row--dense');
+    const isCaptioned = !!container.querySelector('.magicfeedback-rating-number-option--captioned');
     let rowGap = 0;
     let stacked = false;
 
@@ -403,14 +454,24 @@ function stackRowWhenNarrow(element: HTMLElement, container: HTMLElement, option
         container.classList.toggle('magicfeedback-rating-number-container-row', !stack);
         container.classList.toggle('magicfeedback-rating-number-container-row--dense', !stack && isDense);
         container.classList.toggle('magicfeedback-rating-number-container-column', stack);
-        container.classList.toggle('magicfeedback-rating-number-container-column--bare', stack);
+        container.classList.toggle('magicfeedback-rating-number-container-column--bare', stack && !isCaptioned);
         container.style.flexDirection = stack
             ? (order === 'ltr' ? 'column' : 'column-reverse')
             : (order === 'ltr' ? 'row' : 'row-reverse');
 
-        container.querySelectorAll(':scope > .magicfeedback-rating-number-option').forEach((option) => {
+        container.querySelectorAll<HTMLElement>(':scope > .magicfeedback-rating-number-option').forEach((option) => {
             option.classList.toggle('magicfeedback-rating-number-option-row', !stack);
             option.classList.toggle('magicfeedback-rating-number-option-column', stack);
+
+            // A captioned row stacks like a column with text per option:
+            // the text moves from above/below the chip into it.
+            if (!option.classList.contains('magicfeedback-rating-number-option--captioned')) return;
+            const top = option.classList.contains('magicfeedback-rating-number-option--caption-top');
+            option.style.flexDirection = stack ? '' : (top ? 'column' : 'column-reverse');
+            option.querySelectorAll<HTMLElement>('.magicfeedback-rating-number-option-caption')
+                .forEach((caption) => { caption.style.display = stack ? 'none' : ''; });
+            option.querySelectorAll<HTMLElement>('.magicfeedback-rating-number-value-label')
+                .forEach((label) => { label.style.display = stack ? '' : 'none'; });
         });
     };
 
@@ -435,7 +496,7 @@ function stackRowWhenNarrow(element: HTMLElement, container: HTMLElement, option
             pending = false;
             // Read the gap while it is still a row: the column has its own.
             if (!stacked) rowGap = parseFloat(getComputedStyle(container).columnGap) || 0;
-            const needed = optionCount * RATING_NUMBER_MIN_CHIP_WIDTH + (optionCount - 1) * rowGap;
+            const needed = optionCount * minChipWidth + (optionCount - 1) * rowGap;
             setStacked(lastWidth < needed);
         });
     }).observe(element);
