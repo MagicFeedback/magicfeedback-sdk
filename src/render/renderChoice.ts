@@ -114,5 +114,59 @@ export const renderChoice: QuestionRenderer = ({
         }
     });
 
+    // Single choice is a vertical list unless the question asks for a row.
+    // Read from the assets, not the `direction` argument: that one falls
+    // back to "row" for every type, and existing single choice questions
+    // carry no direction at all.
+    if (type === FEEDBACKAPPANSWERTYPE.RADIO && assets?.direction === 'row') {
+        element.classList.add('magicfeedback-radio--row');
+        stackChoiceRowWhenNarrow(element, opt.length);
+    }
+
     return {element, elementTypeClass};
 };
+
+/** Narrowest a single choice box may get before the row stacks. */
+export const CHOICE_ROW_MIN_OPTION_WIDTH = 120;
+
+/** Below this the visitor is on a phone, where a row always stacks. */
+const PHONE_MAX_WIDTH = 600;
+
+/**
+ * A single choice row turns into the usual vertical list on a phone, or
+ * when the question is too narrow to give every option
+ * CHOICE_ROW_MIN_OPTION_WIDTH, and back when there is room again. Only a
+ * class changes, so the inputs and a checked answer stay as they are.
+ */
+function stackChoiceRowWhenNarrow(element: HTMLElement, optionCount: number) {
+    const setStacked = (width: number) => {
+        const gap = parseFloat(getComputedStyle(element).columnGap) || 0;
+        const needed = optionCount * CHOICE_ROW_MIN_OPTION_WIDTH + (optionCount - 1) * gap;
+        element.classList.toggle('magicfeedback-radio--stacked', window.innerWidth < PHONE_MAX_WIDTH || width < needed);
+    };
+
+    // Before the first measurement a phone already gets the list.
+    element.classList.toggle('magicfeedback-radio--stacked', window.innerWidth < PHONE_MAX_WIDTH);
+    if (typeof ResizeObserver === 'undefined') return;
+
+    // Same as the rating row: switch on the next frame, and only when the
+    // width changed, so the height change doesn't loop the observer.
+    const nextFrame = typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (callback: FrameRequestCallback) => { callback(0); return 0; };
+    let lastWidth = 0;
+    let pending = false;
+
+    new ResizeObserver((entries) => {
+        const width = entries[0]?.contentRect.width;
+        if (!width || width === lastWidth) return;
+        lastWidth = width;
+
+        if (pending) return;
+        pending = true;
+        nextFrame(() => {
+            pending = false;
+            setStacked(lastWidth);
+        });
+    }).observe(element);
+}

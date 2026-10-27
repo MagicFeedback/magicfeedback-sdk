@@ -113,6 +113,10 @@ export type QuestionAssetsByType = {
         minPlaceholder?: string;
         maxPlaceholder?: string;
         numberPlaceholders?: Record<number, string>;
+        /** Rating number in a row: each number's text above ("top", default) or below its chip. */
+        numberPlaceholdersPosition?: 'top' | 'bottom';
+        /** Rating number in a row: the min/max caption above or below; unset keeps the stylesheet's place. */
+        minMaxPlaceholderPosition?: 'top' | 'bottom';
         extraOption?: boolean;
         extraOptionText?: string;
         ariaLabel?: string;
