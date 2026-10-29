@@ -1,0 +1,160 @@
+name: Slack release notice
+
+# Aviso en Slack (#sdk-releases) de cada version nueva de @magicfeedback/native (MF-3266).
+# Este paquete se publica desde el portatil (publish.sh), sin workflow de release, asi que aqui
+# se vigila npm: cada 15 minutos se miran las versiones publicadas en los ultimos 3 dias y se avisa
+# una vez de cada una, con su seccion del CHANGELOG de dev. Solo hay aviso si npm ya tiene la
+# version, asi que un publish fallido (o un --dry-run) no avisa nunca.
+#
+# Que versiones ya se avisaron se guarda en la cache de Actions (un fichero por ejecucion que
+# avisa; cada ejecucion restaura el ultimo). Sin cache (primera ejecucion, o tras 7 dias sin
+# uso) se apuntan las versiones actuales SIN avisar, para no repetir avisos viejos.
+#
+# Entradas:
+#   - schedule: el aviso de verdad. GitHub solo lo ejecuta desde la rama por defecto (main).
+#   - workflow_dispatch: prueba manual. Manda la version indicada (por defecto la ultima) con el
+#     prefijo "🧪 TEST —" y no toca la cache.
+#   - pull_request: si cambia el aviso, corre sus tests y lo pinta en el log, sin enviarlo.
+#
+# Webhook: secret SDK_RELEASES_SLACK_WEBHOOK_URL (app de Slack propia). Sin el secret, el job
+# avisa con ::warning y termina en verde.
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version publicada (X.Y.Z). Vacio = la ultima.
+        type: string
+        required: false
+  pull_request:
+    branches: ["dev", "main"]
+    paths:
+      - .github/workflows/slack-release-notice.yml
+      - scripts/release/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: slack-release-notice
+  cancel-in-progress: false
+
+env:
+  PACKAGE: "@magicfeedback/native"
+  WINDOW_DAYS: "3"
+
+jobs:
+  notify:
+    name: Notify Slack
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # El script, de la rama que ejecuta el workflow (main en el schedule).
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            CHANGELOG.md
+            scripts/release
+          sparse-checkout-cone-mode: false
+
+      # El CHANGELOG bueno es el de dev: la PR de release se fusiona ahi antes de publicar, y
+      # main puede ir por detras. En la PR vale el de la propia rama.
+      - name: CHANGELOG from dev
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/contents/CHANGELOG.md?ref=dev" \
+            -H "Accept: application/vnd.github.raw" > CHANGELOG.md
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Test the notice
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          node --test scripts/release/*.test.mjs
+          VERSION="$(npm view "$PACKAGE" version)"
+          node scripts/release/slack-notify.mjs --test --print \
+            --title "$PACKAGE $VERSION" --platform "JS (npm)" --actor "$GITHUB_ACTOR" \
+            --link "npm=https://www.npmjs.com/package/$PACKAGE/v/$VERSION" \
+            --changelog CHANGELOG.md --version "$VERSION"
+
+      - name: Test message
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SDK_RELEASES_SLACK_WEBHOOK_URL }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="${INPUT_VERSION:-$(npm view "$PACKAGE" version)}"
+          npm view "$PACKAGE@$VERSION" version >/dev/null
+          node scripts/release/slack-notify.mjs --test \
+            --title "$PACKAGE $VERSION" --platform "JS (npm)" --actor "$GITHUB_ACTOR" \
+            --link "npm=https://www.npmjs.com/package/$PACKAGE/v/$VERSION" \
+            --link "CHANGELOG=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/dev/CHANGELOG.md" \
+            --changelog CHANGELOG.md --version "$VERSION"
+
+      - name: Restore notified versions
+        id: restore
+        if: github.event_name == 'schedule'
+        uses: actions/cache/restore@v4
+        with:
+          path: .slack-notified
+          key: slack-notified-${{ github.run_id }}
+          restore-keys: slack-notified-
+
+      - name: Notify new versions
+        id: notify
+        if: github.event_name == 'schedule'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SDK_RELEASES_SLACK_WEBHOOK_URL }}
+          BOOTSTRAP: ${{ steps.restore.outputs.cache-matched-key == '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p .slack-notified
+          touch .slack-notified/versions.txt
+          # Versiones publicadas en la ventana, de la mas antigua a la mas nueva.
+          npm view "$PACKAGE" time --json | node -e '
+            const time = JSON.parse(require("fs").readFileSync(0, "utf8"));
+            const since = Date.now() - Number(process.env.WINDOW_DAYS) * 86400000;
+            Object.entries(time)
+              .filter(([v, t]) => v !== "created" && v !== "modified" && Date.parse(t) >= since)
+              .sort((a, b) => Date.parse(a[1]) - Date.parse(b[1]))
+              .forEach(([v]) => console.log(v));
+          ' > recent.txt
+          NEW="$(grep -vxF -f .slack-notified/versions.txt recent.txt || true)"
+          if [ -z "$NEW" ]; then
+            echo "Nada nuevo en npm."
+            exit 0
+          fi
+          if [ "$BOOTSTRAP" = "true" ]; then
+            echo "::notice::Sin registro de avisos: se apuntan sin avisar: $(echo "$NEW" | tr '\n' ' ')"
+            echo "$NEW" >> .slack-notified/versions.txt
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          for VERSION in $NEW; do
+            # Quien publico, sin el email.
+            ACTOR="$(npm view "$PACKAGE@$VERSION" _npmUser | sed 's/ *<.*//')"
+            node scripts/release/slack-notify.mjs \
+              --title "$PACKAGE $VERSION" --platform "JS (npm)" --actor "$ACTOR" \
+              --link "npm=https://www.npmjs.com/package/$PACKAGE/v/$VERSION" \
+              --link "CHANGELOG=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/dev/CHANGELOG.md" \
+              --changelog CHANGELOG.md --version "$VERSION"
+            echo "$VERSION" >> .slack-notified/versions.txt
+          done
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Save notified versions
+        if: steps.notify.outputs.changed == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .slack-notified
+          key: slack-notified-${{ github.run_id }}
