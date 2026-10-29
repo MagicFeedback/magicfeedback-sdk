@@ -51,15 +51,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      # El CHANGELOG bueno es el de dev: la PR de release se fusiona ahi antes de publicar.
+      # El script, de la rama que ejecuta el workflow (main en el schedule).
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.sha || 'dev' }}
           sparse-checkout: |
             CHANGELOG.md
             scripts/release
           sparse-checkout-cone-mode: false
+
+      # El CHANGELOG bueno es el de dev: la PR de release se fusiona ahi antes de publicar, y
+      # main puede ir por detras. En la PR vale el de la propia rama.
+      - name: CHANGELOG from dev
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/contents/CHANGELOG.md?ref=dev" \
+            -H "Accept: application/vnd.github.raw" > CHANGELOG.md
 
       - name: Setup Node
         uses: actions/setup-node@v4
