@@ -19,6 +19,7 @@ import {detectSurveyLang, toBaseAnswers} from "../services/surveyLang";
 import {armGhostTapGuard} from "../utils/ghostTapGuard";
 import {focusFirstTextQuestion} from "../utils/autofocus";
 import {answeredInput, autoAdvanceRequested, cancelAutoAdvance} from "../utils/autoAdvance";
+import {SubmitError} from "../services/submitErrors";
 
 /**
  * Questions left out of a follow up's previous answers: nothing the respondent
@@ -754,7 +755,7 @@ export class Form {
                 }
 
                 const programmaticResponse = await this.pushAnswers(false);
-                if (!programmaticResponse) throw new Error("No response");
+                if (!programmaticResponse) throw new SubmitError("SEND_FAILED", "No response");
                 this.id = programmaticResponse;
 
                 if (this.formOptionsConfig.afterSubmitEvent) {
@@ -787,7 +788,7 @@ export class Form {
 
             // Check if the required questions are answered
             const page = this.history.back();
-            if (!page) throw new Error("No page found");
+            if (!page) throw new SubmitError("NO_PAGE", "No page found");
 
             for (const question of page.questions.filter(question => question.require &&
                 ![FEEDBACKAPPANSWERTYPE.CONSENT, FEEDBACKAPPANSWERTYPE.INFO_PAGE].includes(question.type as FEEDBACKAPPANSWERTYPE)
@@ -800,7 +801,7 @@ export class Form {
                     ans.find((a) => a.value.length === 0)
                 ) {
                     this.log.err(`The question ${question.ref} is required`);
-                    throw new Error(`No response`);
+                    throw new SubmitError("REQUIRED", "No response");
                 }
 
                 if (assets?.minOptions) {
@@ -817,7 +818,7 @@ export class Form {
                         ans[0].value.length < assets?.minOptions
                     ) {
                         this.log.err(`The question ${question.ref} requires at least ${assets?.minOptions} options`);
-                        throw new Error(`No response`);
+                        throw new SubmitError("REQUIRED", "No response");
                     }
                 }
 
@@ -829,7 +830,7 @@ export class Form {
                         .find(set => set.set === setIndex);
                     if (!current?.best || !current?.worst) {
                         this.log.err(`The MaxDiff question ${question.ref} requires the most and the least important`);
-                        throw new Error(`No response`);
+                        throw new SubmitError("REQUIRED", "No response");
                     }
                 }
 
@@ -839,7 +840,7 @@ export class Form {
                     const matrixAnswer = this.feedback.answers.find(a => a.key === question.ref);
                     if (!matrixAnswer) {
                         this.log.err(`The matrix question ${question.ref} is required`);
-                        throw new Error(`No response`);
+                        throw new SubmitError("REQUIRED", "No response");
                     }
 
                     // Parsear estructura: [{ key: rowKey, value: [...] }, ...]
@@ -856,13 +857,13 @@ export class Form {
                         });
                         if (missingOrEmpty) {
                             this.log.err(`The matrix question ${question.ref} requires an answer in every row`);
-                            throw new Error(`No response`);
+                            throw new SubmitError("REQUIRED", "No response");
                         }
                     } else {
                         // Sin lista esperada, aseguramos que todas las filas presentes tengan valor
                         if (rows.length === 0 || rows.some(r => !Array.isArray(r.value) || r.value.length === 0)) {
                             this.log.err(`The matrix question ${question.ref} requires an answer in every row`);
-                            throw new Error(`No response`);
+                            throw new SubmitError("REQUIRED", "No response");
                         }
                     }
                 }
@@ -872,7 +873,7 @@ export class Form {
             // SEND
             const response = await this.pushAnswers(false);
 
-            if (!response) throw new Error("No response");
+            if (!response) throw new SubmitError("SEND_FAILED", "No response");
 
             this.id = response;
             await this.processNextQuestion(questionContainer);
@@ -1223,16 +1224,19 @@ export class Form {
             const response = await this.pushAnswers(true);
 
             if (!response) {
+                // One error object for both callbacks (this one and the catch below), so a
+                // host can tell it is the same failure. It was a plain string here.
+                const error = new SubmitError("SEND_FAILED", `An error occurred while submitting the form ${this.appId}:`);
                 if (this.formOptionsConfig.afterSubmitEvent) {
                     await this.formOptionsConfig.afterSubmitEvent({
                         loading: false,
                         progress: this.progress,
                         total: this.total,
                         completed: this.completed,
-                        error: `An error occurred while submitting the form ${this.appId}:`
+                        error
                     });
                 }
-                throw new Error("An error occurred while submitting the form ${this.appId}:");
+                throw error;
             }
 
             this.id = response;
@@ -1485,7 +1489,7 @@ export class Form {
     private async processNextQuestion(form: HTMLElement) {
         const page = this.history.back();
 
-        if (!page) throw new Error("No page found");
+        if (!page) throw new SubmitError("NO_PAGE", "No page found");
 
         // A follow up page never chains another follow up: its questions come
         // back from the API flagged as `followup`, which would otherwise ask
