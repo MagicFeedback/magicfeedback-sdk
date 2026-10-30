@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## 🚀 [Unreleased]
+## 🚀 [2.2.37] - 2026-10-30
 - **New (typed submit errors):** the `error` that `afterSubmitEvent` receives from `send()` / `finish()` is now a `SubmitError` with a `code`. `REQUIRED` means a required question, matrix row, minimum of options or MaxDiff pick is unanswered. `SEND_FAILED` means `sdk/feedback` returned no session (HTTP error or network). `NO_PAGE` means the history has no current page. Before this, an empty required question and a request the API didn't save were both a bare `"No response"`, so a host that reads it as "required" told the visitor to answer a question they had answered. The messages don't change (`"No response"`, `"No page found"`), so integrations that match on the text keep working. The error is an `Error` either way, and the `code` is read with duck typing (`error?.code`); `SubmitError` is not added to the public API.
 - **Change (`finish()`):** when the completion push isn't saved, both `afterSubmitEvent` calls (before the throw and from the `catch`) carry the same `SubmitError("SEND_FAILED")` object. The first one used to be a plain string. The message now has the real app id, instead of the literal `${this.appId}` it threw before.
 - **Tests:** added `test/submitErrors.form.test.ts`.
