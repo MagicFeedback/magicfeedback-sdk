@@ -6,6 +6,9 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## 🚀 [2.2.39] - unreleased
+- **Fix (`EMAIL` @ hint):** the hint under the @ button is left-aligned (`text-align: start`), like the labels. In a host that centers its content (MagicSurvey) it was centered under the field.
+
 ## 🚀 [2.2.38] - 2026-11-03
 - **New (`EMAIL` @ shortcut, DD-47):** in an email field, `Option/Alt + 2` types `@` at the cursor, in every survey. On a Danish Mac/iPad keyboard @ is `Option + '`, so visitors used to Windows (`AltGr + 2`) couldn't find it. Only `Alt + 2` without `Ctrl`/`Cmd` is caught, so Windows `AltGr + 2` (reported as `Ctrl + Alt`) keeps typing @ as before. If the browser still types the `Option + 2` character after the key is cancelled, that character is dropped.
 - **New (`EMAIL` @ button):** `assets.atButton: "outside" | "inside"` adds an @ button next to the field (round, dark) or inside it at the end (small, grey), with a hint below ("Tryk på @ for at indsætte symbolet i din e-mailadresse"). Tapping it inserts @ at the cursor and keeps the focus in the field. Without the asset nothing changes. The hint and the button label are translated in the 11 full languages (`email.atHint`, `email.atButton`).

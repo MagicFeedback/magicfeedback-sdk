@@ -505,6 +505,7 @@ input[type="number"] {
 
 .magicfeedback-email-hint {
     margin: 0;
+    text-align: start;
     font-size: var(--mf-font-size-sm);
     line-height: 1.45;
     color: var(--mf-text-secondary);
