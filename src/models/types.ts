@@ -93,7 +93,10 @@ export type QuestionAssetsByType = {
     [FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE]: QuestionAssetsByType[FEEDBACKAPPANSWERTYPE.RADIO];
     [FEEDBACKAPPANSWERTYPE.SELECT]: QuestionAssetsBase;
     [FEEDBACKAPPANSWERTYPE.DATE]: QuestionAssetsBase;
-    [FEEDBACKAPPANSWERTYPE.EMAIL]: QuestionAssetsBase;
+    [FEEDBACKAPPANSWERTYPE.EMAIL]: QuestionAssetsBase & {
+        /** Adds an @ button next to ("outside") or inside the field, with a hint. */
+        atButton?: "outside" | "inside";
+    };
     [FEEDBACKAPPANSWERTYPE.PASSWORD]: QuestionAssetsBase;
     [FEEDBACKAPPANSWERTYPE.BOOLEAN]: QuestionAssetsBase & {
         addIcon?: boolean;

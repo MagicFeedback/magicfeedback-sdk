@@ -20,6 +20,12 @@ export type RenderContext = {
 export type RenderResult = {
     element: HTMLElement;
     elementTypeClass: string;
+    /**
+     * What goes into the question in place of `element`, when the renderer
+     * wraps it (e.g. the email @ button). `element` stays the input that gets
+     * the id, name, value and `.magicfeedback-input`.
+     */
+    container?: HTMLElement;
 };
 
 export type QuestionRenderer = (ctx: RenderContext) => RenderResult;

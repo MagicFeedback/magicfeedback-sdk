@@ -119,6 +119,7 @@ function renderContainer(
 
     let element: HTMLElement;
     let elementTypeClass: string;
+    let elementNode: HTMLElement;
 
     let elementContainer: HTMLElement = document.createElement("div");
     elementContainer.classList.add("magicfeedback-div");
@@ -159,6 +160,7 @@ function renderContainer(
         });
         element = result.element;
         elementTypeClass = result.elementTypeClass;
+        elementNode = result.container || result.element;
     } else {
             return elementContainer;
     }
@@ -274,7 +276,7 @@ function renderContainer(
             }
 
         } else {
-            elementContainer.appendChild(element);
+            elementContainer.appendChild(elementNode);
         }
     }
 
