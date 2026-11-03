@@ -58,6 +58,8 @@ const KEYS: TranslationKey[] = [
     "message.blocked",
     "message.required",
     "message.rateLimit",
+    "email.atHint",
+    "email.atButton",
 ];
 
 describe("i18n", () => {
