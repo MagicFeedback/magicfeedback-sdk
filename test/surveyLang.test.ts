@@ -40,6 +40,11 @@ describe("normalizeSurveyLang", () => {
         ["nb-NO", "no"],
         ["nn", "no"],
         [" da ", "da"],
+        ["el-GR", "el"],
+        ["ga-IE", "ga"],
+        ["mt_MT", "mt"],
+        ["hr-HR", "hr"],
+        ["sl-SI", "sl"],
     ])("%s -> %s", (input, expected) => {
         expect(normalizeSurveyLang(input)).toBe(expected);
     });
