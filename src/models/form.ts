@@ -80,6 +80,8 @@ export class Form {
 
     // True while send() is running, so an auto-advance doesn't send again
     private sending: boolean;
+    // answer() found an email field whose text is not an email address (send() reports it).
+    private invalidEmail = false;
 
     // `?autoadvance=true` acts on the first page shown only, once per load.
     private urlAutoAdvanceChecked = false;
@@ -786,6 +788,11 @@ export class Form {
                 });
             }
 
+            // An email with a typo made answer() drop the whole page, and then the required
+            // check said "No response": the visitor was told to answer a question they had
+            // answered. With an optional email the page was even sent without its answers.
+            if (this.invalidEmail) throw new SubmitError("INVALID_EMAIL", "Invalid email");
+
             // Check if the required questions are answered
             const page = this.history.back();
             if (!page) throw new SubmitError("NO_PAGE", "No page found");
@@ -934,6 +941,7 @@ export class Form {
 
         const surveyAnswers: NativeAnswer[] = [];
         let hasError = false; // Flag to track if an error has occurred
+        this.invalidEmail = false;
 
         const inputs = form.querySelectorAll(".magicfeedback-input");
         const priorityMap: Record<string, string[]> = {};
@@ -978,6 +986,7 @@ export class Form {
                             if (!validateEmail(value)) {
                                 this.log.err("Invalid email");
                                 hasError = true;
+                                this.invalidEmail = true;
                             } else {
                                 this.feedback.profile.push({
                                     key: "email",
