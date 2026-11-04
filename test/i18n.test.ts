@@ -18,6 +18,12 @@ import {Config} from "../src/models/config";
 import {FormData} from "../src/models/formData";
 import {Page} from "../src/models/page";
 
+// The 24 official languages of the EU (DD-67).
+const EU_LANGUAGES = [
+    "bg", "cs", "da", "de", "el", "en", "es", "et", "fi", "fr", "ga", "hr",
+    "hu", "it", "lt", "lv", "mt", "nl", "pl", "pt", "ro", "sk", "sl", "sv",
+];
+
 // The full key list, spelled out so removing or renaming one is a visible diff.
 const KEYS: TranslationKey[] = [
     "placeholder.answer",
@@ -64,9 +70,28 @@ const KEYS: TranslationKey[] = [
 
 describe("i18n", () => {
     test("the product's language list is fully covered", () => {
-        expect(SUPPORTED_LANGUAGES.sort()).toEqual(
-            ["ar", "bn", "da", "de", "en", "es", "fi", "fr", "no", "pt", "sv"].sort()
+        expect(SUPPORTED_LANGUAGES.slice().sort()).toEqual(
+            ["ar", "bn", "no", ...EU_LANGUAGES].sort()
         );
+    });
+
+    test("every official EU language is fully translated", () => {
+        EU_LANGUAGES.forEach((lang) => expect(isLanguageSupported(lang)).toBe(true));
+    });
+
+    test("translations keep the English {tokens} and the @", () => {
+        const tokens = (text: string) => (text.match(/\{\w+\}|@/g) || []).sort();
+        const broken: string[] = [];
+
+        SUPPORTED_LANGUAGES.forEach((lang) => {
+            KEYS.forEach((key) => {
+                if (JSON.stringify(tokens(t(lang, key))) !== JSON.stringify(tokens(t("en", key)))) {
+                    broken.push(`${lang}:${key}`);
+                }
+            });
+        });
+
+        expect(broken).toEqual([]);
     });
 
     test("the key list is the one the renderers expect", () => {
@@ -87,9 +112,9 @@ describe("i18n", () => {
     });
 
     test("partially translated languages fall back to English per key", () => {
-        expect(t("it", "boolean.yes")).toBe("Sì");
-        expect(t("it", "placeholder.answer")).toBe(t("en", "placeholder.answer"));
-        expect(AVAILABLE_LANGUAGES).toEqual(expect.arrayContaining(["it", "nl", "pl", "ru", "ja", "zh", "ko"]));
+        expect(t("ru", "boolean.yes")).toBe("Да");
+        expect(t("ru", "placeholder.answer")).toBe(t("en", "placeholder.answer"));
+        expect(AVAILABLE_LANGUAGES).toEqual(expect.arrayContaining(["ru", "ja", "zh", "ko"]));
     });
 
     test("regional and aliased tags resolve to their base locale", () => {
@@ -107,7 +132,7 @@ describe("i18n", () => {
         expect(t("xx", "action.next")).toBe("Next");
         expect(isLanguageSupported("xx")).toBe(false);
         expect(isLanguageSupported("de")).toBe(true);
-        expect(isLanguageSupported("it")).toBe(false);
+        expect(isLanguageSupported("ru")).toBe(false);
     });
 
     test("only Arabic is right to left", () => {
@@ -227,6 +252,21 @@ describe("i18n in a rendered form", () => {
         expect(container.getAttribute("dir")).toBe("ltr");
         expect(container.classList.contains("magicfeedback-rtl")).toBe(false);
     });
+
+    test.each(["bg", "cs", "el", "et", "ga", "hr", "hu", "it", "lt", "lv", "mt", "nl", "pl", "ro", "sk", "sl"])(
+        "a %s survey renders in its own language",
+        async (lang) => {
+            const form = setupForm(lang, [buildQuestion()]);
+            await (form as any).generateForm();
+
+            const input = container.querySelector("input") as HTMLInputElement;
+            const send = (container.querySelector("#magicfeedback-submit") as HTMLElement).textContent;
+            expect(input.placeholder).toBe(t(lang, "placeholder.answer"));
+            expect(input.placeholder).not.toBe(t("en", "placeholder.answer"));
+            expect(send).toBe(t(lang, "action.send"));
+            expect(container.getAttribute("dir")).toBe("ltr");
+        }
+    );
 
     test("an explicit button label still wins over the translation", async () => {
         const form = setupForm("de", [buildQuestion()]);
