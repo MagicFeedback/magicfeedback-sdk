@@ -10,6 +10,7 @@
 
 export type SubmitErrorCode =
     | "REQUIRED"     // a required question (or matrix row, min options, MaxDiff pick) is unanswered
+    | "INVALID_EMAIL" // an email field on the page has text that is not an email address
     | "SEND_FAILED"  // sdk/feedback did not return a session (HTTP error or network)
     | "NO_PAGE";     // the history has no current page (state bug, never user input)
 

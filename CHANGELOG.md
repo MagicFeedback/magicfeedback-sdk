@@ -7,6 +7,8 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 Please refer to the specific version number for detailed information.
 
 ## 🚀 [2.2.39] - unreleased
+- **New (`INVALID_EMAIL` submit error):** an email field whose text is not an email address now makes `send()` report `SubmitError("INVALID_EMAIL", "Invalid email")` in `afterSubmitEvent`. Before, the invalid email made the page's answers be thrown away and the required check then said `REQUIRED` / `"No response"`, so a popup told the visitor to answer a question they had answered. With an optional email it was worse: the page was sent without any of its answers. Hosts that read `error.code` can show their own text (the popup SDKs show "Please enter a valid email address."); hosts that match on `"No response"` see a different message for this case only.
+- **Tests:** `test/submitErrors.form.test.ts` covers a required and an optional email with a typo, a valid email, and fixing the email after the error.
 - **Fix (`EMAIL` @ hint):** the hint under the @ button is left-aligned (`text-align: start`), like the labels. In a host that centers its content (MagicSurvey) it was centered under the field.
 
 ## 🚀 [2.2.38] - 2026-11-03
