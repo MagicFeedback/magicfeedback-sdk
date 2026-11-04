@@ -123,4 +123,72 @@ describe("submit errors", () => {
         expect(seen[1].error).toBe(seen[0].error);
         expect(seen[0].error.message).toBe("An error occurred while submitting the form app-id:");
     });
+    test("an email with a typo is INVALID_EMAIL, not REQUIRED", async () => {
+        const seen: any[] = [];
+        const form = setupForm(
+            [[question("1", FEEDBACKAPPANSWERTYPE.EMAIL, 1, true)], [question("2", FEEDBACKAPPANSWERTYPE.TEXT, 2)]],
+            {afterSubmitEvent: (res: any) => seen.push(res)},
+        );
+        await (form as any).generateForm("open");
+        typeInto("q1", "isabelle@lemu");
+
+        await form.send();
+
+        expect(sendSpy).not.toHaveBeenCalled();
+        expect(seen).toHaveLength(1);
+        expect(seen[0].error).toBeInstanceOf(SubmitError);
+        expect(seen[0].error).toMatchObject({code: "INVALID_EMAIL", message: "Invalid email"});
+    });
+
+    test("an optional email with a typo is not sent without the page's answers", async () => {
+        sendSpy.mockResolvedValue("session-1" as never);
+        const seen: any[] = [];
+        const form = setupForm(
+            [[question("1", FEEDBACKAPPANSWERTYPE.TEXT, 1), question("2", FEEDBACKAPPANSWERTYPE.EMAIL, 2)],
+                [question("3", FEEDBACKAPPANSWERTYPE.TEXT, 3)]],
+            {afterSubmitEvent: (res: any) => seen.push(res)},
+        );
+        await (form as any).generateForm("open");
+        typeInto("q1", "hello");
+        typeInto("q2", "not-an-email");
+
+        await form.send();
+
+        expect(sendSpy).not.toHaveBeenCalled();
+        expect(seen[0].error).toMatchObject({code: "INVALID_EMAIL"});
+    });
+
+    test("a valid email moves on with no error", async () => {
+        sendSpy.mockResolvedValue("session-1" as never);
+        const seen: any[] = [];
+        const form = setupForm(
+            [[question("1", FEEDBACKAPPANSWERTYPE.EMAIL, 1, true)], [question("2", FEEDBACKAPPANSWERTYPE.TEXT, 2)]],
+            {afterSubmitEvent: (res: any) => seen.push(res)},
+        );
+        await (form as any).generateForm("open");
+        typeInto("q1", "isabelle@lemu.dk");
+
+        await form.send();
+
+        expect(sendSpy).toHaveBeenCalledTimes(1);
+        expect(seen.every((r) => !r.error)).toBe(true);
+    });
+
+    test("fixing the email after INVALID_EMAIL lets the page go", async () => {
+        sendSpy.mockResolvedValue("session-1" as never);
+        const seen: any[] = [];
+        const form = setupForm(
+            [[question("1", FEEDBACKAPPANSWERTYPE.EMAIL, 1, true)], [question("2", FEEDBACKAPPANSWERTYPE.TEXT, 2)]],
+            {afterSubmitEvent: (res: any) => seen.push(res)},
+        );
+        await (form as any).generateForm("open");
+        typeInto("q1", "isabelle@lemu");
+        await form.send();
+        typeInto("q1", "isabelle@lemu.dk");
+
+        await form.send();
+
+        expect(sendSpy).toHaveBeenCalledTimes(1);
+        expect(seen[seen.length - 1].error).toBeFalsy();
+    });
 });
