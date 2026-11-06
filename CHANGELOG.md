@@ -6,6 +6,10 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## [Unreleased]
+- **New (Catalan):** every string the SDK renders is translated into Catalan (`ca`), which is now in `SUPPORTED_LANGUAGES`. Catalan is not an official EU language; it was asked for in the v2.2.29 review of the survey language picker. `ca-ES` resolves to `ca`.
+- **Tests:** a form renders in Catalan; `ca-ES` → `ca`.
+
 ## 🚀 [2.2.39] - 2026-11-04
 - **New (EU languages, DD-67):** every string the SDK renders (placeholders, buttons, upload hints, priority list, validation messages and the email @ button and hint) is translated into all 24 official EU languages. New: Bulgarian (`bg`), Czech (`cs`), Greek (`el`), Estonian (`et`), Irish (`ga`), Croatian (`hr`), Hungarian (`hu`), Lithuanian (`lt`), Latvian (`lv`), Maltese (`mt`), Romanian (`ro`), Slovak (`sk`) and Slovenian (`sl`). Italian, Dutch and Polish only had yes/no and the priority list; they are now complete (their existing strings are unchanged). All 16 are in `SUPPORTED_LANGUAGES`. Machine-translated, pending review by native speakers.
 - **Tests:** `test/i18n.test.ts` checks every supported language keeps the English `{tokens}` and `@`, and renders a form in each new language; `test/surveyLang.test.ts` covers regional tags of the new languages (`el-GR`, `ga-IE`, `mt_MT`…).
