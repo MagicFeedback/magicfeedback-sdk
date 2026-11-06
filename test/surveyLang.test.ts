@@ -45,6 +45,7 @@ describe("normalizeSurveyLang", () => {
         ["mt_MT", "mt"],
         ["hr-HR", "hr"],
         ["sl-SI", "sl"],
+        ["ca-ES", "ca"],
     ])("%s -> %s", (input, expected) => {
         expect(normalizeSurveyLang(input)).toBe(expected);
     });

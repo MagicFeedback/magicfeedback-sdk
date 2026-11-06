@@ -10,7 +10,8 @@
  * Fully translated languages (the set the product supports):
  *   en, da, fi, no, es, sv, ar, bn, de, pt, fr, plus the rest of the 24
  *   official EU languages: bg, cs, el, et, ga, hr, hu, it, lt, lv, mt, nl,
- *   pl, ro, sk, sl (DD-67, machine-translated, pending native review)
+ *   pl, ro, sk, sl (DD-67, machine-translated, pending native review),
+ *   and Catalan (ca)
  *
  * `ru, ja, zh, ko` are kept as partial locales: they only ever had yes/no and
  * priority-list copy, and they keep exactly that. Any key they are missing
@@ -1205,6 +1206,49 @@ const SL: Locale = {
     "email.atButton": "Vstavi @"
 };
 
+const CA: Locale = {
+    "placeholder.answer": "Escriu la teva resposta aquí...",
+    "placeholder.number": "Escriu el teu número aquí...",
+    "placeholder.email": "Escriu el teu correu electrònic aquí...",
+    "placeholder.date": "Escriu la data aquí...",
+    "placeholder.password": "Escriu la teva contrasenya aquí...",
+    "pointSystem.error": "El total de punts ha de ser 100 %",
+    "boolean.yes": "Sí",
+    "boolean.no": "No",
+    "upload.cta": "Arrossega i deixa anar o fes clic per pujar",
+    "upload.imagesOnly": "Només imatges",
+    "upload.anyFileType": "Qualsevol tipus de fitxer",
+    "upload.maxFiles": "Màx. {n} fitxers",
+    "upload.maxSize": "Màx. {mb} MB",
+    "upload.tooLarge": "El fitxer és massa gran (màx. {mb} MB)",
+    "upload.remove": "Elimina",
+    "select.placeholder": "Selecciona una opció",
+    "rating.ariaLabel": "Valoració",
+    "maxDiff.best": "Més important",
+    "maxDiff.worst": "Menys important",
+    "maxDiff.setProgress": "Bloc {k} de {n}",
+    "priority.selectUpTo": "Selecciona fins a",
+    "priority.options": "opcions",
+    "priority.thenOrder": "i després ordena-les",
+    "priority.selectOptions": "Selecciona opcions",
+    "priority.cancel": "Cancel·la",
+    "priority.confirm": "Confirma",
+    "priority.selectOptionNumber": "Selecciona l'opció #",
+    "priority.prioritized": "Prioritzades",
+    "priority.of": "de",
+    "priority.instruction": "A sota tens la teva llista de prioritats. Si vols, pots reordenar les opcions amb les fletxes. Fes clic a \"Següent\" per confirmar i continuar.",
+    "action.send": "Envia",
+    "action.back": "Enrere",
+    "action.next": "Següent",
+    "action.start": "Som-hi!",
+    "message.success": "Gràcies pels teus comentaris!",
+    "message.blocked": "Gràcies pel teu temps, acabem aquí la conversa.",
+    "message.required": "Si us plau, respon abans de continuar.",
+    "message.rateLimit": "Massa sol·licituds. Es tornarà a provar d'aquí a {seconds} s...",
+    "email.atHint": "Toca @ per inserir el símbol a la teva adreça de correu",
+    "email.atButton": "Insereix @"
+};
+
 const RU: Locale = {
     "boolean.yes": "Да",
     "boolean.no": "Нет",
@@ -1296,7 +1340,8 @@ const LOCALES: Record<string, Locale> = {
     mt: MT,
     ro: RO,
     sk: SK,
-    sl: SL
+    sl: SL,
+    ca: CA
 };
 
 /** Languages with a complete translation of every SDK string. */
@@ -1304,6 +1349,8 @@ export const SUPPORTED_LANGUAGES = [
     "en", "da", "fi", "no", "es", "sv", "ar", "bn", "de", "pt", "fr",
     // The rest of the official EU languages (DD-67).
     "bg", "cs", "el", "et", "ga", "hr", "hu", "it", "lt", "lv", "mt", "nl", "pl", "ro", "sk", "sl",
+    // Catalan: not an official EU language, added on request (survey language picker).
+    "ca",
 ];
 
 /** Languages that resolve to a locale, including the partially translated ones. */

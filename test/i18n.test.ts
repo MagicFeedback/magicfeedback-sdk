@@ -71,7 +71,7 @@ const KEYS: TranslationKey[] = [
 describe("i18n", () => {
     test("the product's language list is fully covered", () => {
         expect(SUPPORTED_LANGUAGES.slice().sort()).toEqual(
-            ["ar", "bn", "no", ...EU_LANGUAGES].sort()
+            ["ar", "bn", "no", "ca", ...EU_LANGUAGES].sort()
         );
     });
 
@@ -253,7 +253,7 @@ describe("i18n in a rendered form", () => {
         expect(container.classList.contains("magicfeedback-rtl")).toBe(false);
     });
 
-    test.each(["bg", "cs", "el", "et", "ga", "hr", "hu", "it", "lt", "lv", "mt", "nl", "pl", "ro", "sk", "sl"])(
+    test.each(["bg", "cs", "el", "et", "ga", "hr", "hu", "it", "lt", "lv", "mt", "nl", "pl", "ro", "sk", "sl", "ca"])(
         "a %s survey renders in its own language",
         async (lang) => {
             const form = setupForm(lang, [buildQuestion()]);
