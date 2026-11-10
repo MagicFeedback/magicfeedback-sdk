@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## [Unreleased]
+## 🚀 [2.2.40] - 2026-11-10
 - **New (star colour, DD-116):** `RATING_STAR` takes `assets.starColor: "yellow" | "primary"`. With `"primary"` the filled and hovered stars use the survey's primary colour (`var(--mf-primary)`), painted inline with `!important` so it also wins over the yellow rules in MagicSurvey's and the popup's stylesheets. Without the asset (or with `"yellow"`) nothing changes.
 - **Tests:** `test/ratingStar.test.ts` covers the default, `"yellow"`, `"primary"` and hover.
 - **Fix (Yes/No conditions, DD-117):** a route on a `BOOLEAN` question saved with a translated option (e.g. `"Ja"`/`"Ingen"` after a machine translation or a default-language swap in the Admin) now matches. `renderBoolean` always submits `"Yes"`/`"No"`, so those routes never matched and every respondent went on to the next page. The route value is mapped by its position in the question's options (`value` or, when another language is served, `baseValue`): first = `"Yes"`, second = `"No"`. Applies to LOGICAL and PRECONDITIONAL routes; routes saved as `"Yes"`/`"No"` and other question types are unchanged.
