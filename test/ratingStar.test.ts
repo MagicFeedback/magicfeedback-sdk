@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, test} from "@jest/globals";
+import {afterEach, beforeEach, describe, expect, jest, test} from "@jest/globals";
 import {createStarRating} from "../src/render/ratingHelpers";
 
 const selected = (container: HTMLElement) =>
@@ -36,5 +36,54 @@ describe("star rating", () => {
         three.dispatchEvent(new Event("change"));
 
         expect(selected(container)).toBe(3);
+    });
+
+    describe("assets.starColor", () => {
+        // jsdom drops var() in `color`, so record what the SDK asks for.
+        let primary: WeakMap<CSSStyleDeclaration, boolean>;
+        const original = CSSStyleDeclaration.prototype.setProperty;
+        beforeEach(() => {
+            primary = new WeakMap();
+            jest.spyOn(CSSStyleDeclaration.prototype, "setProperty").mockImplementation(function (
+                this: CSSStyleDeclaration, name: string, value: string | null, priority?: string) {
+                if (name === "color") primary.set(this, value === "var(--mf-primary)" && priority === "important");
+                return original.call(this, name, value, priority);
+            });
+        });
+        afterEach(() => { jest.restoreAllMocks(); });
+        const primaryStars = (container: HTMLElement) =>
+            Array.from(container.querySelectorAll<HTMLElement>(".rating__star"))
+                .map((el) => primary.get(el.style) === true);
+
+        test("default keeps the classic look (no inline primary)", () => {
+            const container = createStarRating("q", "", "", () => {}, "3");
+
+            expect(container.classList.contains("magicfeedback-rating-star-primary")).toBe(false);
+            expect(primaryStars(container)).toEqual([false, false, false, false, false]);
+        });
+
+        test('"yellow" is the same as the default', () => {
+            const container = createStarRating("q", "", "", () => {}, "3", "yellow");
+
+            expect(container.classList.contains("magicfeedback-rating-star-primary")).toBe(false);
+            expect(primaryStars(container)).toEqual([false, false, false, false, false]);
+        });
+
+        test('"primary" paints filled stars with the survey primary colour', () => {
+            const container = createStarRating("q", "", "", () => {}, "3", "primary");
+
+            expect(container.classList.contains("magicfeedback-rating-star-primary")).toBe(true);
+            expect(primaryStars(container)).toEqual([true, true, true, false, false]);
+        });
+
+        test('"primary" follows hover and goes back on leave', () => {
+            const container = createStarRating("q", "", "", () => {}, "2", "primary");
+
+            star(container, 5).dispatchEvent(new MouseEvent("mouseenter"));
+            expect(primaryStars(container)).toEqual([true, true, true, true, true]);
+            star(container, 5).dispatchEvent(new MouseEvent("mouseleave"));
+
+            expect(primaryStars(container)).toEqual([true, true, false, false, false]);
+        });
     });
 });

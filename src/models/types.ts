@@ -127,6 +127,8 @@ export type QuestionAssetsByType = {
     [FEEDBACKAPPANSWERTYPE.RATING_STAR]: QuestionAssetsBase & {
         minPlaceholder?: string;
         maxPlaceholder?: string;
+        /** Filled stars: classic yellow ("yellow", default) or the survey's primary colour ("primary"). */
+        starColor?: 'yellow' | 'primary';
     };
     [FEEDBACKAPPANSWERTYPE.MULTIPLECHOISE_IMAGE]: QuestionAssetsBase & {
         addTitle?: boolean;
