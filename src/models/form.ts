@@ -20,6 +20,7 @@ import {armGhostTapGuard} from "../utils/ghostTapGuard";
 import {focusFirstTextQuestion} from "../utils/autofocus";
 import {answeredInput, autoAdvanceRequested, cancelAutoAdvance} from "../utils/autoAdvance";
 import {SubmitError} from "../services/submitErrors";
+import {routeValuesFor} from "../utils/booleanAnswer";
 
 /**
  * Questions left out of a follow up's previous answers: nothing the respondent
@@ -1677,7 +1678,7 @@ export class Form {
             if (foundAnswer) {
                 const question = this.formData?.questions.find(q => q.ref === route.questionRef);
                 const answerVals = Array.isArray(foundAnswer.value) ? foundAnswer.value : [foundAnswer.value];
-                const routeVals = Array.isArray(route.value) ? route.value : [route.value];
+                const routeVals = routeValuesFor(Array.isArray(route.value) ? route.value : [route.value], question);
 
                 // Lógica especial para matrices
                 if (question?.type === FEEDBACKAPPANSWERTYPE.MULTI_QUESTION_MATRIX) {

@@ -2,6 +2,7 @@ import {Page} from "./page";
 import {PageNode} from "./pageNode";
 import {NativeAnswer, FEEDBACKAPPANSWERTYPE} from "./types";
 import {ConditionType, OperatorType, PageRoute, TransitionType} from "./pageRoute";
+import {routeValuesFor} from "../utils/booleanAnswer";
 
 export class PageGraph {
     private nodes: Map<string, PageNode>;
@@ -145,7 +146,7 @@ export class PageGraph {
             }
 
             // Normalizar edge.value a array
-            const edgeVals = Array.isArray(edge.value) ? edge.value : [edge.value];
+            const edgeVals = routeValuesFor(Array.isArray(edge.value) ? edge.value : [edge.value], question);
 
             switch (edge.typeOperator) {
                 case OperatorType.EQUAL:
