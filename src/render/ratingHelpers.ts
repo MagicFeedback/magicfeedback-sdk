@@ -42,10 +42,16 @@ export function createStarRating(
     maxPlaceholder?: string,
     send: () => void = () => {
     },
-    urlParamValue?: string | null
+    urlParamValue?: string | null,
+    starColor?: 'yellow' | 'primary'
 ) {
     const size = 40;
     const selectedClass = "magicfeedback-rating-star-selected";
+    // assets.starColor "primary": filled stars take the survey's primary
+    // colour. Painted inline with !important so it beats the yellow
+    // `!important` rules every host stylesheet (SDK, MagicSurvey, popup)
+    // carries. Anything else keeps the classic yellow from the stylesheet.
+    const usePrimary = starColor === 'primary';
     const starFilled = "★";
 
     const ratingContainer = document.createElement("div");
@@ -53,11 +59,17 @@ export function createStarRating(
     ratingContainer.style.maxWidth = "300px";
     ratingContainer.style.margin = "auto";
     ratingContainer.dataset.originalSelection = '0';
+    if (usePrimary) ratingContainer.classList.add("magicfeedback-rating-star-primary");
 
     // Fills the stars up to `value` (1-5); 0 empties them.
     const paintStars = (value: number) => {
         ratingContainer.querySelectorAll(".rating__star").forEach((star, starIdx) => {
-            star.classList.toggle(selectedClass, starIdx < value);
+            const filled = starIdx < value;
+            star.classList.toggle(selectedClass, filled);
+            if (!usePrimary) return;
+            const style = (star as HTMLElement).style;
+            if (filled) style.setProperty("color", "var(--mf-primary)", "important");
+            else style.setProperty("color", "#CCCCCC");
         });
     };
 

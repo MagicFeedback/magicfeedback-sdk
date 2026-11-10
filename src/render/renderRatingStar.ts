@@ -14,7 +14,8 @@ export const renderRatingStar: QuestionRenderer = ({
         question.assets?.minPlaceholder,
         question.assets?.maxPlaceholder,
         send,
-        urlParamValue
+        urlParamValue,
+        question.assets?.starColor
     );
 
     element.appendChild(ratingStarContainer);
