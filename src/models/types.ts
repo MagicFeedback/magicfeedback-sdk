@@ -54,6 +54,7 @@ export type QuestionAssetsBase = {
     placeholder?: string;
     subtitle?: string | Record<string, string>;
     subtitleStyle?: string | string[];
+    subtitleAlign?: "left" | "center" | "right";
     titleSize?: string;
     titleAlign?: string;
     titleStyle?: string | string[];

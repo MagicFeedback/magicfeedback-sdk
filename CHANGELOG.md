@@ -6,6 +6,11 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## [Unreleased]
+- **New (subtitle alignment, Matas):** a question subtitle takes `assets.subtitleAlign: "left" | "center" | "right"`, set inline on `.magicfeedback-sublabel`.
+- **Change (default):** without the asset the subtitle is now **left-aligned**, like the title. Before it had no alignment and took the host's, so in MagicSurvey (`.App { text-align: center }`) every subtitle was centered. Surveys that want it centered must pick "center" in the Admin.
+- **Tests:** added `test/subtitleAlign.test.ts`.
+
 ## 🚀 [2.2.40] - 2026-11-10
 - **New (star colour, DD-116):** `RATING_STAR` takes `assets.starColor: "yellow" | "primary"`. With `"primary"` the filled and hovered stars use the survey's primary colour (`var(--mf-primary)`), painted inline with `!important` so it also wins over the yellow rules in MagicSurvey's and the popup's stylesheets. Without the asset (or with `"yellow"`) nothing changes.
 - **Tests:** `test/ratingStar.test.ts` covers the default, `"yellow"`, `"primary"` and hover.
