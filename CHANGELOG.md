@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## [Unreleased]
+## 🚀 [2.2.41] - 2026-11-11
 - **New (subtitle alignment, Matas):** a question subtitle takes `assets.subtitleAlign: "left" | "center" | "right"`, set inline on `.magicfeedback-sublabel`.
 - **Change (default):** without the asset the subtitle is now **left-aligned**, like the title. Before it had no alignment and took the host's, so in MagicSurvey (`.App { text-align: center }`) every subtitle was centered. Surveys that want it centered must pick "center" in the Admin.
 - **Tests:** added `test/subtitleAlign.test.ts`.
