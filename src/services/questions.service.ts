@@ -21,6 +21,14 @@ function resolveTitleSize(size?: string): string | undefined {
     return titleSizeMap[size] || size;
 }
 
+const SUBTITLE_ALIGNS = ["left", "center", "right"];
+
+// Subtitle alignment (assets.subtitleAlign). Left when missing or unknown: set inline
+// so a host that centers its content (MagicSurvey's .App) can't center it.
+export function resolveSubtitleAlign(align?: string): string {
+    return align && SUBTITLE_ALIGNS.includes(align) ? align : "left";
+}
+
 function applyInfoPageTitleStyles(label: HTMLElement, question: NativeQuestion): void {
     if (question.type !== "INFO_PAGE") return;
 
@@ -191,6 +199,7 @@ function renderContainer(
     const subLabel = document.createElement("label");
     subLabel.textContent = parseTitle(assets?.subtitle, language);
     subLabel.classList.add("magicfeedback-sublabel");
+    subLabel.style.setProperty("text-align", resolveSubtitleAlign(assets?.subtitleAlign));
 
     if (assets?.subtitleStyle?.includes('italic')) {
         subLabel.style.fontStyle = "italic";
