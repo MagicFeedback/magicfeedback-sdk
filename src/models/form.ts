@@ -37,6 +37,13 @@ const FOLLOWUP_SKIPPED_PREVIOUS_TYPES: FEEDBACKAPPANSWERTYPE[] = [
     FEEDBACKAPPANSWERTYPE.MAX_DIFF,
 ];
 
+/** The text of an HTML snippet (end screen messages are rich text). */
+function htmlToText(html: string | undefined): string {
+    if (!html) return "";
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return (doc.body.textContent || "").trim();
+}
+
 export class Form {
     /**
      * Attributes
@@ -56,6 +63,8 @@ export class Form {
 
     // Form completed data
     private formData: FormData | null;
+    /** The end screen picked by the FINISH route taken (DD-29); unset = default. */
+    private endScreenId: string | undefined;
     private id: string;
 
     // Language the survey is shown in (multi-language surveys). Unset until
@@ -1202,6 +1211,21 @@ export class Form {
     }
 
     /**
+     * The end screen this session ends on (DD-29): the one picked by the FINISH
+     * route, with its message in the served language, or null for the default
+     * end screen (also when the id is not in `style.endScreens`).
+     */
+    private endScreen(): {id: string; message: string} | null {
+        if (!this.endScreenId) return null;
+        const screens = this.formData?.style?.endScreens;
+        const screen = Array.isArray(screens)
+            ? screens.find((s: any) => s?.id === this.endScreenId)
+            : undefined;
+        if (!screen) return null;
+        return {id: screen.id, message: typeof screen.message === "string" ? screen.message : ""};
+    }
+
+    /**
      * Finish the form
      * @public
      */
@@ -1210,13 +1234,17 @@ export class Form {
         this.completed = true;
         this.timeToCompleted = Date.now() - this.timeToCompleted;
         this.feedback.metadata.push({key: "time-to-complete", value: [this.timeToCompleted.toString()]});
+        const endScreen = this.endScreen();
+        if (endScreen) this.feedback.metadata.push({key: "end-screen", value: [endScreen.id]});
         if (this.formOptionsConfig.addSuccessScreen) {
             const container = document.getElementById("magicfeedback-container-" + this.appId) as HTMLElement;
             // Remove the form
             if (container.childNodes.length > 0) container.removeChild(container.childNodes[0]);
 
             // Show the success message
+            // The editor stores end screen messages as HTML; this screen shows text.
             const successMessage = renderSuccess(
+                htmlToText(endScreen?.message) ||
                 this.formOptionsConfig.successMessage ||
                 t(this.lang(), "message.success")
             );
@@ -1243,6 +1271,7 @@ export class Form {
                         progress: this.progress,
                         total: this.total,
                         completed: this.completed,
+                        endScreen,
                         error
                     });
                 }
@@ -1259,6 +1288,7 @@ export class Form {
                     progress: this.progress,
                     total: this.total,
                     completed: this.completed,
+                    endScreen,
                     error: null
                 });
             }
@@ -1276,6 +1306,7 @@ export class Form {
                     progress: this.progress,
                     total: this.total,
                     completed: this.completed,
+                    endScreen,
                     error
                 });
             }
@@ -1604,6 +1635,7 @@ export class Form {
         let nextPage = this.graph.getNextPage(routingNode, routingAnswers);
 
         if (!nextPage) {
+            this.endScreenId = this.graph.getEndScreenId(routingNode, routingAnswers);
             this.finish();
             return;
         }
