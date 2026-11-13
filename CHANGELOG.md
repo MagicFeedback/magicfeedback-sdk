@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## [Unreleased]
+## 🚀 [2.2.42] - 2026-11-13
 - **New (end screens, DD-29):** a survey can have more than one end screen. A `FINISH` route whose `transitionDestiny` is the id of one of `style.endScreens` (`[{id, message}]`, served by the API in the survey language) ends on that screen; `FINISH` without destiny, or with an id that is not in `style.endScreens`, keeps the default one. The completion `afterSubmitEvent` carries `endScreen: {id, message} | null`, the completion push adds the metadata `end-screen` (the id), and with `addSuccessScreen` the SDK shows the screen's message as text. Surveys without end screens are unchanged.
 - **Tests:** `test/form.test.ts` ("Form.finish end screens").
 
