@@ -17,6 +17,7 @@ import {Form} from "../src/models/form";
 import {Config} from "../src/models/config";
 import {FormData} from "../src/models/formData";
 import {Page} from "../src/models/page";
+import {ConditionType, OperatorType, PageRoute, TransitionType} from "../src/models/pageRoute";
 import {PageNode} from "../src/models/pageNode";
 import * as requestService from "../src/services/request.service";
 import {renderMaxDiff} from "../src/render/renderMaxDiff";
@@ -1094,6 +1095,103 @@ describe("Form.finish", () => {
         await completeSurvey(false);
 
         expect(document.getElementById("magicfeedback-app-id")).not.toBeNull();
+    });
+});
+
+/**
+ * DD-29: a FINISH route picks one of the survey's end screens.
+ */
+describe("Form.finish end screens", () => {
+    let container: HTMLElement;
+    let logSpy: ReturnType<typeof jest.spyOn>;
+    let sendSpy: ReturnType<typeof jest.spyOn>;
+    let sent: any[];
+    let events: any[];
+
+    const endScreens = [
+        {id: "promoters", message: "<p>Leave us a <b>review</b></p>"},
+        {id: "others", message: "<p>Thanks anyway</p>"},
+    ];
+
+    // One NPS-like question; 9 or more finishes on "promoters", otherwise the
+    // DIRECT route finishes on `directDestiny`.
+    const completeWith = async (answer: string, directDestiny = "", addSuccessScreen = true) => {
+        const question = buildQuestion({id: "1", title: "Score", ref: "score", position: 1});
+        const routes = [
+            new PageRoute("r1", "score", OperatorType.GREATEREQUAL, ["9"], TransitionType.FINISH, "promoters", "page-1", ConditionType.LOGICAL),
+            new PageRoute("r2", "score", OperatorType.NOEQUAL, [], TransitionType.FINISH, directDestiny, "page-1", ConditionType.DIRECT),
+        ];
+        const form = new Form(new Config(), "app-id", "public-key");
+        const pages = [new Page("page-1", 1, "integration-1", [question], routes)];
+        const formData = buildFormData([question], pages);
+        formData.style = {endScreens};
+        (form as any).formData = formData;
+        (form as any).selector = "form-container";
+        (form as any).formOptionsConfig = {
+            ...(form as any).formOptionsConfig,
+            addSuccessScreen,
+            afterSubmitEvent: (e: any) => { events.push(e); },
+        };
+        (form as any).config.set("url", "https://api.test");
+        await (form as any).generateForm();
+
+        (container.querySelector('input[name="score"]') as HTMLInputElement).value = answer;
+        await form.send();
+        for (let i = 0; i < 10; i++) await Promise.resolve();
+        return form;
+    };
+
+    const completion = () => sent.find((b) => b.completed);
+    const completedEvent = () => events.find((e) => e.completed && e.response);
+
+    beforeEach(() => {
+        document.body.innerHTML = "";
+        container = document.createElement("div");
+        container.id = "form-container";
+        document.body.appendChild(container);
+        logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+        sent = [];
+        events = [];
+        sendSpy = jest.spyOn(requestService, "sendFeedback").mockImplementation(async (_url, body) => {
+            sent.push(JSON.parse(JSON.stringify(body)));
+            return "session-1";
+        });
+    });
+
+    afterEach(() => {
+        container.remove();
+        logSpy.mockRestore();
+        sendSpy.mockRestore();
+    });
+
+    test("a matching FINISH route ends on its end screen", async () => {
+        await completeWith("10");
+
+        expect(completedEvent().endScreen).toEqual(endScreens[0]);
+        expect(completion().feedback.metadata).toEqual(
+            expect.arrayContaining([{key: "end-screen", value: ["promoters"]}])
+        );
+        expect(container.querySelector(".magicfeedback-success")?.textContent).toBe("Leave us a review");
+    });
+
+    test("the DIRECT FINISH route can pick another end screen", async () => {
+        await completeWith("3", "others");
+
+        expect(completedEvent().endScreen).toEqual(endScreens[1]);
+    });
+
+    test("a FINISH route without destiny keeps the default end screen", async () => {
+        await completeWith("3", "");
+
+        expect(completedEvent().endScreen).toBeNull();
+        expect(completion().feedback.metadata.some((m: any) => m.key === "end-screen")).toBe(false);
+        expect(container.querySelector(".magicfeedback-success")?.textContent).toBe("Thank you for your feedback!");
+    });
+
+    test("an id missing from style.endScreens falls back to the default", async () => {
+        await completeWith("3", "deleted-screen");
+
+        expect(completedEvent().endScreen).toBeNull();
     });
 });
 

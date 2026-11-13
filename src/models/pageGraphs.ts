@@ -116,6 +116,20 @@ export class PageGraph {
     }
 
     /**
+     * The end screen a respondent finishing on `currentNode` gets (DD-29): the
+     * `transitionDestiny` of the FINISH route that applies, undefined for the
+     * default end screen (no FINISH route, or one without a destiny).
+     * @param currentNode
+     * @param answer - answer to the question in the current page
+     **/
+    getEndScreenId(currentNode: PageNode, answer: NativeAnswer[]): string | undefined {
+        if (!currentNode) return undefined;
+        const route = this.findRoute(currentNode, answer);
+        if (route?.transition !== TransitionType.FINISH) return undefined;
+        return route.transitionDestiny || undefined;
+    }
+
+    /**
      * Get the route the respondent takes out of the current page given the
      * answer, without following it (getNextPage acts on a REDIRECT).
      * @param currentNode
