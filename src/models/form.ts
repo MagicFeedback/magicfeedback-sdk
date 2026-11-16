@@ -1856,6 +1856,10 @@ export class Form {
 
         if (clearContainer) container.innerHTML = "";
 
+        // The default stylesheet scopes its element rules (inputs, p, h2) to
+        // the survey; this marks the preview host as part of it.
+        container.classList.add("magicfeedback-preview");
+
         // Same per-integration primary color as the full form flow — see
         // applyPrimaryColor() for why hover/light/border are recomputed too.
         if (style?.primaryColor) applyPrimaryColor(container, style.primaryColor);
