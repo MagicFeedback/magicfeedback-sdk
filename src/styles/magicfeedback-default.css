@@ -350,7 +350,13 @@
     margin-bottom: var(--mf-space-sm);
 }
 
-h2 {
+/* Element rules (h2, p, inputs, ...) are scoped to the survey container, the
+   previewQuestion() host and the priority-list modal, which is portaled to
+   <body>. This sheet is
+   loaded on the host page, so a bare `p` or `input` would restyle the host
+   app too. :where() keeps the specificity of the bare selector, so every
+   .magicfeedback-* rule still wins over these as before. */
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) h2 {
     font-size: var(--mf-font-size-xl);
     font-weight: 600;
     color: var(--mf-text-primary);
@@ -359,7 +365,7 @@ h2 {
     letter-spacing: -0.01em;
 }
 
-p {
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) p {
     margin: 0;
     font-size: var(--mf-font-size-sm);
     color: var(--mf-text-secondary);
@@ -368,13 +374,13 @@ p {
 /* ========================================
    FORM INPUTS
    ======================================== */
-input[type="date"],
-input[type="text"],
-input[type="number"],
-input[type="email"],
-input[type="password"],
-textarea,
-select {
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="date"],
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="text"],
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="number"],
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="email"],
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="password"],
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) textarea,
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) select {
     padding: 0.75rem 0.9rem;
     font-size: var(--mf-font-size-base);
     font-family: inherit;
@@ -389,29 +395,29 @@ select {
     box-shadow: var(--mf-shadow-sm);
 }
 
-textarea {
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) textarea {
     min-height: 100px;
     resize: vertical;
 }
 
-input::placeholder,
-textarea::placeholder {
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input::placeholder,
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) textarea::placeholder {
     color: var(--mf-text-muted);
 }
 
 /* Remove number input spinners */
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input::-webkit-outer-spin-button,
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
 
-input[type="number"] {
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="number"] {
     /* -moz-appearance: textfield; removed for lint compatibility */
 }
 
 /* Custom Select Arrow */
-select {
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right var(--mf-space-md) center;
@@ -419,9 +425,9 @@ select {
 }
 
 /* Error State */
-input.error,
-select.error,
-textarea.error {
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input.error,
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) select.error,
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) textarea.error {
     border-color: var(--mf-error);
 }
 
@@ -1697,13 +1703,13 @@ textarea.error {
         font-size: var(--mf-font-size-base);
     }
 
-    input[type="date"],
-    input[type="text"],
-    input[type="number"],
-    input[type="email"],
-    input[type="password"],
-    textarea,
-    select {
+    :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="date"],
+    :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="text"],
+    :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="number"],
+    :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="email"],
+    :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) input[type="password"],
+    :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) textarea,
+    :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) select {
         padding: 0.85rem 0.95rem;
         font-size: 1rem;
         min-height: 46px;
@@ -1765,9 +1771,9 @@ textarea.error {
    ACCESSIBILITY
    ======================================== */
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop), :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) *,
+    :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop)::before, :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) *::before,
+    :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop)::after, :where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop) *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
@@ -2029,7 +2035,7 @@ textarea.error {
 
 /* background-position has no logical form: move the select caret to the
    left edge, opposite the padding that inset-inline-end already mirrored. */
-[dir="rtl"] select {
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop)[dir="rtl"] select {
     background-position: left var(--mf-space-md) center;
 }
 
@@ -2037,12 +2043,12 @@ textarea.error {
    even in an Arabic survey: keep their own direction LTR so punctuation
    (@, ., +, /) lands where the user expects, but align them to the start of
    the RTL line so they still read as part of the form. */
-[dir="rtl"] input[type="email"],
-[dir="rtl"] input[type="url"],
-[dir="rtl"] input[type="number"],
-[dir="rtl"] input[type="tel"],
-[dir="rtl"] input[type="date"],
-[dir="rtl"] input[type="time"] {
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop)[dir="rtl"] input[type="email"],
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop)[dir="rtl"] input[type="url"],
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop)[dir="rtl"] input[type="number"],
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop)[dir="rtl"] input[type="tel"],
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop)[dir="rtl"] input[type="date"],
+:where(.magicfeedback-container, .magicfeedback-preview, .magicfeedback-modal-backdrop)[dir="rtl"] input[type="time"] {
     direction: ltr;
     text-align: right;
 }
