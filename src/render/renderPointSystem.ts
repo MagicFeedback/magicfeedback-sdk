@@ -23,7 +23,7 @@ export const renderPointSystem: QuestionRenderer = ({
     const errorMessage = document.createElement("div");
     errorMessage.classList.add("magicfeedback-error");
     errorMessage.textContent = placeholder.pointsystemerror(language || 'en');
-    errorMessage.style.color = "#C70039";
+    errorMessage.style.color = "var(--mf-danger-text, #C70039)";
     errorMessage.style.fontSize = "14px";
     errorMessage.style.textAlign = "end";
     errorMessage.style.width = "100%";
@@ -75,7 +75,7 @@ export const renderPointSystem: QuestionRenderer = ({
 
         const percentSymbol = document.createElement("span");
         percentSymbol.textContent = "%";
-        percentSymbol.style.color = "#000";
+        percentSymbol.style.color = "var(--mf-text-strong, #000)";
 
         itemInput.addEventListener("input", () => {
             const allInputs = pointSystemList.querySelectorAll("input");

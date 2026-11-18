@@ -48,8 +48,8 @@ export function generateContainer(selector: string, id: string): HTMLElement {
 export function applyPrimaryColor(container: HTMLElement, primaryColor: string): void {
     container.style.setProperty('--mf-primary', primaryColor);
     container.style.setProperty('--mf-primary-hover', `color-mix(in srgb, ${primaryColor} 85%, black)`);
-    container.style.setProperty('--mf-primary-light', `color-mix(in srgb, ${primaryColor} 15%, white)`);
-    container.style.setProperty('--mf-primary-border', `color-mix(in srgb, ${primaryColor} 35%, transparent)`);
+    container.style.setProperty('--mf-primary-light', `color-mix(in srgb, ${primaryColor} var(--mf-primary-light-mix, 15%), var(--mf-tint-base, white))`);
+    container.style.setProperty('--mf-primary-border', `color-mix(in srgb, ${primaryColor} var(--mf-primary-border-mix, 35%), transparent)`);
     container.style.setProperty('--mf-border-focus', primaryColor);
 }
 
@@ -72,4 +72,140 @@ export function applyDirection(container: HTMLElement, language?: string): void 
 
     container.setAttribute("dir", rtl ? "rtl" : "ltr");
     container.classList.toggle("magicfeedback-rtl", rtl);
+}
+
+/** Light or dark palette for the survey (DD-238). */
+export type ColorMode = "light" | "dark";
+
+/**
+ * Below this relative luminance (WCAG, 0 = black, 1 = white) a background is
+ * treated as dark. 0.2 is about where light text (#F1F5F9) starts to contrast
+ * better than the default dark text (#1E293B): mid grey #808080 is 0.216 and
+ * stays light, Danske Spil-like navies and #333 are well below.
+ */
+export const DARK_LUMINANCE_THRESHOLD = 0.2;
+
+const isColorValue = (value: unknown): value is string =>
+    typeof value === "string" && value.trim() !== "" && !/[;{}]/.test(value);
+
+/**
+ * Parses a CSS color into [r, g, b, a] (0-255, alpha 0-1). Handles hex and
+ * rgb()/rgba() directly; anything else (names, hsl()) goes through the
+ * browser when there is one. Returns null for values it cannot read.
+ */
+export function parseColor(value: unknown): [number, number, number, number] | null {
+    if (!isColorValue(value)) return null;
+    const v = value.trim().toLowerCase();
+
+    const hex = v.match(/^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/);
+    if (hex) {
+        let h = hex[1];
+        if (h.length <= 4) h = h.split("").map((c) => c + c).join("");
+        const n = (i: number) => parseInt(h.slice(i, i + 2), 16);
+        return [n(0), n(2), n(4), h.length === 8 ? n(6) / 255 : 1];
+    }
+
+    const rgb = v.match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/);
+    if (rgb) {
+        const a = rgb[4] === undefined ? 1 :
+            rgb[4].endsWith("%") ? parseFloat(rgb[4]) / 100 : parseFloat(rgb[4]);
+        return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3]), a];
+    }
+
+    if (v === "transparent") return [0, 0, 0, 0];
+    if (v === "white") return [255, 255, 255, 1];
+    if (v === "black") return [0, 0, 0, 1];
+
+    // Other syntaxes: let the browser normalise it to rgb().
+    if (typeof document === "undefined" || !document.body || typeof getComputedStyle !== "function") return null;
+    const probe = document.createElement("span");
+    probe.style.color = v;
+    if (!probe.style.color) return null;
+    probe.style.display = "none";
+    document.body.appendChild(probe);
+    const computed = getComputedStyle(probe).color;
+    probe.remove();
+    return computed && computed.toLowerCase() !== v ? parseColor(computed) : null;
+}
+
+/** WCAG relative luminance of an opaque color, or null if it cannot be read. */
+export function relativeLuminance(value: unknown): number | null {
+    const c = parseColor(value);
+    if (!c) return null;
+    const lin = (x: number) => {
+        const s = x / 255;
+        return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+}
+
+/** True for a readable, mostly opaque color darker than the threshold. */
+export function isDarkColor(value: unknown): boolean {
+    const c = parseColor(value);
+    if (!c || c[3] < 0.5) return false; // see-through: the host page decides
+    const l = relativeLuminance(value);
+    return l !== null && l < DARK_LUMINANCE_THRESHOLD;
+}
+
+/**
+ * Picks the palette for a survey. A forced mode from the host wins; otherwise
+ * the background the questions actually sit on decides: the Style's
+ * boxBackgroundColor (answer card), or backgroundColor when there is no box.
+ */
+export function resolveColorMode(style?: Record<string, any> | null, forced?: ColorMode | "auto"): ColorMode {
+    if (forced === "light" || forced === "dark") return forced;
+    const box = style?.boxBackgroundColor;
+    const usable = (c: unknown) => { const p = parseColor(c); return !!p && p[3] >= 0.5; };
+    const background = usable(box) ? box : style?.backgroundColor;
+    return isDarkColor(background) ? "dark" : "light";
+}
+
+// Style keys copied onto the dark tokens so the Style's own dark colors stay
+// exactly as designed (the [data-mf-mode="dark"] defaults are only a fallback).
+const DARK_STYLE_VARS: { key: string; vars: string[] }[] = [
+    {key: "boxBackgroundColor", vars: ["--mf-surface", "--mf-bg-secondary"]},
+    {key: "backgroundColor", vars: ["--mf-bg-primary"]},
+];
+
+/**
+ * Marks the container with data-mf-mode so the stylesheet swaps palettes.
+ * In dark mode the Style's dark background colors are written inline on the
+ * container too, so answer boxes and inputs match the card instead of the
+ * default dark surface. Always written (never only added) so a container
+ * reused for another survey can go back to light.
+ */
+export function applyColorMode(
+    container: HTMLElement,
+    style?: Record<string, any> | null,
+    forced?: ColorMode | "auto",
+): ColorMode {
+    const mode = resolveColorMode(style, forced);
+    container.setAttribute("data-mf-mode", mode);
+
+    DARK_STYLE_VARS.forEach(({key, vars}) => {
+        const value = style?.[key];
+        const keep = mode === "dark" && isDarkColor(value);
+        vars.forEach((cssVar) => {
+            if (keep) container.style.setProperty(cssVar, String(value).trim());
+            else container.style.removeProperty(cssVar);
+        });
+    });
+    return mode;
+}
+
+/**
+ * Copies the container's palette (data-mf-mode and inline --mf-* vars) onto
+ * an element that is portaled out of it, such as a modal moved to <body>.
+ */
+export function copyTheme(from: Element | null, to: HTMLElement): void {
+    if (!from) return;
+    const mode = from.getAttribute("data-mf-mode");
+    if (mode) to.setAttribute("data-mf-mode", mode);
+    else to.removeAttribute("data-mf-mode");
+    const style = (from as HTMLElement).style;
+    if (!style) return;
+    for (let i = 0; i < style.length; i++) {
+        const prop = style[i];
+        if (prop.startsWith("--mf-")) to.style.setProperty(prop, style.getPropertyValue(prop));
+    }
 }

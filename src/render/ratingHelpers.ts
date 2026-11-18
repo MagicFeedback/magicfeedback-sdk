@@ -69,7 +69,7 @@ export function createStarRating(
             if (!usePrimary) return;
             const style = (star as HTMLElement).style;
             if (filled) style.setProperty("color", "var(--mf-primary)", "important");
-            else style.setProperty("color", "#CCCCCC");
+            else style.setProperty("color", "var(--mf-star-empty, #CCCCCC)");
         });
     };
 
@@ -105,7 +105,7 @@ export function createStarRating(
         starElement.classList.add("rating__star");
         starElement.textContent = starFilled;
         starElement.style.fontSize = `${size}px`;
-        starElement.style.color = "#CCCCCC";
+        starElement.style.color = "var(--mf-star-empty, #CCCCCC)";
         starElement.style.cursor = "pointer";
 
         starElement.addEventListener("mouseenter", () => paintStars(i));

@@ -6,6 +6,12 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
+## [Unreleased]
+- **New (dark mode step 1, DD-238, Danske Spil):** a survey whose Style has a dark `boxBackgroundColor` (or `backgroundColor` when there is no box) now renders with a dark palette instead of black text and white answer boxes. The SDK puts `data-mf-mode="dark"` on the container (WCAG luminance below 0.2), the stylesheet swaps every `--mf-*` color token and sets `color-scheme: dark`, and the Style's own dark colors are kept for the card and answer boxes. Light Styles render exactly as before (pixel-identical).
+- **New (option):** `generate(selector, {mode: "light" | "dark" | "auto"})` (and `previewQuestion(..., {mode})`) lets the host force the palette; `"auto"` (default) follows the Style.
+- **Change:** the hard-coded colors left in the stylesheet and render code (white text on primary, stars, modal, overlay, point-system error, priority-list arrows) now use tokens (`--mf-on-primary`, `--mf-star`, `--mf-star-empty`, `--mf-overlay`, `--mf-shadow-modal`, `--mf-danger-text`, `--mf-text-strong`, `--mf-tint-base`). The priority-list modal carries the container's palette and brand color when it moves to `<body>`.
+- **Tests:** `test/colorMode.test.ts`.
+
 ## 🚀 [2.2.43] - 2026-11-17
 - **Fix (host page styles, DD-180, ATP):** `magicfeedback-default.css` no longer restyles the host page. Its bare element rules (`h2`, `p`, `input`, `textarea`, `select`, `.error` inputs, the RTL `select`/`input` rules and the reduced-motion `*` rule) now only apply inside `.magicfeedback-container`, the `previewQuestion()` host (which now gets the class `magicfeedback-preview`) and the priority-list modal. They are wrapped in `:where()`, so their specificity is unchanged and the survey renders exactly as before (preview of every question type is pixel-identical). Hosts that relied on our global `p`/`h2`/input styles for their own markup lose them.
 - **Tests:** `test/defaultCssScope.test.ts` fails on any unscoped selector.

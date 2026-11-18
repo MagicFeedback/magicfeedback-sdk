@@ -7,7 +7,7 @@ import {getFollowUpQuestion, getForm, getSessionForm, sendFeedback, validateEmai
 import {FormData} from "./formData";
 import {renderActions, renderQuestions, renderStartMessage, renderSuccess} from "../services/questions.service";
 import {awaitUploadReady, getUploadValues} from "../render/uploadHelpers";
-import {applyDirection, applyPrimaryColor, generateContainer} from "../render/containerHelpers";
+import {applyColorMode, applyDirection, applyPrimaryColor, generateContainer} from "../render/containerHelpers";
 import {scrapeInputs} from "../services/answerScrape";
 import {PageGraph} from "./pageGraphs";
 import {Page} from "./page";
@@ -430,6 +430,9 @@ export class Form {
         // formulas so they resolve fresh against the new color.
         const primaryColor = this.formData?.style?.primaryColor;
         if (primaryColor) applyPrimaryColor(container, primaryColor);
+
+        // Dark Style background (or a forced mode) → dark palette (DD-238).
+        applyColorMode(container, this.formData?.style, this.formOptionsConfig?.mode);
 
         // Arabic (and any future RTL language) renders mirrored; everything
         // else is explicitly marked ltr so a container is never left rtl from
@@ -1837,6 +1840,7 @@ export class Form {
             style?: Record<string, any>;
             clearContainer?: boolean; // default true
             wrap?: boolean; // whether to create a wrapper div with a class
+            mode?: "light" | "dark" | "auto"; // see generateFormOptions.mode
         }
     ): HTMLElement {
         const questionsArray: NativeQuestion[] = Array.isArray(question) ? question : [question];
@@ -1852,6 +1856,7 @@ export class Form {
             style = this.formData?.style || {},
             clearContainer = true,
             wrap = true,
+            mode = this.formOptionsConfig?.mode,
         } = options || {};
 
         if (clearContainer) container.innerHTML = "";
@@ -1863,6 +1868,7 @@ export class Form {
         // Same per-integration primary color as the full form flow — see
         // applyPrimaryColor() for why hover/light/border are recomputed too.
         if (style?.primaryColor) applyPrimaryColor(container, style.primaryColor);
+        applyColorMode(container, style, mode);
 
         applyDirection(container, language);
 

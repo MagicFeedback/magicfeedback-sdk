@@ -16,7 +16,7 @@ import {
     toAgentStep,
 } from "../services/agentQuestion.adapter";
 import {scrapeInputs} from "../services/answerScrape";
-import {applyDirection, applyPrimaryColor, generateContainer} from "../render/containerHelpers";
+import {applyColorMode, applyDirection, applyPrimaryColor, generateContainer} from "../render/containerHelpers";
 import {awaitUploadReady} from "../render/uploadHelpers";
 import {renderActions, renderError, renderQuestions, renderStartMessage, renderSuccess} from "../services/questions.service";
 import {t} from "../services/i18n";
@@ -189,6 +189,7 @@ export class AgentForm {
     private renderWelcome(startMessage: string): void {
         const container = generateContainer(this.selector, this.integrationId);
         if (this.primaryColor) applyPrimaryColor(container, this.primaryColor);
+        applyColorMode(container, this.integrationData?.style, this.formOptionsConfig?.mode);
         applyDirection(container, this.language);
 
         container.appendChild(renderStartMessage(
@@ -506,6 +507,7 @@ export class AgentForm {
     private mountForm(): void {
         const container = generateContainer(this.selector, this.integrationId);
         if (this.primaryColor) applyPrimaryColor(container, this.primaryColor);
+        applyColorMode(container, this.integrationData?.style, this.formOptionsConfig?.mode);
         applyDirection(container, this.language);
 
         const form = document.createElement("form");
@@ -644,6 +646,7 @@ export class AgentForm {
     private renderFatal(error: any): void {
         try {
             const container = generateContainer(this.selector, this.integrationId);
+            applyColorMode(container, this.integrationData?.style, this.formOptionsConfig?.mode);
             container.appendChild(renderError(this.errorMessageFor(error)));
         } catch (e) {
             // The container itself is missing; the thrown error is already logged.

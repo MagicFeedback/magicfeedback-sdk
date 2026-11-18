@@ -372,6 +372,13 @@ export type generateFormOptions = {
      * Missing or false: no automatic focus (the behaviour so far).
      */
     autofocus?: "always" | "navigation" | false;
+    /**
+     * Light or dark palette (DD-238). "auto" (default) picks it from the
+     * survey Style: a dark boxBackgroundColor (or backgroundColor when there is
+     * no box) renders the dark palette. "light" / "dark" force it, for hosts
+     * that follow their app's own appearance.
+     */
+    mode?: "light" | "dark" | "auto";
 };
 
 enum generateFormOptionsTag {
