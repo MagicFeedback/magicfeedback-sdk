@@ -376,7 +376,8 @@ export type generateFormOptions = {
      * Light or dark palette (DD-238). "auto" (default) picks it from the
      * survey Style: a dark boxBackgroundColor (or backgroundColor when there is
      * no box) renders the dark palette. "light" / "dark" force it, for hosts
-     * that follow their app's own appearance.
+     * that follow their app's own appearance. In dark the Style's optional
+     * `dark` block (same keys as the Style) is used first.
      */
     mode?: "light" | "dark" | "auto";
 };

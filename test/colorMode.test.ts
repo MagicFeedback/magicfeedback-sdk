@@ -114,6 +114,67 @@ describe("applyColorMode", () => {
         expect(el.style.getPropertyValue("--mf-surface")).toBe("");
     });
 
+    test("forced dark uses the Style's dark block first (DD-239)", () => {
+        const el = document.createElement("div");
+        applyPrimaryColor(el, "#3D5FA8");
+        applyColorMode(el, {
+            boxBackgroundColor: "#FFFFFF",
+            backgroundColor: "#FAFAFA",
+            primaryColor: "#3D5FA8",
+            dark: {boxBackgroundColor: "#1C1F26", backgroundColor: "#14161B", primaryColor: "#8EAAF0"},
+        }, "dark");
+        expect(el.getAttribute("data-mf-mode")).toBe("dark");
+        expect(el.style.getPropertyValue("--mf-surface")).toBe("#1C1F26");
+        expect(el.style.getPropertyValue("--mf-bg-primary")).toBe("#14161B");
+        expect(el.style.getPropertyValue("--mf-primary")).toBe("#8EAAF0");
+    });
+
+    test("dark block: buttonPrimaryColor is the primary fallback, light boxes are ignored", () => {
+        const el = document.createElement("div");
+        applyColorMode(el, {dark: {boxBackgroundColor: "#FFFFFF", buttonPrimaryColor: "#FDA4AF"}}, "dark");
+        expect(el.style.getPropertyValue("--mf-surface")).toBe("");
+        expect(el.style.getPropertyValue("--mf-primary")).toBe("#FDA4AF");
+    });
+
+    test("dark block falls back to a Style color that is already dark", () => {
+        const el = document.createElement("div");
+        applyColorMode(el, {boxBackgroundColor: "#111111", dark: {primaryColor: "#8EAAF0"}});
+        expect(el.getAttribute("data-mf-mode")).toBe("dark");
+        expect(el.style.getPropertyValue("--mf-surface")).toBe("#111111");
+        expect(el.style.getPropertyValue("--mf-primary")).toBe("#8EAAF0");
+    });
+
+    test("light mode ignores the dark block", () => {
+        const el = document.createElement("div");
+        applyColorMode(el, {boxBackgroundColor: "#FFFFFF", dark: {boxBackgroundColor: "#1C1F26", primaryColor: "#8EAAF0"}});
+        expect(el.getAttribute("data-mf-mode")).toBe("light");
+        expect(el.style.getPropertyValue("--mf-surface")).toBe("");
+        expect(el.style.getPropertyValue("--mf-primary")).toBe("");
+    });
+
+    test("going back to light drops the dark block primary, keeps the light one", () => {
+        const style = {primaryColor: "#3D5FA8", dark: {primaryColor: "#8EAAF0"}};
+        const el = document.createElement("div");
+        applyColorMode(el, style, "dark");
+        expect(el.style.getPropertyValue("--mf-primary")).toBe("#8EAAF0");
+        applyPrimaryColor(el, style.primaryColor); // what the form does before applyColorMode
+        applyColorMode(el, style, "light");
+        expect(el.style.getPropertyValue("--mf-primary")).toBe("#3D5FA8");
+
+        const bare = document.createElement("div");
+        applyColorMode(bare, {dark: {primaryColor: "#8EAAF0"}}, "dark");
+        applyColorMode(bare, {dark: {primaryColor: "#8EAAF0"}}, "light");
+        expect(bare.style.getPropertyValue("--mf-primary")).toBe("");
+        expect(bare.hasAttribute("data-mf-dark-primary")).toBe(false);
+    });
+
+    test("a dark block that is not an object is ignored", () => {
+        const el = document.createElement("div");
+        applyColorMode(el, {dark: "#000" as any}, "dark");
+        expect(el.style.getPropertyValue("--mf-surface")).toBe("");
+        expect(el.style.getPropertyValue("--mf-primary")).toBe("");
+    });
+
     test("copyTheme carries mode and brand color to a portaled element", () => {
         const from = document.createElement("div");
         applyPrimaryColor(from, "#ff0066");

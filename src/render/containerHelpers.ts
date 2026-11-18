@@ -167,12 +167,28 @@ const DARK_STYLE_VARS: { key: string; vars: string[] }[] = [
     {key: "backgroundColor", vars: ["--mf-bg-primary"]},
 ];
 
+// Primary keys the Style's `dark` block may carry, in order: the survey's own
+// primaryColor, then the popup's buttonPrimaryColor (same fallback as the popups).
+const DARK_PRIMARY_KEYS = ["primaryColor", "buttonPrimaryColor"];
+
+// Marks a container whose --mf-primary came from the `dark` block, so going
+// back to light can drop it.
+const DARK_PRIMARY_ATTR = "data-mf-dark-primary";
+
+/** The Style's optional `dark` block (DD-239): same keys as the Style, for dark mode. */
+function darkBlock(style?: Record<string, any> | null): Record<string, any> | null {
+    const d = style?.dark;
+    return d && typeof d === "object" && !Array.isArray(d) ? d : null;
+}
+
 /**
  * Marks the container with data-mf-mode so the stylesheet swaps palettes.
  * In dark mode the Style's dark background colors are written inline on the
  * container too, so answer boxes and inputs match the card instead of the
- * default dark surface. Always written (never only added) so a container
- * reused for another survey can go back to light.
+ * default dark surface. The Style's optional `dark` block (DD-239) comes
+ * first: its background colors (when dark) and its primary color. Always
+ * written (never only added) so a container reused for another survey can go
+ * back to light.
  */
 export function applyColorMode(
     container: HTMLElement,
@@ -181,15 +197,37 @@ export function applyColorMode(
 ): ColorMode {
     const mode = resolveColorMode(style, forced);
     container.setAttribute("data-mf-mode", mode);
+    const dark = mode === "dark" ? darkBlock(style) : null;
 
     DARK_STYLE_VARS.forEach(({key, vars}) => {
-        const value = style?.[key];
-        const keep = mode === "dark" && isDarkColor(value);
+        let value: unknown = null;
+        if (mode === "dark") {
+            // A light color in either place would put light text on a light box.
+            if (isDarkColor(dark?.[key])) value = dark![key];
+            else if (isDarkColor(style?.[key])) value = style![key];
+        }
         vars.forEach((cssVar) => {
-            if (keep) container.style.setProperty(cssVar, String(value).trim());
+            if (value !== null) container.style.setProperty(cssVar, String(value).trim());
             else container.style.removeProperty(cssVar);
         });
     });
+
+    const darkPrimary = DARK_PRIMARY_KEYS.map((k) => dark?.[k]).find((c) => {
+        const p = parseColor(c);
+        return !!p && p[3] >= 0.5;
+    });
+    if (darkPrimary) {
+        applyPrimaryColor(container, String(darkPrimary).trim());
+        container.setAttribute(DARK_PRIMARY_ATTR, "");
+    } else if (container.hasAttribute(DARK_PRIMARY_ATTR)) {
+        container.removeAttribute(DARK_PRIMARY_ATTR);
+        // The caller sets the light primaryColor right before this; without one,
+        // drop the dark block's so the stylesheet default comes back.
+        if (!style?.primaryColor) {
+            ["--mf-primary", "--mf-primary-hover", "--mf-primary-light", "--mf-primary-border", "--mf-border-focus"]
+                .forEach((v) => container.style.removeProperty(v));
+        }
+    }
     return mode;
 }
 
