@@ -79,7 +79,7 @@ export const renderMultipleChoiceImage: QuestionRenderer = ({
             containerLabel.style.cursor = "pointer";
 
             containerLabel.addEventListener("click", () => {
-                containerLabel.style.border = "2px solid #000";
+                containerLabel.style.border = "2px solid var(--mf-text-strong, #000)";
             });
 
             const label = document.createElement("label");

@@ -1,4 +1,5 @@
 import {QuestionRenderer} from "./types";
+import {copyTheme} from "./containerHelpers";
 import {isRtlLanguage, t as translate, TranslationKey} from "../services/i18n";
 
 function createPriorityListElement(params: {
@@ -154,7 +155,7 @@ function createPriorityListElement(params: {
         backdrop.style.left = "0";
         backdrop.style.width = "100vw";
         backdrop.style.height = "100vh";
-        backdrop.style.background = "rgba(0,0,0,0.4)";
+        backdrop.style.background = "var(--mf-overlay, rgba(0,0,0,0.4))";
         backdrop.style.display = "none";
         backdrop.style.alignItems = "center";
         backdrop.style.justifyContent = "center";
@@ -162,9 +163,10 @@ function createPriorityListElement(params: {
 
         const modal = document.createElement("div");
         modal.classList.add("magicfeedback-modal");
-        modal.style.background = "#fff";
+        modal.style.background = "var(--mf-surface, #fff)";
+        modal.style.color = "var(--mf-text-primary)";
         modal.style.borderRadius = "8px";
-        modal.style.boxShadow = "0 8px 24px rgba(0,0,0,0.2)";
+        modal.style.boxShadow = "var(--mf-shadow-modal, 0 8px 24px rgba(0,0,0,0.2))";
         modal.style.maxWidth = "520px";
         modal.style.width = "90%";
         modal.style.maxHeight = "80vh";
@@ -274,6 +276,9 @@ function createPriorityListElement(params: {
         // into the container when it closes so the SDK's re-render cleanup
         // (container.innerHTML = "") still disposes of it on navigation.
         const openModal = () => {
+            // Leaving the container also leaves its palette (dark mode, brand
+            // color), so carry it over (DD-238).
+            copyTheme(backdrop.closest(".magicfeedback-container, .magicfeedback-preview"), backdrop);
             document.body.appendChild(backdrop);
             backdrop.style.display = "flex";
             setTitleForSelection();
@@ -359,7 +364,7 @@ function createPriorityListElement(params: {
         upArrow.style.height = "20px";
         upArrow.style.cursor = "pointer";
         upArrow.style.margin = "0 5px";
-        upArrow.style.color = "#000";
+        upArrow.style.color = "var(--mf-text-strong, #000)";
         upArrow.style.visibility = index === 0 ? "hidden" : "visible";
 
         upArrow.addEventListener("click", () => {
@@ -395,7 +400,7 @@ function createPriorityListElement(params: {
         downArrow.style.height = "20px";
         downArrow.style.cursor = "pointer";
         downArrow.style.margin = "0 5px";
-        downArrow.style.color = "#000";
+        downArrow.style.color = "var(--mf-text-strong, #000)";
         downArrow.style.transform = "rotate(180deg)";
         downArrow.style.visibility = index === options.length - 1 ? "hidden" : "visible";
 

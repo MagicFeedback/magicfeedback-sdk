@@ -20,11 +20,16 @@
        scale below, not tied to the brand color. */
     --mf-primary: #5d7bad;
     --mf-primary-hover: color-mix(in srgb, var(--mf-primary) 85%, black);
-    --mf-primary-light: color-mix(in srgb, var(--mf-primary) 15%, white);
+    /* --mf-tint-base is what light tints mix into: white here, the dark
+       surface in dark mode (DD-238). */
+    --mf-tint-base: #FFFFFF;
+    --mf-primary-light-mix: 15%;
+    --mf-primary-border-mix: 35%;
+    --mf-primary-light: color-mix(in srgb, var(--mf-primary) var(--mf-primary-light-mix), var(--mf-tint-base));
     /* a translucent tint — mixed with transparent (opacity), not white,
        so it reads as a soft shadow of the brand color rather than a
        pastel of it. */
-    --mf-primary-border: color-mix(in srgb, var(--mf-primary) 35%, transparent);
+    --mf-primary-border: color-mix(in srgb, var(--mf-primary) var(--mf-primary-border-mix), transparent);
 
     --mf-text-primary: #1E293B;
     --mf-text-secondary: #475569;
@@ -44,6 +49,15 @@
     --mf-surface: #FFFFFF;
     --mf-surface-alt: #F1F5F9;
     --mf-accent: #38BDF8;
+
+    /* Colors that used to be hard-coded in rules and render code (DD-238) */
+    --mf-on-primary: #FFFFFF;
+    --mf-text-strong: #000000;
+    --mf-danger-text: #C70039;
+    --mf-star: #fbbf24;
+    --mf-star-empty: #CCCCCC;
+    --mf-overlay: rgba(0, 0, 0, 0.4);
+    --mf-shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.2);
 
     /* Spacing */
     --mf-space-xs: 0.25rem;
@@ -83,6 +97,58 @@
     /* Transitions */
     --mf-transition: all 0.2s ease;
     --mf-transition-fast: all 0.15s ease;
+}
+
+/* ========================================
+   DARK MODE (DD-238)
+   Set by the SDK on the container (and the portaled modal backdrop) when the
+   survey Style background is dark, or when the host forces mode: 'dark'.
+   The Style's own dark background colors are written inline on the same
+   element, so they win over the defaults below; the derived tokens use var()
+   so they resolve against those inline values.
+   ======================================== */
+.magicfeedback-container[data-mf-mode="dark"],
+.magicfeedback-preview[data-mf-mode="dark"],
+.magicfeedback-modal-backdrop[data-mf-mode="dark"] {
+    color-scheme: dark;
+
+    --mf-text-primary: #F1F5F9;
+    --mf-text-secondary: #CBD5E1;
+    --mf-text-muted: #94A3B8;
+    --mf-text-strong: #FFFFFF;
+
+    --mf-bg-primary: #0F172A;
+    --mf-bg-secondary: #1E293B;
+    --mf-surface: #1E293B;
+    --mf-surface-alt: color-mix(in srgb, var(--mf-surface) 90%, white);
+    --mf-bg-hover: color-mix(in srgb, var(--mf-surface) 84%, white);
+    --mf-border: color-mix(in srgb, var(--mf-surface) 72%, white);
+
+    --mf-tint-base: var(--mf-surface);
+    --mf-primary-light-mix: 30%;
+    --mf-primary-border-mix: 55%;
+    --mf-primary-light: color-mix(in srgb, var(--mf-primary) var(--mf-primary-light-mix), var(--mf-tint-base));
+    --mf-primary-border: color-mix(in srgb, var(--mf-primary) var(--mf-primary-border-mix), transparent);
+
+    --mf-success: #4ADE80;
+    --mf-error: #F87171;
+    --mf-warning: #FBBF24;
+    --mf-danger-text: #FF8FA3;
+    --mf-star-empty: color-mix(in srgb, var(--mf-surface) 60%, white);
+    --mf-overlay: rgba(0, 0, 0, 0.6);
+
+    --mf-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --mf-shadow-md: 0 8px 20px rgba(0, 0, 0, 0.35);
+    --mf-shadow-lg: 0 16px 30px rgba(0, 0, 0, 0.45);
+    --mf-shadow-focus: 0 0 0 3px rgba(241, 245, 249, 0.25);
+    --mf-shadow-card: 0 18px 40px rgba(0, 0, 0, 0.35);
+    --mf-shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Priority list arrows are a black SVG image: flip them to light. */
+[data-mf-mode="dark"] .magicfeedback-priority-list-arrow-up,
+[data-mf-mode="dark"] .magicfeedback-priority-list-arrow-down {
+    filter: invert(1);
 }
 
 /* ========================================
@@ -462,7 +528,7 @@
     font-size: 1.35rem;
     font-weight: var(--mf-font-weight-extrabold);
     line-height: 1;
-    color: #FFFFFF;
+    color: var(--mf-on-primary);
     background-color: var(--mf-secondary, #2E2E2E);
     border: 2px solid var(--mf-secondary, #2E2E2E);
     border-radius: var(--mf-radius-full);
@@ -928,7 +994,7 @@
 
 .magicfeedback-rating-number-option-row .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value,
 .magicfeedback-rating-number-option-row-reverse .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
-    color: #fff;
+    color: var(--mf-on-primary);
     background-color: var(--mf-primary);
     box-shadow: var(--mf-shadow-md);
 }
@@ -965,7 +1031,7 @@
 }
 
 .magicfeedback-rating-number-option--extra .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
-    color: #fff;
+    color: var(--mf-on-primary);
     background-color: var(--mf-primary);
     box-shadow: var(--mf-shadow-md);
 }
@@ -1001,7 +1067,7 @@
 
 .magicfeedback-rating-number-option-column .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value,
 .magicfeedback-rating-number-option-column-reverse .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
-    color: #fff;
+    color: var(--mf-on-primary);
     background-color: var(--mf-primary);
     box-shadow: var(--mf-shadow-md);
 }
@@ -1033,7 +1099,7 @@
 
 .magicfeedback-rating-number-option-column .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value,
 .magicfeedback-rating-number-option-column-reverse .magicfeedback-rating-number-option-label-container input[type="radio"]:checked + .magicfeedback-rating-number-value {
-    color: #fff;
+    color: var(--mf-on-primary);
     background-color: var(--mf-primary);
 }
 
@@ -1052,12 +1118,12 @@
 
 .magicfeedback-rating-star-option:not(:checked) > .rating__star:hover,
 .magicfeedback-rating-star-option:not(:checked) > .rating__star:hover ~ span {
-    color: #fbbf24;
+    color: var(--mf-star);
     transform: scale(1.1);
 }
 
 .magicfeedback-rating-star-selected {
-    color: #fbbf24 !important;
+    color: var(--mf-star) !important;
 }
 
 /* ========================================
@@ -1265,6 +1331,10 @@
     width: 100%;
 }
 
+[data-mf-mode="dark"] .magicfeedback-max-diff {
+    --mf-max-diff-worst: #F59E0B;
+}
+
 .magicfeedback-max-diff-container {
     width: 100%;
     /* the layout follows the space the survey gets (a pop-in, a sidebar),
@@ -1387,7 +1457,7 @@
     width: 26px;
     height: 26px;
     margin: 0;
-    border: 2px solid color-mix(in srgb, var(--mf-text-secondary) 80%, white);
+    border: 2px solid color-mix(in srgb, var(--mf-text-secondary) 80%, var(--mf-tint-base));
     border-radius: var(--mf-radius-full);
     background: var(--mf-bg-secondary);
     cursor: pointer;
@@ -1400,12 +1470,12 @@
 
 .magicfeedback-max-diff-best:checked {
     border-color: var(--mf-primary);
-    background: radial-gradient(circle, #FFFFFF 0 4px, var(--mf-primary) 4.5px);
+    background: radial-gradient(circle, var(--mf-on-primary) 0 4px, var(--mf-primary) 4.5px);
 }
 
 .magicfeedback-max-diff-worst:checked {
     border-color: var(--mf-max-diff-worst);
-    background: radial-gradient(circle, #FFFFFF 0 4px, var(--mf-max-diff-worst) 4.5px);
+    background: radial-gradient(circle, var(--mf-on-primary) 0 4px, var(--mf-max-diff-worst) 4.5px);
 }
 
 .magicfeedback-max-diff-input:focus-visible {
@@ -1581,7 +1651,7 @@
     padding: 0.8rem 1.6rem;
     font-size: var(--mf-font-size-base);
     font-weight: 800;
-    color: #FFFFFF;
+    color: var(--mf-on-primary);
     background-color: var(--mf-primary);
     border: 2px solid var(--mf-primary);
     border-radius: var(--mf-radius-full);
@@ -1678,7 +1748,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0,0,0,0.4);
+    background: var(--mf-overlay);
     display: none; /* toggled to flex when open */
     align-items: center;
     justify-content: center;
@@ -1687,9 +1757,10 @@
 
 /* Modal container */
 .magicfeedback-modal {
-    background: #fff;
+    background: var(--mf-surface);
+    color: var(--mf-text-primary);
     border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    box-shadow: var(--mf-shadow-modal);
     max-width: 520px;
     width: 90%;
     max-height: 80vh;
@@ -1804,7 +1875,7 @@
 .magicfeedback-button-primary {
     border-color: var(--mf-primary);
     background: var(--mf-primary);
-    color: #fff;
+    color: var(--mf-on-primary);
     box-shadow: var(--mf-shadow-md);
 }
 
@@ -1818,7 +1889,7 @@
 
 /* Warning flash */
 .magicfeedback-warning {
-    color: #C70039;
+    color: var(--mf-danger-text);
 }
 
 /* Start message button */
@@ -1827,7 +1898,7 @@
     border: 2px solid var(--mf-primary);
     border-radius: var(--mf-radius-full);
     background: var(--mf-primary);
-    color: #fff;
+    color: var(--mf-on-primary);
     padding: 0.8rem 1.4rem;
     font-size: 15px;
     font-weight: 800;
@@ -1969,12 +2040,12 @@
     font-size: 20px;
     line-height: 1;
     cursor: pointer;
-    color: #666;
+    color: var(--mf-text-muted);
 }
 
 .magicfeedback-modal-close:hover,
 .magicfeedback-modal-close:focus {
-    color: #000;
+    color: var(--mf-text-strong);
     outline: none;
 }
 
