@@ -6,7 +6,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## [Unreleased]
+## 🚀 [2.2.44] - 2026-11-18
 - **New (dark mode step 1, DD-238, Danske Spil):** a survey whose Style has a dark `boxBackgroundColor` (or `backgroundColor` when there is no box) now renders with a dark palette instead of black text and white answer boxes. The SDK puts `data-mf-mode="dark"` on the container (WCAG luminance below 0.2), the stylesheet swaps every `--mf-*` color token and sets `color-scheme: dark`, and the Style's own dark colors are kept for the card and answer boxes. Light Styles render exactly as before (pixel-identical).
 - **New (option):** `generate(selector, {mode: "light" | "dark" | "auto"})` (and `previewQuestion(..., {mode})`) lets the host force the palette; `"auto"` (default) follows the Style.
 - **Change:** the hard-coded colors left in the stylesheet and render code (white text on primary, stars, modal, overlay, point-system error, priority-list arrows) now use tokens (`--mf-on-primary`, `--mf-star`, `--mf-star-empty`, `--mf-overlay`, `--mf-shadow-modal`, `--mf-danger-text`, `--mf-text-strong`, `--mf-tint-base`). The priority-list modal carries the container's palette and brand color when it moves to `<body>`.
