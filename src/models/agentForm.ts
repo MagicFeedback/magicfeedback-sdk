@@ -3,6 +3,7 @@ import {
     ConversationTurn,
     NativeAnswer,
     NativeQuestion,
+    FEEDBACKAPPANSWERTYPE,
     agentFormOptions,
 } from "./types";
 
@@ -16,6 +17,8 @@ import {
     toAgentStep,
 } from "../services/agentQuestion.adapter";
 import {scrapeInputs} from "../services/answerScrape";
+import {validateEmail} from "../services/request.service";
+import {SubmitError} from "../services/submitErrors";
 import {applyColorMode, applyDirection, applyPrimaryColor, generateContainer} from "../render/containerHelpers";
 import {awaitUploadReady} from "../render/uploadHelpers";
 import {renderActions, renderError, renderQuestions, renderStartMessage, renderSuccess} from "../services/questions.service";
@@ -66,7 +69,11 @@ export class AgentForm {
     private primaryColor?: string;
     // The integration payload when `Form` delegated to this class: hosts read
     // it from onLoadedEvent (style, texts) exactly as they do for a static form.
-    private integrationData: {lang?: string[]; product?: any; style?: Record<string, any>} | null;
+    private integrationData: {lang?: string[]; product?: any; style?: Record<string, any>; questions?: NativeQuestion[]} | null;
+    // The survey's own questions by ref. The agent API ships a base question
+    // without its assets (labels, exclusive answers...), so they are taken
+    // from here, as a static form would render them.
+    private baseQuestions: Map<string, NativeQuestion>;
     private started: boolean;
 
     // Conversation state
@@ -87,6 +94,14 @@ export class AgentForm {
     public total: number;
     public completed: boolean;
     public timeToCompleted: number;
+    /**
+     * Always true here: `total` is the most questions the agent may ask
+     * (maxTurns - 1), not how many it will ask. The conversation can end
+     * earlier, so a host should not show "Question 3 of 11" as a promise.
+     * Also sent in every event that carries `total`.
+     */
+    public readonly totalIsEstimate = true;
+    public readonly isDynamic = true;
 
     constructor(
         config: Config,
@@ -119,6 +134,7 @@ export class AgentForm {
         this.language = "en";
         this.product = {customIcons: false};
         this.integrationData = null;
+        this.baseQuestions = new Map();
         this.started = false;
 
         this.sessionId = "";
@@ -235,6 +251,7 @@ export class AgentForm {
                             loading: false,
                             progress: this.progress,
                             total: this.total,
+                            ...this.totalFlags(),
                             sessionId: this.sessionId,
                             formData: this.integrationData ?? undefined,
                             lang: this.language,
@@ -256,6 +273,7 @@ export class AgentForm {
                     loading: false,
                     progress: this.progress,
                     total: this.total,
+                    ...this.totalFlags(),
                     sessionId: this.sessionId,
                     formData: this.integrationData ?? undefined,
                     lang: this.language,
@@ -342,12 +360,20 @@ export class AgentForm {
 
             await awaitUploadReady(questionContainer);
 
-            const answers = scrapeInputs(formEl);
+            // Same checks as a static form (Form.send): an email with a typo
+            // is refused, and so is a required question left empty.
+            const invalid = this.validationError(questionContainer, question);
+            if (invalid) {
+                this.showFieldError(invalid);
+                return;
+            }
+
+            const answers = keepExclusiveAnswer(scrapeInputs(formEl), question);
             let lastAnswer = encodeAnswer(answers, question, this.formOptionsConfig.answerDelimiter);
 
             if (lastAnswer === "") {
                 if (question.require) {
-                    this.showError(this.formOptionsConfig.requiredMessage || t(this.language, "message.required"));
+                    this.showFieldError(new SubmitError("REQUIRED", "No response"));
                     return;
                 }
                 lastAnswer = this.formOptionsConfig.emptyAnswerText || "";
@@ -358,6 +384,7 @@ export class AgentForm {
                     loading: true,
                     progress: this.progress,
                     total: this.total,
+                    ...this.totalFlags(),
                 });
             }
 
@@ -432,6 +459,7 @@ export class AgentForm {
                     loading: false,
                     progress: this.progress,
                     total: this.total,
+                    ...this.totalFlags(),
                     completed: false,
                     error: null,
                 });
@@ -464,15 +492,43 @@ export class AgentForm {
                 loading: false,
                 progress: this.progress,
                 total: this.total,
+                ...this.totalFlags(),
                 completed: false,
                 error,
             });
         }
     }
 
+    /**
+     * The reason the answer on screen cannot be sent, or null.
+     * - INVALID_EMAIL: an email field holds text that is not an email address.
+     * - REQUIRED: fewer options than `assets.minOptions` are picked and none
+     *   of them is an exclusive answer (Form.send does the same).
+     */
+    private validationError(container: HTMLElement | null, question: NativeQuestion): SubmitError | null {
+        const emails = Array.from(container?.querySelectorAll<HTMLInputElement>('input[type="email"]') ?? []);
+        if (emails.some((input) => input.value.trim() !== "" && !validateEmail(input.value.trim()))) {
+            this.log.err("Invalid email");
+            return new SubmitError("INVALID_EMAIL", "Invalid email");
+        }
+
+        const minOptions = Number(question.assets?.minOptions) || 0;
+        if (question.require && minOptions > 0 && question.type === FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE) {
+            const exclusive: string[] = question.assets?.exclusiveAnswers || [];
+            const picked = Array.from(container?.querySelectorAll<HTMLInputElement>(`input[name="${question.ref}"]:checked`) ?? [])
+                .map((input) => input.value);
+            if (!picked.some((v) => exclusive.includes(v)) && picked.length < minOptions) {
+                this.log.err(`The question ${question.ref} requires at least ${minOptions} options`);
+                return new SubmitError("REQUIRED", "No response");
+            }
+        }
+        return null;
+    }
+
     /** Records a question into the transcript, refs and history. */
     private acceptQuestion(step: Extract<AgentStep, {kind: "QUESTION"}>): void {
-        const question = step.question;
+        const question = withBaseAssets(step.question, this.baseQuestions.get(step.question.ref));
+        step.question = question;
 
         // Base (admin-configured) refs must accumulate, or the agent re-asks them.
         if (step.isFromBase && question.ref && !this.askedRefs.includes(question.ref)) {
@@ -607,6 +663,7 @@ export class AgentForm {
                 loading: false,
                 progress: this.progress,
                 total: this.total,
+                ...this.totalFlags(),
                 completed: true,
                 error: null,
             });
@@ -639,6 +696,7 @@ export class AgentForm {
             await this.formOptionsConfig.onBackEvent({
                 progress: this.progress,
                 total: this.total,
+                ...this.totalFlags(),
             });
         }
     }
@@ -711,6 +769,7 @@ export class AgentForm {
     private clearError(): void {
         const container = document.getElementById(this.questionsId());
         container?.querySelectorAll(".magicfeedback-error").forEach((node) => node.remove());
+        container?.querySelectorAll('[aria-invalid="true"]').forEach((node) => node.removeAttribute("aria-invalid"));
     }
 
     private showError(message: string): void {
@@ -718,6 +777,43 @@ export class AgentForm {
         if (!container) return;
         this.clearError();
         container.insertBefore(renderError(message), container.firstChild);
+    }
+
+    /**
+     * A validation message goes under the field it is about, announced to
+     * screen readers, and the field is marked invalid. `requiredMessage` and
+     * `invalidEmailMessage` override the built-in texts.
+     */
+    private showFieldError(error: SubmitError): void {
+        const container = document.getElementById(this.questionsId());
+        if (!container) return;
+        this.clearError();
+
+        const message = error.code === "INVALID_EMAIL"
+            ? (this.formOptionsConfig.invalidEmailMessage || t(this.language, "message.invalidEmail"))
+            : (this.formOptionsConfig.requiredMessage || t(this.language, "message.required"));
+
+        const node = renderError(message);
+        node.classList.add("magicfeedback-error--field");
+        node.dataset.code = error.code;
+        node.setAttribute("role", "alert");
+        container.appendChild(node);
+
+        const field = error.code === "INVALID_EMAIL"
+            ? container.querySelector<HTMLInputElement>('input[type="email"]')
+            : null;
+        if (field) {
+            field.setAttribute("aria-invalid", "true");
+            const clear = () => {
+                field.removeAttribute("aria-invalid");
+                this.clearError();
+            };
+            field.addEventListener("input", clear, {once: true});
+        }
+    }
+
+    private totalFlags(): {totalIsEstimate: true; isDynamic: true} {
+        return {totalIsEstimate: true, isDynamic: true};
     }
 
     private startRateLimitCountdown(waitMs: number): void {
@@ -838,11 +934,49 @@ export class AgentForm {
 
     /** Seeds the render context from an integration payload fetched by `Form`. */
     public applyIntegrationContext(
-        formData: {lang?: string[]; product?: any; style?: Record<string, any>},
+        formData: {lang?: string[]; product?: any; style?: Record<string, any>; questions?: NativeQuestion[]},
     ): void {
         this.integrationData = formData;
+        this.baseQuestions = new Map(
+            (formData?.questions || []).filter((q) => q?.ref).map((q) => [q.ref, q]),
+        );
         if (formData?.lang?.length) this.language = formData.lang[0];
         if (formData?.product) this.product = formData.product;
         if (formData?.style?.primaryColor) this.primaryColor = formData.style.primaryColor;
     }
+}
+
+/**
+ * The agent API sends a base (admin-configured) question with its title,
+ * type and options but no assets, so the end labels of a scale, the
+ * exclusive answers of a multiple choice and the rest of what the admin set
+ * were lost. The survey's own question with the same ref fills them in.
+ * What the agent sent wins for type, title and options; the adapter's
+ * defaults (rating bounds guessed from the options...) give way to the
+ * question's real assets. Only when the type is the same: a question the
+ * adapter re-typed (BOOLEAN with custom options -> RADIO) keeps its own.
+ */
+export function withBaseAssets(question: NativeQuestion, base?: NativeQuestion): NativeQuestion {
+    if (!base?.assets || base.type !== question.type) return question;
+    return {...question, assets: {...(question.assets || {}), ...base.assets}};
+}
+
+/**
+ * An exclusive answer ("No, thanks") goes alone, as the checkbox list
+ * shows it: if a script or an old render left other options checked next
+ * to it, only the exclusive one is sent.
+ */
+export function keepExclusiveAnswer(answers: NativeAnswer[], question: NativeQuestion): NativeAnswer[] {
+    const exclusive: string[] = question.assets?.exclusiveAnswers || [];
+    if (question.type !== FEEDBACKAPPANSWERTYPE.MULTIPLECHOICE || exclusive.length === 0) return answers;
+
+    const own = answers.filter((a) => a.key === question.ref);
+    const values = own.flatMap((a) => (Array.isArray(a.value) ? a.value : [a.value]));
+    const chosen = values.find((v) => exclusive.includes(v));
+    if (chosen === undefined) return answers;
+
+    return [
+        ...answers.filter((a) => a.key !== question.ref && a.key !== `extra-option-${question.ref}`),
+        {key: question.ref, value: [chosen]},
+    ];
 }
