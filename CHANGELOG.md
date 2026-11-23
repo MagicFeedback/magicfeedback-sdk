@@ -7,6 +7,8 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 Please refer to the specific version number for detailed information.
 
 ## [Unreleased]
+
+## 🚀 [2.2.45] - 2026-11-23
 - **Fix (dynamic surveys, email):** an email field in an AGENT survey now refuses text that is not an email address (`test@invalid` used to be accepted and sent to the AI), with the same check as a static survey (`validateEmail`). The message ("Please enter a valid email address.", new `message.invalidEmail`, translated) shows under the field with `data-code="INVALID_EMAIL"`, `role="alert"` and `aria-invalid` on the field, and goes away when the visitor types. New option `invalidEmailMessage` overrides it.
 - **Fix (dynamic surveys, base questions):** the agent API sends a survey question without its assets, so the end labels of a scale, `exclusiveAnswers`, `minOptions` and the rest set in the Admin were lost in AGENT mode. The SDK now takes them from the survey's own question with the same ref (the `questions` of Get Survey); type, title and options stay as the agent sent them, and a question the SDK re-typed keeps its own assets.
 - **Fix (dynamic surveys, exclusive answers):** with the assets back, picking an exclusive answer ("No, thanks") unchecks the others, as in a static survey. It is also sent alone if other options were left checked, and a required question with `minOptions` is refused unless enough options or an exclusive one are picked (parity with `Form.send`).
