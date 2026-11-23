@@ -75,6 +75,7 @@ const EN = {
     "message.success": "Thank you for your feedback!",
     "message.blocked": "Thanks for your time - we'll end the conversation here.",
     "message.required": "Please answer before continuing.",
+    "message.invalidEmail": "Please enter a valid email address.",
     "message.rateLimit": "Too many requests. Retrying in {seconds}s...",
 
     // Email field @ button (assets.atButton)
@@ -124,6 +125,7 @@ const ES: Locale = {
     "message.success": "¡Gracias por tus comentarios!",
     "message.blocked": "Gracias por tu tiempo, terminamos aquí la conversación.",
     "message.required": "Por favor, responde antes de continuar.",
+    "message.invalidEmail": "Introduce un email válido.",
     "message.rateLimit": "Demasiadas solicitudes. Reintentando en {seconds} s...",
     "email.atHint": "Pulsa @ para insertar el símbolo en tu correo electrónico",
     "email.atButton": "Insertar @"
@@ -167,6 +169,7 @@ const DE: Locale = {
     "message.success": "Vielen Dank für Ihr Feedback!",
     "message.blocked": "Danke für Ihre Zeit - wir beenden das Gespräch hier.",
     "message.required": "Bitte antworten Sie, bevor Sie fortfahren.",
+    "message.invalidEmail": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
     "message.rateLimit": "Zu viele Anfragen. Erneuter Versuch in {seconds} s...",
     "email.atHint": "Tippen Sie auf @, um das Zeichen in Ihre E-Mail-Adresse einzufügen",
     "email.atButton": "@ einfügen"
@@ -210,6 +213,7 @@ const FR: Locale = {
     "message.success": "Merci pour votre retour !",
     "message.blocked": "Merci pour votre temps, nous terminons la conversation ici.",
     "message.required": "Veuillez répondre avant de continuer.",
+    "message.invalidEmail": "Veuillez saisir une adresse e-mail valide.",
     "message.rateLimit": "Trop de requêtes. Nouvelle tentative dans {seconds} s...",
     "email.atHint": "Appuyez sur @ pour insérer le symbole dans votre adresse e-mail",
     "email.atButton": "Insérer @"
@@ -253,6 +257,7 @@ const PT: Locale = {
     "message.success": "Obrigado pelo seu feedback!",
     "message.blocked": "Obrigado pelo seu tempo, encerramos a conversa por aqui.",
     "message.required": "Responda antes de continuar.",
+    "message.invalidEmail": "Introduza um endereço de e-mail válido.",
     "message.rateLimit": "Muitas solicitações. Tentando novamente em {seconds} s...",
     "email.atHint": "Toque em @ para inserir o símbolo no seu endereço de e-mail",
     "email.atButton": "Inserir @"
@@ -296,6 +301,7 @@ const DA: Locale = {
     "message.success": "Tak for din feedback!",
     "message.blocked": "Tak for din tid - vi afslutter samtalen her.",
     "message.required": "Svar venligst, før du fortsætter.",
+    "message.invalidEmail": "Indtast venligst en gyldig e-mailadresse.",
     "message.rateLimit": "For mange forespørgsler. Prøver igen om {seconds} s...",
     "email.atHint": "Tryk på @ for at indsætte symbolet i din e-mailadresse",
     "email.atButton": "Indsæt @"
@@ -339,6 +345,7 @@ const FI: Locale = {
     "message.success": "Kiitos palautteestasi!",
     "message.blocked": "Kiitos ajastasi - lopetamme keskustelun tähän.",
     "message.required": "Vastaa ennen jatkamista.",
+    "message.invalidEmail": "Anna kelvollinen sähköpostiosoite.",
     "message.rateLimit": "Liikaa pyyntöjä. Yritetään uudelleen {seconds} s kuluttua...",
     "email.atHint": "Napauta @ lisätäksesi merkin sähköpostiosoitteeseesi",
     "email.atButton": "Lisää @"
@@ -382,6 +389,7 @@ const NO: Locale = {
     "message.success": "Takk for tilbakemeldingen!",
     "message.blocked": "Takk for tiden din - vi avslutter samtalen her.",
     "message.required": "Vennligst svar før du fortsetter.",
+    "message.invalidEmail": "Skriv inn en gyldig e-postadresse.",
     "message.rateLimit": "For mange forespørsler. Prøver igjen om {seconds} s...",
     "email.atHint": "Trykk på @ for å sette inn tegnet i e-postadressen din",
     "email.atButton": "Sett inn @"
@@ -425,6 +433,7 @@ const SV: Locale = {
     "message.success": "Tack för din feedback!",
     "message.blocked": "Tack för din tid - vi avslutar samtalet här.",
     "message.required": "Svara innan du fortsätter.",
+    "message.invalidEmail": "Ange en giltig e-postadress.",
     "message.rateLimit": "För många förfrågningar. Försöker igen om {seconds} s...",
     "email.atHint": "Tryck på @ för att infoga tecknet i din e-postadress",
     "email.atButton": "Infoga @"
@@ -468,6 +477,7 @@ const AR: Locale = {
     "message.success": "شكرًا لملاحظاتك!",
     "message.blocked": "شكرًا على وقتك، سننهي المحادثة هنا.",
     "message.required": "يرجى الإجابة قبل المتابعة.",
+    "message.invalidEmail": "يرجى إدخال عنوان بريد إلكتروني صالح.",
     "message.rateLimit": "طلبات كثيرة جدًا. سنعيد المحاولة خلال {seconds} ثانية...",
     "email.atHint": "اضغط على @ لإدراج الرمز في عنوان بريدك الإلكتروني",
     "email.atButton": "إدراج @"
@@ -511,6 +521,7 @@ const BN: Locale = {
     "message.success": "আপনার মতামতের জন্য ধন্যবাদ!",
     "message.blocked": "আপনার সময়ের জন্য ধন্যবাদ, আমরা এখানেই কথোপকথন শেষ করছি।",
     "message.required": "চালিয়ে যাওয়ার আগে অনুগ্রহ করে উত্তর দিন।",
+    "message.invalidEmail": "অনুগ্রহ করে একটি সঠিক ইমেল ঠিকানা লিখুন।",
     "message.rateLimit": "অনেক বেশি অনুরোধ। {seconds} সেকেন্ডে আবার চেষ্টা করা হচ্ছে...",
     "email.atHint": "আপনার ইমেইল ঠিকানায় চিহ্নটি যোগ করতে @ চাপুন",
     "email.atButton": "@ যোগ করুন"
@@ -556,6 +567,7 @@ const IT: Locale = {
     "message.success": "Grazie per il tuo feedback!",
     "message.blocked": "Grazie per il tuo tempo – terminiamo qui la conversazione.",
     "message.required": "Rispondi prima di continuare.",
+    "message.invalidEmail": "Inserisci un indirizzo email valido.",
     "message.rateLimit": "Troppe richieste. Nuovo tentativo tra {seconds}s...",
     "email.atHint": "Tocca @ per inserire il simbolo nel tuo indirizzo email",
     "email.atButton": "Inserisci @"
@@ -599,6 +611,7 @@ const NL: Locale = {
     "message.success": "Bedankt voor je feedback!",
     "message.blocked": "Bedankt voor je tijd – we beëindigen het gesprek hier.",
     "message.required": "Beantwoord de vraag voordat je verdergaat.",
+    "message.invalidEmail": "Vul een geldig e-mailadres in.",
     "message.rateLimit": "Te veel verzoeken. Opnieuw proberen over {seconds}s...",
     "email.atHint": "Tik op @ om het symbool in je e-mailadres in te voegen",
     "email.atButton": "@ invoegen"
@@ -642,6 +655,7 @@ const PL: Locale = {
     "message.success": "Dziękujemy za Twoją opinię!",
     "message.blocked": "Dziękujemy za poświęcony czas – w tym miejscu kończymy rozmowę.",
     "message.required": "Odpowiedz, zanim przejdziesz dalej.",
+    "message.invalidEmail": "Podaj prawidłowy adres e-mail.",
     "message.rateLimit": "Zbyt wiele żądań. Ponowna próba za {seconds} s...",
     "email.atHint": "Dotknij @, aby wstawić ten symbol do adresu e-mail",
     "email.atButton": "Wstaw @"
@@ -685,6 +699,7 @@ const BG: Locale = {
     "message.success": "Благодарим Ви за обратната връзка!",
     "message.blocked": "Благодарим Ви за отделеното време – ще приключим разговора дотук.",
     "message.required": "Моля, отговорете, преди да продължите.",
+    "message.invalidEmail": "Моля, въведете валиден имейл адрес.",
     "message.rateLimit": "Твърде много заявки. Нов опит след {seconds} с...",
     "email.atHint": "Докоснете @, за да въведете символа в имейл адреса си",
     "email.atButton": "Въвеждане на @"
@@ -728,6 +743,7 @@ const CS: Locale = {
     "message.success": "Děkujeme za vaši zpětnou vazbu!",
     "message.blocked": "Děkujeme za váš čas – zde konverzaci ukončíme.",
     "message.required": "Před pokračováním prosím odpovězte.",
+    "message.invalidEmail": "Zadejte platnou e-mailovou adresu.",
     "message.rateLimit": "Příliš mnoho požadavků. Nový pokus za {seconds} s...",
     "email.atHint": "Klepnutím na @ vložíte symbol do své e-mailové adresy",
     "email.atButton": "Vložit @"
@@ -771,6 +787,7 @@ const EL: Locale = {
     "message.success": "Σας ευχαριστούμε για τα σχόλιά σας!",
     "message.blocked": "Σας ευχαριστούμε για τον χρόνο σας – θα ολοκληρώσουμε τη συζήτηση εδώ.",
     "message.required": "Απαντήστε πριν συνεχίσετε.",
+    "message.invalidEmail": "Εισαγάγετε μια έγκυρη διεύθυνση email.",
     "message.rateLimit": "Πάρα πολλά αιτήματα. Νέα προσπάθεια σε {seconds} δευτερόλεπτα...",
     "email.atHint": "Πατήστε @ για να εισαγάγετε το σύμβολο στη διεύθυνση email σας",
     "email.atButton": "Εισαγωγή @"
@@ -814,6 +831,7 @@ const ET: Locale = {
     "message.success": "Täname tagasiside eest!",
     "message.blocked": "Täname sind aja eest – lõpetame vestluse siinkohal.",
     "message.required": "Palun vasta enne jätkamist.",
+    "message.invalidEmail": "Sisestage kehtiv e-posti aadress.",
     "message.rateLimit": "Liiga palju päringuid. Uus katse {seconds} s pärast...",
     "email.atHint": "Puuduta @, et lisada sümbol oma e-posti aadressi",
     "email.atButton": "Lisa @"
@@ -857,6 +875,7 @@ const GA: Locale = {
     "message.success": "Go raibh maith agat as d'aiseolas!",
     "message.blocked": "Go raibh maith agat as do chuid ama – cuirfimid deireadh leis an gcomhrá anseo.",
     "message.required": "Freagair sula leanann tú ar aghaidh, le do thoil.",
+    "message.invalidEmail": "Cuir isteach seoladh ríomhphoist bailí.",
     "message.rateLimit": "An iomarca iarratas. Triail eile i gceann {seconds} s...",
     "email.atHint": "Tapáil @ chun an tsiombail a chur isteach i do sheoladh ríomhphoist",
     "email.atButton": "Cuir isteach @"
@@ -900,6 +919,7 @@ const HR: Locale = {
     "message.success": "Hvala vam na povratnim informacijama!",
     "message.blocked": "Hvala vam na vremenu – ovdje ćemo završiti razgovor.",
     "message.required": "Molimo odgovorite prije nastavka.",
+    "message.invalidEmail": "Unesite valjanu adresu e-pošte.",
     "message.rateLimit": "Previše zahtjeva. Ponovni pokušaj za {seconds} s...",
     "email.atHint": "Dodirnite @ da biste umetnuli znak u svoju e-adresu",
     "email.atButton": "Umetni @"
@@ -943,6 +963,7 @@ const HU: Locale = {
     "message.success": "Köszönjük a visszajelzését!",
     "message.blocked": "Köszönjük, hogy időt szánt ránk – itt befejezzük a beszélgetést.",
     "message.required": "Kérjük, válaszoljon a továbblépés előtt.",
+    "message.invalidEmail": "Adjon meg egy érvényes e-mail-címet.",
     "message.rateLimit": "Túl sok kérés. Újrapróbálkozás {seconds} mp múlva...",
     "email.atHint": "Koppintson a @ gombra a jel beszúrásához az e-mail-címébe",
     "email.atButton": "@ beszúrása"
@@ -986,6 +1007,7 @@ const LT: Locale = {
     "message.success": "Dėkojame už atsiliepimą!",
     "message.blocked": "Dėkojame už jūsų laiką – čia pokalbį baigsime.",
     "message.required": "Prieš tęsdami atsakykite.",
+    "message.invalidEmail": "Įveskite galiojantį el. pašto adresą.",
     "message.rateLimit": "Per daug užklausų. Bandoma iš naujo po {seconds} s...",
     "email.atHint": "Bakstelėkite @, kad įterptumėte simbolį į savo el. pašto adresą",
     "email.atButton": "Įterpti @"
@@ -1029,6 +1051,7 @@ const LV: Locale = {
     "message.success": "Paldies par Jūsu atsauksmi!",
     "message.blocked": "Paldies par veltīto laiku – šeit sarunu beigsim.",
     "message.required": "Lūdzu, atbildiet, pirms turpināt.",
+    "message.invalidEmail": "Lūdzu, ievadiet derīgu e-pasta adresi.",
     "message.rateLimit": "Pārāk daudz pieprasījumu. Atkārtots mēģinājums pēc {seconds} s...",
     "email.atHint": "Pieskarieties @, lai e-pasta adresē ievietotu šo simbolu",
     "email.atButton": "Ievietot @"
@@ -1072,6 +1095,7 @@ const MT: Locale = {
     "message.success": "Grazzi tal-feedback tiegħek!",
     "message.blocked": "Grazzi tal-ħin tiegħek – se nwaqqfu l-konversazzjoni hawn.",
     "message.required": "Jekk jogħġbok wieġeb qabel ma tkompli.",
+    "message.invalidEmail": "Jekk jogħġbok daħħal indirizz tal-email validu.",
     "message.rateLimit": "Wisq talbiet. Nerġgħu nippruvaw f'{seconds}s...",
     "email.atHint": "Agħfas @ biex iddaħħal is-simbolu fl-indirizz tal-email tiegħek",
     "email.atButton": "Daħħal @"
@@ -1115,6 +1139,7 @@ const RO: Locale = {
     "message.success": "Vă mulțumim pentru feedback!",
     "message.blocked": "Vă mulțumim pentru timpul acordat – vom încheia conversația aici.",
     "message.required": "Vă rugăm să răspundeți înainte de a continua.",
+    "message.invalidEmail": "Introduceți o adresă de e-mail validă.",
     "message.rateLimit": "Prea multe solicitări. Reîncercăm în {seconds} s...",
     "email.atHint": "Atingeți @ pentru a insera simbolul în adresa de e-mail",
     "email.atButton": "Inserați @"
@@ -1158,6 +1183,7 @@ const SK: Locale = {
     "message.success": "Ďakujeme za vašu spätnú väzbu!",
     "message.blocked": "Ďakujeme za váš čas – tu konverzáciu ukončíme.",
     "message.required": "Pred pokračovaním, prosím, odpovedzte.",
+    "message.invalidEmail": "Zadajte platnú e-mailovú adresu.",
     "message.rateLimit": "Príliš veľa požiadaviek. Opakujeme o {seconds} s...",
     "email.atHint": "Ťuknutím na @ vložíte symbol do e-mailovej adresy",
     "email.atButton": "Vložiť @"
@@ -1201,6 +1227,7 @@ const SL: Locale = {
     "message.success": "Hvala za vaše povratne informacije!",
     "message.blocked": "Hvala za vaš čas – pogovor bomo tukaj zaključili.",
     "message.required": "Pred nadaljevanjem odgovorite na vprašanje.",
+    "message.invalidEmail": "Vnesite veljaven e-poštni naslov.",
     "message.rateLimit": "Preveč zahtev. Ponoven poskus čez {seconds} s...",
     "email.atHint": "Tapnite @, da vstavite simbol v e-poštni naslov",
     "email.atButton": "Vstavi @"
@@ -1244,6 +1271,7 @@ const CA: Locale = {
     "message.success": "Gràcies pels teus comentaris!",
     "message.blocked": "Gràcies pel teu temps, acabem aquí la conversa.",
     "message.required": "Si us plau, respon abans de continuar.",
+    "message.invalidEmail": "Introdueix un correu electrònic vàlid.",
     "message.rateLimit": "Massa sol·licituds. Es tornarà a provar d'aquí a {seconds} s...",
     "email.atHint": "Toca @ per inserir el símbol a la teva adreça de correu",
     "email.atButton": "Insereix @"

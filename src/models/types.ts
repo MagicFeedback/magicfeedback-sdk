@@ -410,6 +410,8 @@ export type agentFormOptions = generateFormOptions & {
     blockedMessage?: string;
     /** Error shown when a required question is submitted empty. */
     requiredMessage?: string;
+    /** Error shown when an email field holds text that is not an email address. */
+    invalidEmailMessage?: string;
     /** Message shown while backing off from a 429. `{seconds}` is interpolated. */
     rateLimitMessage?: string;
     /** Restore an in-flight session from localStorage on generate(). Default true. */

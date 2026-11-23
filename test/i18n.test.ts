@@ -63,6 +63,7 @@ const KEYS: TranslationKey[] = [
     "message.success",
     "message.blocked",
     "message.required",
+    "message.invalidEmail",
     "message.rateLimit",
     "email.atHint",
     "email.atButton",
