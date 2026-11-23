@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Follow up prefetch (mock)</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 24px; background: #fff; color: #111; }
+        .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        pre { background: #f4f4f5; padding: 12px; font-size: 12px; white-space: pre-wrap; min-height: 200px; }
+        #wait { font-weight: 600; }
+    </style>
+</head>
+<body>
+<h1>Follow up asked for while typing (DD-281)</h1>
+<p>No backend needed: the API is stubbed. Each follow up takes 1 s, like the real endpoint. Type in the
+    first question, then press Next. "Wait after Next" is the time from Next to the follow up on screen.</p>
+<p>Wait after Next: <span id="wait">-</span></p>
+<div class="cols">
+    <div id="demo"></div>
+    <pre id="net"></pre>
+</div>
+<script>
+    const FOLLOWUP_LATENCY_MS = 1000;
+    const netEl = document.getElementById("net");
+    const t0 = Date.now();
+    const log = (line) => { netEl.textContent += `${((Date.now() - t0) / 1000).toFixed(2)}s  ${line}\n`; };
+
+    const q = (id, title, type, position, followup) => ({
+        id, title, type, ref: id, position, followup, require: true, status: "ACTIVE", value: [], assets: {},
+        questionType: {conf: null}, appId: "mock-integration", integrationId: "mock-integration", followupQuestion: [],
+    });
+    const INFO = {
+        id: "mock-integration", name: "Follow up mock", identity: "MAGICSURVEY", status: "ACTIVE", lang: ["en"],
+        product: {id: "p"}, style: {}, pages: [],
+        questions: [
+            q("q1", "What could we do better?", "LONGTEXT", 1, true),
+            q("q2", "Anything else?", "TEXT", 2, false),
+        ],
+    };
+
+    let nextAt = null;
+    function reply(url, bodyText) {
+        const body = bodyText ? JSON.parse(bodyText) : null;
+        if (url.includes("/sdk/followUpQuestion")) {
+            log(`POST followUpQuestion  answer="${body.answer}"  previous=${body.previousAnswers.length} upcoming=${body.upcomingQuestions.length}`);
+            const followUp = {...body.question, ref: body.question.ref + "-followup", type: "LONGTEXT", followup: false,
+                title: `Why "${body.answer}"?`};
+            return {status: 200, body: JSON.stringify(followUp), delay: FOLLOWUP_LATENCY_MS, done: () => log(`  <- follow up for "${body.answer}"`)};
+        }
+        if (url.includes("/sdk/feedback")) {
+            log("POST feedback");
+            return {status: 200, body: JSON.stringify({sessionId: "session-1"}), delay: 150};
+        }
+        if (url.includes("/sdk/app/")) return {status: 200, body: JSON.stringify(INFO), delay: 50};
+        return null;
+    }
+
+    // The SDK uses cross-fetch, built on XMLHttpRequest (see agent-mock.html)
+    const RealXHR = window.XMLHttpRequest;
+    window.XMLHttpRequest = function MockXHR() {
+        const real = new RealXHR();
+        let url = "", intercepted = null;
+        const self = {
+            open(m, u, a) { url = String(u); real.open(m, u, a); },
+            setRequestHeader(k, v) { if (!intercepted) real.setRequestHeader(k, v); },
+            send(body) {
+                intercepted = reply(url, body);
+                if (!intercepted) return real.send(body);
+                setTimeout(() => {
+                    intercepted.done?.();
+                    Object.assign(self, {status: intercepted.status, statusText: "OK", responseText: intercepted.body,
+                        response: intercepted.body, responseURL: url, readyState: 4});
+                    self.onreadystatechange?.();
+                    self.onload?.();
+                }, intercepted.delay);
+            },
+            getAllResponseHeaders() { return intercepted ? "content-type: application/json" : real.getAllResponseHeaders(); },
+            abort() { real.abort(); },
+            readyState: 0, status: 0, statusText: "", response: "", responseText: "", responseURL: "",
+            withCredentials: false, responseType: "",
+            onload: null, onerror: null, ontimeout: null, onabort: null, onreadystatechange: null,
+        };
+        return self;
+    };
+</script>
+<script src="../../dist/magicfeedback-sdk.browser.js"></script>
+<script>
+    window.magicfeedback.init({env: "dev", debug: false});
+    const form = window.magicfeedback.form("mock-integration", "pk_mock");
+    form.generate("demo", {
+        addButton: true,
+        lang: "en",
+        beforeSubmitEvent: () => { nextAt = Date.now(); log("Next pressed"); },
+        afterSubmitEvent: (e) => {
+            if (e.followup && nextAt) {
+                const ms = Date.now() - nextAt;
+                document.getElementById("wait").textContent = `${ms} ms`;
+                log(`follow up on screen (${ms} ms after Next)`);
+            }
+        },
+    });
+</script>
+</body>
+</html>

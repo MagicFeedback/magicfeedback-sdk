@@ -37,6 +37,19 @@ const FOLLOWUP_SKIPPED_PREVIOUS_TYPES: FEEDBACKAPPANSWERTYPE[] = [
     FEEDBACKAPPANSWERTYPE.MAX_DIFF,
 ];
 
+/**
+ * DD-281: how long the respondent has to stop typing in an open question with
+ * follow up before the follow up is asked for, so it is ready on Next.
+ */
+export const FOLLOWUP_PREFETCH_IDLE_MS = 800;
+
+/** A follow up asked for ahead of Next, for one answer of one question. */
+type FollowUpPrefetch = {
+    answer: string;
+    promise: Promise<NativeQuestion | null>;
+    done: boolean;
+};
+
 /** The text of an HTML snippet (end screen messages are rich text). */
 function htmlToText(html: string | undefined): string {
     if (!html) return "";
@@ -95,6 +108,13 @@ export class Form {
 
     // `?autoadvance=true` acts on the first page shown only, once per load.
     private urlAutoAdvanceChecked = false;
+
+    // DD-281: follow ups asked for while the respondent types, by question ref
+    // (only the last answer of each question is kept), the last answer typed
+    // and the pending "stopped typing" timers.
+    private readonly followUpPrefetches = new Map<string, FollowUpPrefetch>();
+    private readonly followUpLatestAnswer = new Map<string, string>();
+    private readonly followUpPrefetchTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
     /**
      *
@@ -491,6 +511,7 @@ export class Form {
                 questionContainer.appendChild(element));
             form.appendChild(questionContainer);
             armGhostTapGuard(questionContainer);
+            this.listenForFollowUpPrefetch(questionContainer);
 
             // Add the new page to the history
             this.history.enqueue(page);
@@ -1379,12 +1400,31 @@ export class Form {
             return null;
         }
 
+        // DD-281: asked for while the respondent typed. Used only when it was
+        // asked for this very answer (ready, or waited for if still in flight).
+        this.cancelFollowUpPrefetchTimer(question.ref);
+        const prefetched = this.followUpPrefetches.get(question.ref);
+        if (prefetched && prefetched.answer === answerValue) {
+            this.log.log(`Using the follow up of ${question.ref} asked for while typing`);
+            return await prefetched.promise;
+        }
+
+        return await this.requestFollowUp(question, answerValue);
+    }
+
+    /**
+     * POST /sdk/followUpQuestion for `answer` to `question`. Never throws: a
+     * follow up is an enrichment, never a gate, so a failure is logged and the
+     * survey continues with the next page (null).
+     * @private
+     */
+    private async requestFollowUp(question: NativeQuestion, answer: any): Promise<NativeQuestion | null> {
         try {
             // Define the URL and request payload
             const url = this.config.get("url");
 
             const body = {
-                answer: answerValue,
+                answer,
                 ...(this.publicKey !== '' && {publicKey: this.publicKey}),
                 ...(this.publicKey === '' && {campaignSessionId: this.appId}),
                 sessionId: this.id,
@@ -1401,14 +1441,91 @@ export class Form {
                 this.log,
             );
         } catch (error) {
-            // A follow up is an enrichment, never a gate: log the failure and
-            // let the survey continue with the next page.
             this.log.err(
                 `An error occurred while requesting the follow up of ${question.ref} in the form ${this.appId}:`,
                 error
             );
             return null;
         }
+    }
+
+    /**
+     * DD-281: ask for the follow up of an open question while the respondent
+     * types, so it is ready when they press Next instead of making them wait
+     * for the AI. Asked when they stop typing for FOLLOWUP_PREFETCH_IDLE_MS or
+     * leave the field. One listener on the questions container, which stays
+     * the same for every page.
+     * @private
+     */
+    private listenForFollowUpPrefetch(container: HTMLElement) {
+        container.addEventListener("input", (event) => this.onFollowUpTyping(event.target, false));
+        // blur does not bubble, focusout does
+        container.addEventListener("focusout", (event) => this.onFollowUpTyping(event.target, true));
+    }
+
+    private onFollowUpTyping(target: EventTarget | null, leftField: boolean) {
+        const question = this.followUpQuestionOf(target);
+        if (!question) return;
+        const input = target as HTMLInputElement | HTMLTextAreaElement;
+
+        this.cancelFollowUpPrefetchTimer(question.ref);
+        if (leftField) {
+            this.prefetchFollowUp(question, input.value);
+            return;
+        }
+        this.followUpPrefetchTimers.set(question.ref, setTimeout(() => {
+            this.followUpPrefetchTimers.delete(question.ref);
+            this.prefetchFollowUp(question, input.value);
+        }, FOLLOWUP_PREFETCH_IDLE_MS));
+    }
+
+    /**
+     * The open question with follow up (TEXT or LONGTEXT) of the page being
+     * answered that `target` is the field of. Never on a follow up page: a
+     * follow up never chains another one.
+     * @private
+     */
+    private followUpQuestionOf(target: EventTarget | null): NativeQuestion | null {
+        if (this.agentForm) return null;
+        if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return null;
+        const page = this.history.back();
+        if (!page || page.isFollowup) return null;
+        const question = page.questions.find((q) => q.ref === target.name);
+        if (!question?.followup) return null;
+        const openTypes = [FEEDBACKAPPANSWERTYPE.TEXT, FEEDBACKAPPANSWERTYPE.LONGTEXT];
+        return openTypes.includes(question.type as FEEDBACKAPPANSWERTYPE) ? question : null;
+    }
+
+    private cancelFollowUpPrefetchTimer(ref: string) {
+        const timer = this.followUpPrefetchTimers.get(ref);
+        if (timer !== undefined) clearTimeout(timer);
+        this.followUpPrefetchTimers.delete(ref);
+    }
+
+    /**
+     * Ask for the follow up of `answer`, unless it was already asked for. At
+     * most one request in flight per question (each is an LLM call and the
+     * endpoint is rate limited): an answer typed meanwhile is asked for when
+     * the one in flight comes back. Nothing for an empty answer.
+     * @private
+     */
+    private prefetchFollowUp(question: NativeQuestion, answer: string) {
+        this.followUpLatestAnswer.set(question.ref, answer);
+        if (answer.trim() === "") return;
+
+        const current = this.followUpPrefetches.get(question.ref);
+        if (current?.answer === answer) return;
+        if (current && !current.done) return;
+
+        const prefetch: FollowUpPrefetch = {answer, done: false, promise: Promise.resolve(null)};
+        prefetch.promise = this.requestFollowUp(question, answer).then((followUp) => {
+            prefetch.done = true;
+            const latest = this.followUpLatestAnswer.get(question.ref);
+            const stillOnPage = this.history.back()?.questions.some((q) => q.ref === question.ref);
+            if (latest !== undefined && latest !== answer && stillOnPage) this.prefetchFollowUp(question, latest);
+            return followUp;
+        });
+        this.followUpPrefetches.set(question.ref, prefetch);
     }
 
     /**
