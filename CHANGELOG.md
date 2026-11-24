@@ -7,6 +7,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 Please refer to the specific version number for detailed information.
 
 ## [Unreleased]
+- **Fix (long words):** a long word or URL with no spaces in a question title, subtitle or info / start message now wraps to the next line instead of running off the card (Lemu: an info page with "Hehehe…" was cut on the right). `overflow-wrap: break-word`, so only a word that does not fit is broken and nothing in a flex row gets narrower.
 
 ## 🚀 [2.2.46] - 2026-11-24
 - **Change (follow up, DD-281):** the follow up of an open question (TEXT/LONGTEXT) is asked for while the respondent types: after 800 ms without a key (`FOLLOWUP_PREFETCH_IDLE_MS`) or when they leave the field. Next uses that result when it was asked for the final answer (waiting for it if still in flight), so the ~1 s wait after Next is gone; otherwise it asks on Next as before. Same request body (V3 and V4), nothing for empty answers, at most one request in flight per question. Other question types with follow up are unchanged.
