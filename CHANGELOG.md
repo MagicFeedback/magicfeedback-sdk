@@ -7,6 +7,8 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 Please refer to the specific version number for detailed information.
 
 ## [Unreleased]
+- **Change (follow up, DD-281):** the follow up of an open question (TEXT/LONGTEXT) is asked for while the respondent types: after 800 ms without a key (`FOLLOWUP_PREFETCH_IDLE_MS`) or when they leave the field. Next uses that result when it was asked for the final answer (waiting for it if still in flight), so the ~1 s wait after Next is gone; otherwise it asks on Next as before. Same request body (V3 and V4), nothing for empty answers, at most one request in flight per question. Other question types with follow up are unchanged.
+- **Tests:** `test/followup-prefetch.form.test.ts`. Manual page: `examples/frontend/followup-prefetch-mock.html` (API stubbed, 1 s follow up).
 
 ## 🚀 [2.2.45] - 2026-11-23
 - **Fix (dynamic surveys, email):** an email field in an AGENT survey now refuses text that is not an email address (`test@invalid` used to be accepted and sent to the AI), with the same check as a static survey (`validateEmail`). The message ("Please enter a valid email address.", new `message.invalidEmail`, translated) shows under the field with `data-code="INVALID_EMAIL"`, `role="alert"` and `aria-invalid` on the field, and goes away when the visitor types. New option `invalidEmailMessage` overrides it.
