@@ -7,6 +7,7 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 Please refer to the specific version number for detailed information.
 
 ## [Unreleased]
+- **Fix (long words):** a long word or URL with no spaces in a question title, subtitle or info / start message now wraps to the next line instead of running off the card (Lemu: an info page with "Hehehe…" was cut on the right). `overflow-wrap: break-word`, so only a word that does not fit is broken and nothing in a flex row gets narrower.
 
 ## 🚀 [2.2.45] - 2026-11-23
 - **Fix (dynamic surveys, email):** an email field in an AGENT survey now refuses text that is not an email address (`test@invalid` used to be accepted and sent to the AI), with the same check as a static survey (`validateEmail`). The message ("Please enter a valid email address.", new `message.invalidEmail`, translated) shows under the field with `data-code="INVALID_EMAIL"`, `role="alert"` and `aria-invalid` on the field, and goes away when the visitor types. New option `invalidEmailMessage` overrides it.
