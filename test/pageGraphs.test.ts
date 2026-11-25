@@ -881,6 +881,43 @@ describe('pageGraphs', () => {
             });
         });
 
+        describe('rule order (DD-483)', () => {
+            const overlapping = (positions: [number, number], generated: [string, string]) => {
+                const q = defaultQuestions(1, false);
+                const low = new PageRoute('low', '1', OperatorType.LESSEQUAL, ['3'], TransitionType.PAGE, 'b', 'a', ConditionType.LOGICAL, positions[0]);
+                const one = new PageRoute('one', '1', OperatorType.EQUAL, ['1'], TransitionType.PAGE, 'c', 'a', ConditionType.LOGICAL, positions[1]);
+                low.generatedAt = generated[0];
+                one.generatedAt = generated[1];
+                const always = new PageRoute('always', '', OperatorType.EQUAL, [], TransitionType.PAGE, 'd', 'a', ConditionType.DIRECT, 0);
+                always.generatedAt = '2020-01-01T00:00:00Z';
+                return new PageGraph([
+                    new Page('a', 1, 'int', [q], [always, one, low]),
+                    new Page('b', 2, 'int', [defaultQuestions(2, false)], []),
+                    new Page('c', 3, 'int', [defaultQuestions(3, false)], []),
+                    new Page('d', 4, 'int', [defaultQuestions(4, false)], []),
+                ]);
+            };
+
+            test('position decides which matching rule wins, not created date', () => {
+                const g = overlapping([1, 0], ['2026-01-01T00:00:00Z', '2026-02-01T00:00:00Z']);
+                expect(g.getNextPage(g.getNodeById('a')!, [{key: '1', value: ['1']}])!.id).toBe('c');
+                const g2 = overlapping([0, 1], ['2026-02-01T00:00:00Z', '2026-01-01T00:00:00Z']);
+                expect(g2.getNextPage(g2.getNodeById('a')!, [{key: '1', value: ['1']}])!.id).toBe('b');
+            });
+
+            test('equal positions keep the created-date order', () => {
+                const g = overlapping([0, 0], ['2026-02-01T00:00:00Z', '2026-01-01T00:00:00Z']);
+                expect(g.getNextPage(g.getNodeById('a')!, [{key: '1', value: ['1']}])!.id).toBe('c');
+            });
+
+            test('DIRECT ("Otherwise") stays last whatever its position', () => {
+                const g = overlapping([1, 2], ['2026-01-01T00:00:00Z', '2026-02-01T00:00:00Z']);
+                const node = g.getNodeById('a')!;
+                expect(node.edges[node.edges.length - 1].id).toBe('always');
+                expect(g.getNextPage(node, [{key: '1', value: ['5']}])!.id).toBe('d');
+            });
+        });
+
         describe('FINISH transition', () => {
             test('LOGICAL route with FINISH returns undefined', () => {
                 const q = defaultQuestions(1, false);
