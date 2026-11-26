@@ -6,7 +6,8 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## [Unreleased]
+## 🚀 [2.2.47] - 2026-11-26
+- **Fix (condition order, DD-483):** a page's jump rules are now checked in the order set in the Admin (`position`), then by created date for rules never reordered; the DIRECT ("Always" / "Otherwise") rule is always last. Before, only the created date counted, so with two rules that both match, the Admin order was ignored.
 - **Fix (long words):** a long word or URL with no spaces in a question title, subtitle or info / start message now wraps to the next line instead of running off the card (Lemu: an info page with "Hehehe…" was cut on the right). `overflow-wrap: break-word`, so only a word that does not fit is broken and nothing in a flex row gets narrower.
 
 ## 🚀 [2.2.46] - 2026-11-24
