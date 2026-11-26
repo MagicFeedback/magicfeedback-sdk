@@ -1433,6 +1433,9 @@ export class Form {
                 // what a later question of the survey will ask anyway.
                 previousAnswers: this.previousAnswers(question),
                 upcomingQuestions: this.upcomingQuestions(),
+                // The language the respondent sees: closed answers go in the
+                // base language, so the follow up can't tell it from them (DD-495).
+                lang: this.lang(),
             }
 
             return await getFollowUpQuestion(

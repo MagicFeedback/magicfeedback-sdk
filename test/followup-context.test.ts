@@ -219,4 +219,17 @@ describe("Follow up context", () => {
         expect(body.previousAnswers).toEqual([{title: "Q1", answer: "first"}]);
         expect(body.upcomingQuestions).toEqual([{title: "Q3"}]);
     });
+
+    test("the follow up request says the language the survey is shown in (DD-495)", async () => {
+        const current = question("q2", "Q2", FEEDBACKAPPANSWERTYPE.TEXT, true);
+        const pages = [new Page("p2", 2, "integration-1", [current], [])];
+        const form = setup(pages, ["p2"], {p2: [{key: "q2", value: ["Great"]}]});
+        (form as any).activeLang = "en";
+        (form as any).feedback.answers = [{key: "q2", value: ["Great"]}];
+        requestService.getFollowUpQuestion.mockResolvedValueOnce(null);
+
+        await (form as any).callFollowUpQuestion(current);
+
+        expect(requestService.getFollowUpQuestion.mock.calls[0][1].lang).toBe("en");
+    });
 });
