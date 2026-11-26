@@ -13,12 +13,19 @@ export const renderMatrix: QuestionRenderer = ({
     const matrixContainer = document.createElement("div");
     matrixContainer.classList.add("magicfeedback-multi-question-matrix-container");
 
-    let options = assets?.options || [];
+    // Rows: `options` are the base-language rows the answers are stored by;
+    // `optionLabels` (multi-language surveys, DD-495) is what to show for each.
+    const baseRows: string[] = Array.isArray(assets?.options) ? assets.options : [];
+    const shownRows: unknown[] = Array.isArray(assets?.optionLabels) ? assets.optionLabels : [];
+    let rows = baseRows.map((row, i) => ({
+        key: row,
+        label: typeof shownRows[i] === "string" && (shownRows[i] as string).trim() !== "" ? shownRows[i] as string : row,
+    }));
     let values = [...value];
     let exclusiveValues: string[] = [];
 
     if (randomPosition) {
-        options = options?.sort(() => Math.random() - 0.5);
+        rows = [...rows].sort(() => Math.random() - 0.5);
         values = [...values].sort(() => Math.random() - 0.5);
     }
 
@@ -33,7 +40,7 @@ export const renderMatrix: QuestionRenderer = ({
         const list = document.createElement("div");
         list.classList.add("magicfeedback-multi-question-matrix-list");
 
-        options?.forEach((questionText: string) => {
+        rows.forEach(({key: questionText, label: rowLabel}) => {
             const row = document.createElement("div");
             row.classList.add("magicfeedback-multi-question-matrix-list-item");
             row.style.display = "flex";
@@ -44,7 +51,7 @@ export const renderMatrix: QuestionRenderer = ({
             const label = document.createElement("label");
             label.classList.add("magicfeedback-multi-question-matrix-label");
             label.style.paddingBottom = "10px";
-            label.textContent = questionText;
+            label.textContent = rowLabel;
             row.appendChild(label);
 
             values.forEach((option) => {
@@ -98,7 +105,7 @@ export const renderMatrix: QuestionRenderer = ({
 
         const body = document.createElement("tbody");
 
-        options?.forEach((questionText: string) => {
+        rows.forEach(({key: questionText, label: rowLabel}) => {
             const row = document.createElement("tr");
             row.classList.add("magicfeedback-multi-question-matrix-row-tr");
 
@@ -106,7 +113,7 @@ export const renderMatrix: QuestionRenderer = ({
             questionCell.classList.add("magicfeedback-multi-question-matrix-question");
             const label = document.createElement("label");
             label.classList.add("magicfeedback-multi-question-matrix-label");
-            label.textContent = questionText;
+            label.textContent = rowLabel;
 
             questionCell.appendChild(label);
             row.appendChild(questionCell);
