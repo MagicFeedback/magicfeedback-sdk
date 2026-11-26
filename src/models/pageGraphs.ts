@@ -19,15 +19,11 @@ export class PageGraph {
      * */
     private buildGraph(pages: Page[]) {
         pages.forEach((page) => {
-            // Sort by created date and then by type of transition (logical first)
-            if (page.integrationPageRoutes) page.integrationPageRoutes = page.integrationPageRoutes?.sort((a, b) => {
-                const aTime = new Date(a?.generatedAt || 0).getTime();
-                const bTime = new Date(b?.generatedAt || 0).getTime();
-                if (aTime !== bTime) return aTime - bTime;
-                if (a.typeCondition === 'DIRECT' && b.typeCondition !== 'DIRECT') return 1;
-                if (a.typeCondition !== 'DIRECT' && b.typeCondition === 'DIRECT') return -1;
-                return 0;
-            }) || [];
+            // Rule order (DD-483): the first route that matches wins, so they are
+            // checked in the order set in the Admin (`position`), with the DIRECT
+            // ("Otherwise") route always last. Equal positions (rules saved before
+            // the order could be changed) keep the old order: by created date.
+            if (page.integrationPageRoutes) page.integrationPageRoutes = PageGraph.sortRoutes(page.integrationPageRoutes);
 
             const node: PageNode = new PageNode(
                 page.id,
@@ -38,6 +34,24 @@ export class PageGraph {
                 page.integrationQuestions
             );
             this.nodes.set(node.id, node);
+        });
+    }
+
+    /**
+     * Routes in the order they are checked: DIRECT last, then `position`,
+     * then created date.
+     */
+    static sortRoutes(routes: PageRoute[]): PageRoute[] {
+        return [...(routes || [])].sort((a, b) => {
+            const aDirect = a.typeCondition === ConditionType.DIRECT;
+            const bDirect = b.typeCondition === ConditionType.DIRECT;
+            if (aDirect !== bDirect) return aDirect ? 1 : -1;
+            const aPos = Number(a?.position) || 0;
+            const bPos = Number(b?.position) || 0;
+            if (aPos !== bPos) return aPos - bPos;
+            const aTime = new Date(a?.generatedAt || 0).getTime();
+            const bTime = new Date(b?.generatedAt || 0).getTime();
+            return aTime - bTime;
         });
     }
 
