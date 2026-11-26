@@ -6,14 +6,14 @@ We recommend keeping your SDK up-to-date to benefit from the latest features, bu
 
 Please refer to the specific version number for detailed information.
 
-## [Unreleased]
-
-## 🚀 [2.2.47] - 2026-11-26
+## 🚀 [2.2.48] - 2026-11-26
 - **Fix (follow up language, DD-495, FCK):** the follow up request now carries `lang`, the language the survey is shown in. Closed answers are sent in the survey's base language, so on the English version of a Danish survey the AI follow up came back in Danish. The API uses it to tell AI Events the language to write in.
 - **Fix (matrix rows, DD-495, FCK):** a matrix shows its rows in the survey language when the API serves `assets.optionLabels` (translated rows, aligned with `assets.options`). The radio names and the stored answers keep the base-language rows, so reports, routes and required checks are unchanged. Without `optionLabels` nothing changes.
+- **Tests:** `test/renderMatrix.test.ts`, `test/followup-context.test.ts`.
+
+## 🚀 [2.2.47] - 2026-11-26
+- **Fix (condition order, DD-483):** a page's jump rules are now checked in the order set in the Admin (`position`), then by created date for rules never reordered; the DIRECT ("Always" / "Otherwise") rule is always last. Before, only the created date counted, so with two rules that both match, the Admin order was ignored.
 - **Fix (long words):** a long word or URL with no spaces in a question title, subtitle or info / start message now wraps to the next line instead of running off the card (Lemu: an info page with "Hehehe…" was cut on the right). `overflow-wrap: break-word`, so only a word that does not fit is broken and nothing in a flex row gets narrower.
-- **Fix (routing, DD-483):** jump rules are checked in the order set in the Admin (`position`), with the DIRECT ("Otherwise") rule always last; equal positions keep the old order (created date).
-- **Tests:** `test/renderMatrix.test.ts`, `test/followup-context.test.ts`, `test/pageGraphs.test.ts`.
 
 ## 🚀 [2.2.46] - 2026-11-24
 - **Change (follow up, DD-281):** the follow up of an open question (TEXT/LONGTEXT) is asked for while the respondent types: after 800 ms without a key (`FOLLOWUP_PREFETCH_IDLE_MS`) or when they leave the field. Next uses that result when it was asked for the final answer (waiting for it if still in flight), so the ~1 s wait after Next is gone; otherwise it asks on Next as before. Same request body (V3 and V4), nothing for empty answers, at most one request in flight per question. Other question types with follow up are unchanged.
